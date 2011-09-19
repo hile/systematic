@@ -1,0 +1,86 @@
+#!/usr/bin/env python
+#
+# Connect, disconnect or show status of a VPN connection in OS/X.
+#
+# Can be used for OS/X integrated VPN connections only. VPN will still
+# ask password in a graphical window, if not permanently configured, so you 
+# can't run this headless remotely.
+#
+# If you can figure out how to enter the VPN passphrase, please send the info
+# to hile@iki.fi and I'll update the module and this script to allow entering
+# the passwords as well.
+#
+
+import sys,time,logging
+from optparse import OptionParser
+from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
+
+# Name of your VPN service
+DEFAULT_CONNECTION="NXme"
+
+parser = OptionParser()
+parser.set_usage("""%s <start|stop|status>
+
+Connect, disconnect or show status of VPN connection.""" % sys.argv[0])
+parser.set_defaults(name=DEFAULT_CONNECTION)
+parser.add_option('-n','--name',dest='name',type='string',help='Connection name')
+parser.add_option('-w','--wait',dest='wait',action='store_true',help='Wait for connect/disconnect')
+parser.add_option('-v','--verbose',dest='verbose',action='store_true',help='Show verbose messages')
+(opts,args) = parser.parse_args()
+if opts.verbose:
+    logging.basicConfig(level=logging.INFO)
+
+n = NetworkConnection(opts.name)
+if len(args) == 0:
+    print parser.get_usage()
+    sys.exit(1)
+
+if args[0] in ['start','connect']:
+    if n.connected:
+        print 'Already connected.'
+        sys.exit(0)
+    n.connect()
+    if opts.wait:
+        logging.info('Waiting for VPN connection...')
+        while True:
+            if n.connected: 
+                break
+            time.sleep(1)
+elif args[0] in ['stop','disconnect']:
+    if not n.connected:
+        print 'Not connected'
+        sys.exit(0)
+    n.disconnect()
+    if opts.wait:
+        logging.info('Waiting for VPN disconnect...')
+        while True:
+            if not n.connected: 
+                break
+            time.sleep(1)
+    while True:
+        if not n.connected: 
+            break
+        time.sleep(1)
+elif args[0] in ['status']:
+    if n.connected:
+        print '%s is connected' % n.name
+        sys.exit(0)
+    else:
+        '%s is not connected' % n.name
+        sys.exit(1) 
+elif args[0] in ['wait']:
+    try:
+        while True:
+            if n.connected: 
+                break
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print 'Interrupted.'
+        sys.exit(1)
+else:
+    print parser.get_usage()
+    sys.exit(1)
+
+sys.exit(0)
+

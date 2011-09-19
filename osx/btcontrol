@@ -1,0 +1,127 @@
+#!/usr/bin/env python
+#
+# Connect, disconnect or show status of a dialup connection in OS/X.
+#
+
+import sys,os
+from optparse import OptionParser
+from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
+
+parser = OptionParser()
+parser.set_usage("""%s <start|stop|status>
+
+Connect, disconnect or show status of dialup connections.""" % sys.argv[0])
+parser.add_option('-n','--name',dest='name',type='string',help='Connection name')
+parser.add_option('-w','--wait',dest='wait',action='store_true',help='Wait for connect/disconnect')
+parser.add_option('-l','--list',dest='list',action='store_true',help='List connections')
+parser.add_option('-v','--verbose',dest='verbose',action='store_true',help='Show verbose messages')
+(opts,args) = parser.parse_args()
+if opts.verbose:
+    logging.basicConfig(level=logging.INFO)
+
+npl = NetworkProfileList()
+if opts.list:
+    links = npl.filter('dialup')
+    if len(links) == 0:
+        print 'No dialup connections defined.'
+        sys.exit(1)
+    for l in links:
+        print l.name
+    sys.exit(0)
+try:
+    if opts.name is not None:
+        n = npl[opts.name]
+    else:
+        links = npl.filter('dialup')
+        if len(links) == 1:
+            n = links[0]
+        elif len(links) == 0:
+            print 'No dialup connections defined'
+            sys.exit(1)
+        else:
+            # Try to find exactly one connected interface to control
+            if args[0] in ['status']:
+                for c in links:
+                    if c.connected:
+                        print '%s is connected' % c.name
+                    else:
+                        print '%s is not connected' % c.name
+                sys.exit(0) 
+                    
+            if args[0] in ['stop','disconnect']:
+                connected = []
+                for c in links:
+                    if c.connected:
+                        connected.append(c)
+                if len(connected)==1:
+                    n = connected[0]
+                elif len(connected)==0:
+                    print 'No dialup connections open.'
+                    sys.exit(0)
+                else:
+                    print 'Multiple dialup connections open, choose one: %s' % (
+                        ', '.join([c.name for c in connected])
+                    )
+                    sys.exit(1)
+            else:
+                print 'Multiple dialup connections, choose one: %s' % (
+                    ', '.join([c.name for c in links])
+                )
+                sys.exit(1)
+except NetworkConfigError,e:
+    print 'ERROR: %s' % e
+    sys.exit(1)
+
+if len(args) == 0:
+    print parser.get_usage()
+    sys.exit(1)
+
+if args[0] in ['start','connect']:
+    if n.connected:
+        print 'Already connected.'
+        sys.exit(0)
+    n.connect()
+    if opts.wait:
+        logging.info('Waiting for VPN connection...')
+        while True:
+            if n.connected: 
+                break
+            time.sleep(1)
+elif args[0] in ['stop','disconnect']:
+    if not n.connected:
+        print 'Not connected'
+        sys.exit(0)
+    n.disconnect()
+    if opts.wait:
+        logging.info('Waiting for VPN disconnect...')
+        while True:
+            if not n.connected: 
+                break
+            time.sleep(1)
+    while True:
+        if not n.connected: 
+            break
+        time.sleep(1)
+elif args[0] in ['status']:
+    if n.connected:
+        print '%s is connected' % n.name
+        sys.exit(0)
+    else:
+        print '%s is not connected' % n.name
+        sys.exit(1) 
+elif args[0] in ['wait']:
+    try:
+        while True:
+            if n.connected: 
+                break
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        print 'Interrupted.'
+        sys.exit(1)
+else:
+    print parser.get_usage()
+    sys.exit(1)
+
+sys.exit(0)
+

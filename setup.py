@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 
-import os,glob
+import sys,os,glob
 from setuptools import setup,find_packages
 
 VERSION='1.2'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
+
+packages = ['systematic','systematic.logs']
+scripts = glob.glob('bin/*')
+if sys.platform == 'darwin':
+    packages.append('systematic.osx')
+    scripts.extend(glob.glob('osx/*'))
 
 setup(
     name = 'systematic',
@@ -14,8 +20,8 @@ setup(
     url = 'https://github.com/hile/musa/downloads',
     zip_safe = False,
     install_requires = [ 'setproctitle', 'lxml','configobj', 'seine', ],
-    scripts = glob.glob('bin/*'),
-    packages = ['systematic','systematic.logs'],
+    scripts = scripts,
+    packages = packages,
     author = 'Ilkka Tuohela', 
     author_email = 'hile@iki.fi',
     description = 'Sysadmin utility classes and scripts',
