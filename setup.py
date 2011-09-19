@@ -13,10 +13,7 @@ setup(
     keywords = 'System Management Utility Classes Scripts',
     url = 'https://github.com/hile/musa/downloads',
     zip_safe = False,
-    install_requires = [
-        'setproctitle', 'boto>=2.0', 'PIL', 'lxml','configobj',
-        'mutagen','python-musicbrainz2'
-    ],
+    install_requires = [ 'setproctitle', 'lxml','configobj', 'seine', ],
     scripts = glob.glob('bin/*'),
     packages = ['systematic','systematic.logs'],
     author = 'Ilkka Tuohela', 
