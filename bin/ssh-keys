@@ -79,14 +79,22 @@ def load_key(path):
 parser = OptionParser()
 parser.set_defaults(**dict(keyconfig=CONFIG))
 parser.add_option('-c','--key-file',dest='keyconfig',type='string',help='Path to file listing keys to process')
-parser.add_option('-l','--list',dest='list',action='store_true',help='List loaded keys')
-parser.add_option('-d','--unload',dest='unload',action='store_true',help='Unload keys from keyring')
-parser.add_option('-D','--unload-all',dest='unload',action='store_true',help='Unload all SSH keys')
-parser.add_option('-v','--verbose',dest='verbose',action='store_true',help='Verbose Messages')
+parser.add_option('-l','--list',action='store_true',help='List loaded keys')
+parser.add_option('-d','--unload',action='store_true',help='Unload keys from keyring')
+parser.add_option('-D','--unload-all',action='store_true',help='Unload all SSH keys')
+parser.add_option('-v','--verbose',action='store_true',help='Verbose Messages')
 (opts,args) = parser.parse_args()
 if opts.verbose:
     logging.basicConfig(level=logging.INFO)
 
+if opts.unload_all:
+    try:
+        call(['ssh-add','-D'])
+    except CalledProcessError:
+        print 'Error unloading all SSH keys'
+        sys.exit(1)
+    sys.exit(0)
+ 
 loaded = list_loaded_keys()
 keys = available_keys(opts.keyconfig)
 for f in keys:
@@ -100,9 +108,6 @@ for f in keys:
         if not check_key(loaded,f):
             continue
         unload_key(f)
-    elif opts.unload_all:
-        for f in loaded:
-            unload_key(f)
     else:
         if check_key(loaded,f):
             continue

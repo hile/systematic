@@ -65,5 +65,5 @@ if __name__ == '__main__':
             l = sal.next(lambda e: e['client'].ipaddress=='10.3.10.23')
         except StopIteration:
             break
-        print l.items()
+        print l
 
