@@ -24,27 +24,11 @@ class SyslogFile(LogFile):
     def __init__(self,path,start_ts=None,end_ts=None):
         LogFile.__init__(self,path,SyslogEntry,start_ts,end_ts)
 
-    def next(self):
-        while True:
-            line = LogFile.next(self)
-            entry = SyslogEntry(line,self.path)
-            if self.start_ts and self.start_ts > entry.timestamp: 
-                continue
-            if self.end_ts and self.end_ts < entry.timestamp:
-                self.fd.close()
-                self.fd = None
-                raise StopIteration
-            return entry
-
-    def tail(self):
-        entry = LogFile.tail(self)
-        return SyslogEntry(entry.line,self.path)
-
 class SyslogEntry(LogEntry):
     def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
 
-        m = re.match(re_syslogline,line)
+        m = re_syslogline.match(line)
         if not m:
             raise LogError('Could not parse log line: %s' % line)
         self.update(m.groupdict())
@@ -65,7 +49,8 @@ class SyslogEntry(LogEntry):
         self['timestamp'] = None
         for fmt in TIMESTAMP_FORMATS:
             try:
-                self['timestamp'] = time.mktime(time.strptime(timevalue,fmt))
+                self['time'] = time.strptime(timevalue,fmt)
+                self['timestamp'] = time.mktime(self['time'])
             except ValueError:
                 continue
         if self['timestamp'] == None:
@@ -94,6 +79,5 @@ if __name__ == '__main__':
         sl = SyslogFile(path=sys.argv[1])
 
     for l in sl:
-        print l.items()
-        print l.timestamp,l.pid, l.message
+        print l.message
 
