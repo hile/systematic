@@ -89,6 +89,15 @@ class LogFile(object):
             raise LogError('Error reading %s: %s' % path,emsg)
         return entry
 
+    def filter(self,function):
+        entries = []
+        while True:
+            try:
+                entries.append(self.next(function))
+            except StopIteration:
+                break
+        return entries
+
     def tail(self):
         if self.fd is None:
             self.open()
