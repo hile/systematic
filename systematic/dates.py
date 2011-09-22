@@ -2,14 +2,16 @@
 """
 Class to parse and represent local calendar,suited for walking weeks and 
 months and to get working days for certain calendar date week easily.
-
-Copyright Ilkka Tuohela <hile@iki.fi>, 2007-2011.
 """
 
 import sys,os,time,datetime,calendar
 
-# Start default from monday (range from 0=sun 6=sat)
+# Default first day of week: range 0 (sunday) to 6 (saturday)
 WEEK_START_DEFAULT = 1
+
+# Default number of workdays per week
+WORKDAYS_PER_WEEK = 5
+
 # Only used for parameter parsing in Week class, not for output
 WEEKDAY_NAMES = [
     'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'
@@ -21,7 +23,6 @@ class DatesError(Exception):
 
 class Day(object):
     def __init__(self,timeval=None,input_format='%Y-%m-%d',output_format='%Y-%m-%d'):
-
         if timeval is None:
             dateval = time.localtime()
         elif input_format is None:
@@ -41,13 +42,9 @@ class Day(object):
         self.timestamp = long(time.mktime(time.strptime(
             '-'.join('%02d' % x for x in dateval[:3]), '%Y-%m-%d'
         )))
-
-    def __getattr__(self,item):
-        if item == 'timetuple':
-            return time.localtime(self.timestamp)
-        elif item == 'datetime':
-            return datetime.datetime.fromtimestamp(self.timestamp)
-        raise AttributeError('No such Day item %s' % item)
+        self.timetuple = time.localtime(self.timestamp)
+        self.datetime = datetime.datetime.fromtimestamp(self.timestamp)
+        self.isoweekday = time.localtime(self.timestamp).tm_wday
 
     def __str__(self):
         return time.strftime(self.output_format,time.localtime(self.timestamp))
@@ -57,58 +54,111 @@ class Day(object):
         if self.timestamp < day: return -1
         if self.timestamp > day: return 1
 
+    def __hash__(self):
+        return self.timestamp
+
     def __int__(self):
         return self.timestamp
 
     def __sub__(self,value):
         value = int(value) * 86400
-        return Day( self.timestamp-value, input_format=None,
+        return Day(
+            self.timestamp-value, input_format=None,
             output_format=self.output_format
         )
 
     def __add__(self,value):
         value = int(value) * 86400
-        return Day( self.timestamp+value, input_format=None,
+        return Day(
+            self.timestamp+value, input_format=None,
             output_format=self.output_format
         )
 
-    def isoweekday(self):
-        return time.localtime(self.timestamp).tm_wday
-
 class Week(object):
     def __init__(self,timeval=None,input_format='%Y-%m-%d',
-                 output_format='%Y-%m-%d',weekstart=WEEK_START_DEFAULT):
+                 output_format='%Y-%m-%d',firstweekday=WEEK_START_DEFAULT,
+                 workdays=None,workdays_per_week=WORKDAYS_PER_WEEK):
         self.__next = 0
         self.output_format = output_format
-        day = Day(timeval=timeval,input_format=input_format,output_format=output_format) 
-        if weekstart in WEEKDAY_NAMES:
-            weekstart = WEEKDAY_NAMES.index(weekstart) 
-        wday = (day.isoweekday()+(7-weekstart)+1) % 7
+        day = Day(
+            timeval=timeval,input_format=input_format,output_format=output_format
+        )
+
+        if firstweekday in WEEKDAY_NAMES:
+            firstweekday = WEEKDAY_NAMES.index(firstweekday) 
+        else:
+            try:
+                firstweekday = int(firstweekday)
+                if firstweekday<0 or firstweekday>6:
+                    raise ValueError
+            except ValueError:
+                raise ValueError('Invalid first week day index: %s' % firstweekday) 
+        self.firstweekday = firstweekday
+        wday = (day.isoweekday+(7-self.firstweekday)+1) % 7
 
         self.first = day-wday
         self.last  = self.first + 6
-        self.weekstart = weekstart
         self.weeknumber = int(time.strftime('%U',self.first.timetuple))
+        self.timestamps = [self.first.timestamp+i*86400 for i in range(0,7)]
 
-    def __getattr__(self,item):
-        if item == 'days':  
-            return iter(self)
-        raise AttributeError('No such Week item %s' % item)
+        self.workdays = []
+        if workdays is not None:
+            if type(workdays) != list:
+                raise ValueError(
+                    'Invalid workdays index list parameter: %s' % workdays
+                )
+            for i in workdays:
+                try: 
+                    i = int(i)
+                    if i<0 or i>6:
+                        raise ValueError
+                    self.workdays.append(self[i])
+                except ValueError:
+                    raise ValueError(
+                        'Invalid workdays index list parameter: %s' % workdays
+                    )
+                    
+        else:
+            try:
+                workdays_per_week = int(workdays_per_week)
+                if workdays_per_week<0 or workdays_per_week>7:
+                    raise ValueError
+            except ValueError:
+                raise ValueError(
+                    'Invalid value for workdays_per_week: %s' % workdays_per_week
+                )
+            self.workdays = [self[i] for i in filter(lambda 
+                i: i<=6, range(0,workdays_per_week)
+            )]
+        self.workdays.sort()
+
+    def __hash__(self):
+        return self.first.timestamp
 
     def __int__(self):
         return 7 * 86400
 
+    def __getitem__(self,attr):
+        try:
+            index = int(attr)
+            if index < 0 or index > 6:
+                raise ValueError
+            return self.first + index
+        except ValueError:
+            raise IndexError('Invalid week day index: %s' % attr)
+        raise IndexError
+
     def __sub__(self,value):
         value = int(value) * 7 * 86400
         return Week( self.first.timestamp-value, None,
-            weekstart=self.weekstart,
+            firstweekday=self.firstweekday,
             output_format=self.output_format
         )
 
     def __add__(self,value):
         value = int(value) * 7 * 86400
         return Week( self.first.timestamp+value, None,
-            weekstart=self.weekstart,
+            firstweekday=self.firstweekday,
             output_format=self.output_format
         )
 
@@ -127,12 +177,9 @@ class Week(object):
             raise StopIteration
         return day
 
-    def timestamps(self):
-        return [self.first.timestamp+i*86400 for i in range(0,7)]
-
 class Month(object):
     def __init__(self,timeval=None,input_format='%Y-%m-%d',
-            output_format='%Y-%m-%d',weekstart=WEEK_START_DEFAULT):
+            output_format='%Y-%m-%d',firstweekday=WEEK_START_DEFAULT):
 
         self.__next = 0
         self.output_format = output_format
@@ -151,19 +198,37 @@ class Month(object):
         self.days = calendar.monthrange(*(self.first.timetuple[0:2]))[1]
         self.last  = self.first+(self.days-1)
 
-
         self.weeks = []
-        self.weekstart = weekstart
+        self.firstweekday = firstweekday
         week = Week( self.first.timestamp, None,
-            weekstart=weekstart,
+            firstweekday=firstweekday,
             output_format=self.output_format
         )
         while int(week.first.timestamp) <= int(self.last.timestamp):
             self.weeks.append(week)
             week = week+1
+        self.timestamps = [self.first.timestamp+i*86400 for i in range(0,self.days)]
+
+    def __hash__(self):
+        return self.first.timestamp
+
+    def __getitem__(self,attr):
+        try:
+            index = int(attr)
+            if index < 0 or index >= self.days:
+                raise ValueError
+            return self.first + index
+        except ValueError:
+            raise IndexError(
+                'Invalid month day index: %s (month has %d days)' % (attr,self.days)
+            )
+        raise IndexError
 
     def __str__(self):
          return time.strftime('%B %Y',self.first.timetuple)
+
+    def __len__(self):
+        return self.days
 
     def __add__(self,value):
         value = int(value) 
@@ -172,7 +237,7 @@ class Month(object):
         m = self
         for i in range(0,value):
             m = Month(m.first.timestamp+m.days*86400, None,
-                weekstart=self.weekstart,output_format=self.output_format
+                firstweekday=self.firstweekday,output_format=self.output_format
             )
         return m
 
@@ -183,12 +248,9 @@ class Month(object):
         m = self
         for i in range(0,value):
             m = Month(m.first.timestamp-86400, None,
-                weekstart=self.weekstart, output_format=self.output_format
+                firstweekday=self.firstweekday, output_format=self.output_format
             )
         return m
-
-    def __len__(self):
-        return self.days
 
     def __iter__(self):
         return self
@@ -202,19 +264,9 @@ class Month(object):
             raise StopIteration
         return day
 
-    def timestamps(self):
-        return [self.first.timestamp+i*86400 for i in range(0,self.days)]
-
 if __name__ == '__main__':
-    m = Month(weekstart='Monday')
-    for w in m.weeks:
-        print w
-        for d in w:
+    mon = Month('2009-02-14',firstweekday=6)
+    for week in mon.weeks:
+        for d in filter(lambda d: d.timestamp in mon.timestamps, week.workdays):
             print d
-    sys.exit(0)
-
-    w = Week(weekstart='Saturday')
-    for i in range(0,6):
-        print 'Week %s\n%s'  % (w,' '.join('%s' % d.datetime for d in w.days))
-        w-= 1
 

@@ -3,7 +3,21 @@
 Utility functions for python in unix shell.
 """
 
-import os,sys,logging
+import os,sys,logging,unicodedata
+
+# Values for TERM environment variable which support setting title
+TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
+
+def normalized(path):
+    """
+    Return given path value as normalized unicode string on OS/X, on other
+    platform return the original string as unicode
+    """
+    if sys.platform != 'darwin':
+        return type(path)==unicode and path or unicode(path,'utf-8')
+    return unicodedata.normalize( 
+        'NFC', type(path)==unicode and path or unicode(path,'utf-8')
+    )
 
 class CommandPathCache(list):
     """
@@ -49,17 +63,18 @@ class CommandPathCache(list):
         except IndexError:
             return None
 
-TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
-
-def xterm_title(value,max_lenght=74):
+def xterm_title(value,max_lenght=74,bypass_term_check=False):
     """
-    Set title in xterm titlebar to given value. 
-    Protect ancient xterms from crashes by cutting length of message 
-    to 74 characters.
+    Set title in xterm titlebar to given value, clip the title text to 
+    max_length characters.
     """ 
     TERM=os.getenv('TERM')
-    if TERM not in TERM_TITLE_SUPPORTED:
+    if not bypass_term_check and TERM not in TERM_TITLE_SUPPORTED:
         return
     sys.stdout.write('\033]2;'+value[:max_length]+'',)
     sys.stdout.flush()
+
+if __name__ == '__main__':
+    for f in sys.argv[1:]:
+        print normalized(f)
 
