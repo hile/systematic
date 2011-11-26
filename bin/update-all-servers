@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+"""
+Script to update all linux and freebsd servers
+"""
+
+import sys,os,logging
+from subprocess import Popen,PIPE
+from optparse import OptionParser
+from configobj import ConfigObj
+
+DEFAULT_CONFIG = '/etc/nxme/servers.list'
+
+parser = OptionParser()
+parser.add_option('-c','--config',help='Server list configuration file')
+parser.add_option('-d','--debug',help='Show debug messages')
+parser.set_defaults(**{'config':DEFAULT_CONFIG})
+(opts,args) = parser.parse_args()
+
+if opts.debug:  
+    logging.basicConfig(level=logging.DEBUG)
+
+serverconfig = ConfigObj(opts.config)
+
+for group in sorted(serverconfig.keys()):
+    try:
+        servers = sorted(serverconfig[group]['servers'])
+        commands = serverconfig[group]['commands']
+    except KeyError:
+        logging.debug('Invalid configuration for group %s' % group)
+    if servers == []:
+        continue
+    print 'Updating %s servers' % group
+    for server in servers:
+        cmd = ['ssh','-t',server,' && '.join(commands)]
+        print 'Updating: %s' % server
+        p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+        p.wait()    
+
