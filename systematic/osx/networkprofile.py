@@ -3,6 +3,9 @@
 Control and see status of OS/X network interfaces from python. 
 """
 
+import os
+from configobj import ConfigObj
+
 import logging,appscript
 
 NETWORK_CONNECTION_TYPES = {
@@ -18,12 +21,18 @@ class NetworkConfigError(Exception):
         return self.args[0]
 
 class NetworkProfileList(object):
-    def __init__(self):
+    def __init__(self,config=None):
+        self.config = self.__read_config(config)
         try:
             self.app = appscript.app('System Events')
             self.location = self.app.network_preferences.get().current_location.get()
         except appscript.reference.CommandError,e:
             raise NetworkConfigError('Appscript initialization error: %s' % e.errormessage)
+
+    def __read_config(self,config):
+        if not os.path.isfile(config):
+            return {}
+        return ConfigObj(config)        
 
     def __getitem__(self,item):
         names = filter(
@@ -88,6 +97,23 @@ class NetworkConnection(object):
         except KeyError,e:
             raise NetworkConfigError(str(e).strip("'"))
 
+    def __eq__(self,other):
+        if not hasattr(other,'app'):
+            return False
+        if self.connection_type != other.connection_type:
+            return False
+        if self.name != other.name:
+            return False
+        return True
+
+    def __ne__(self,other):
+        if self.__eq__(other):
+            return False
+        return True
+
+    def __hash__(self):
+        return '%s %s' % (self.connection_type,self.name)
+
     def __repr__(self):
         return '%s %s: %s' % (
             self.connection_type,
@@ -151,14 +177,4 @@ class NetworkConnection(object):
             raise NetworkConfigError('Not connected: %s' % self.name) 
         logging.info('Disconnecting network profile: %s' % self.name)
         self.app.disconnect(self.connection)
-
-if __name__ == '__main__':
-    import sys
-
-    if len(sys.argv) == 1:
-        print 'Usage: %s <network profile>' % sys.argv[0]
-        sys.exit(1)
-    n = NetworkProfileList()
-    for ctype in sys.argv[1:]:
-        print ctype, n.filter(ctype)
 

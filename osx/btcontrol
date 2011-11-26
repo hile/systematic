@@ -1,79 +1,81 @@
 #!/usr/bin/env python
 #
-# Connect, disconnect or show status of a dialup connection in OS/X.
+# Connect, disconnect or show status of a VPN connection in OS/X.
+#
+# Can be used for OS/X integrated VPN connections only. VPN will still
+# ask password in a graphical window, if not permanently configured, so you 
+# can't run this headless remotely.
+#
+# If you can figure out how to enter the VPN passphrase, please send the info
+# to hile@iki.fi and I'll update the module and this script to allow entering
+# the passwords as well.
 #
 
-import sys,os
+import sys,os,time,signal,logging
 from optparse import OptionParser
+
 from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
+
+def Interrupted(signum,frame):
+    print 'Interrupted'
+    sys.exit(1)
+
+CONFIG_PATH = os.path.join(os.getenv('HOME'),'.networks.conf')
+
+signal.signal(signal.SIGINT, Interrupted)
+
+if os.path.basename(sys.argv[0]) == 'btcontrol':
+    linktype = 'dialup'
+elif os.path.basename(sys.argv[0]) == 'vpncontrol':
+    linktype = 'vpn'
 
 parser = OptionParser()
 parser.set_usage("""%s <start|stop|status>
 
-Connect, disconnect or show status of dialup connections.""" % sys.argv[0])
-parser.add_option('-n','--name',dest='name',type='string',help='Connection name')
-parser.add_option('-w','--wait',dest='wait',action='store_true',help='Wait for connect/disconnect')
-parser.add_option('-l','--list',dest='list',action='store_true',help='List connections')
-parser.add_option('-v','--verbose',dest='verbose',action='store_true',help='Show verbose messages')
+Connect, disconnect or show status of on-demand network connection.""" % sys.argv[0])
+parser.add_option('-n','--name',help='Connection name')
+parser.add_option('-w','--wait',action='store_true',help='Wait for connect/disconnect')
+parser.add_option('-l','--list',action='store_true',help='List connections')
+parser.add_option('-v','--verbose',action='store_true',help='Show verbose messages')
 (opts,args) = parser.parse_args()
 if opts.verbose:
     logging.basicConfig(level=logging.INFO)
 
-npl = NetworkProfileList()
+if not opts.list and len(args) == 0:
+    print parser.get_usage()
+    sys.exit(1)
+
+npl = NetworkProfileList(config=CONFIG_PATH)
+links = npl.filter(linktype)
 if opts.list:
-    links = npl.filter('dialup')
     if len(links) == 0:
-        print 'No dialup connections defined.'
+        print 'No %s connections defined' % linktype
         sys.exit(1)
     for l in links:
         print l.name
     sys.exit(0)
+
 try:
     if opts.name is not None:
-        n = npl[opts.name]
+        try:
+            n = npl[opts.name]
+            if n not in links:
+                raise ValueError('Not a %s link: %s' % (linktype,opts.name))
+        except KeyError:
+            raise ValueError('No such %s link: %s' % (linktype,opts.name))
     else:
-        links = npl.filter('dialup')
-        if len(links) == 1:
-            n = links[0]
-        elif len(links) == 0:
-            print 'No dialup connections defined'
-            sys.exit(1)
+        if npl.config.has_key(linktype):
+            default = npl.config[linktype]['default']
+            try:
+                n = npl[default]
+            except KeyError:
+                print 'WARNING: Default %s link %s not found' % (linktype,default)
+                n = links[0]
         else:
-            # Try to find exactly one connected interface to control
-            if args[0] in ['status']:
-                for c in links:
-                    if c.connected:
-                        print '%s is connected' % c.name
-                    else:
-                        print '%s is not connected' % c.name
-                sys.exit(0) 
-                    
-            if args[0] in ['stop','disconnect']:
-                connected = []
-                for c in links:
-                    if c.connected:
-                        connected.append(c)
-                if len(connected)==1:
-                    n = connected[0]
-                elif len(connected)==0:
-                    print 'No dialup connections open.'
-                    sys.exit(0)
-                else:
-                    print 'Multiple dialup connections open, choose one: %s' % (
-                        ', '.join([c.name for c in connected])
-                    )
-                    sys.exit(1)
-            else:
-                print 'Multiple dialup connections, choose one: %s' % (
-                    ', '.join([c.name for c in links])
-                )
-                sys.exit(1)
-except NetworkConfigError,e:
-    print 'ERROR: %s' % e
-    sys.exit(1)
+            n = links[0]
 
-if len(args) == 0:
-    print parser.get_usage()
+except ValueError,emsg:
+    print emsg
     sys.exit(1)
 
 if args[0] in ['start','connect']:
@@ -82,18 +84,19 @@ if args[0] in ['start','connect']:
         sys.exit(0)
     n.connect()
     if opts.wait:
-        logging.info('Waiting for VPN connection...')
+        logging.info('Waiting for %s to connect...' % n.name)
         while True:
             if n.connected: 
                 break
             time.sleep(1)
+
 elif args[0] in ['stop','disconnect']:
     if not n.connected:
         print 'Not connected'
         sys.exit(0)
     n.disconnect()
     if opts.wait:
-        logging.info('Waiting for VPN disconnect...')
+        logging.info('Waiting for %s to disconnect...' % n.name)
         while True:
             if not n.connected: 
                 break
@@ -102,13 +105,14 @@ elif args[0] in ['stop','disconnect']:
         if not n.connected: 
             break
         time.sleep(1)
+
 elif args[0] in ['status']:
-    if n.connected:
-        print '%s is connected' % n.name
-        sys.exit(0)
-    else:
-        print '%s is not connected' % n.name
-        sys.exit(1) 
+    status = n.connected
+    print '%s %s %s' % (
+        n.name,linktype,status and 'is connected' or 'is not connected'
+    )
+    sys.exit(status)
+
 elif args[0] in ['wait']:
     try:
         while True:
@@ -119,6 +123,7 @@ elif args[0] in ['wait']:
     except KeyboardInterrupt:
         print 'Interrupted.'
         sys.exit(1)
+
 else:
     print parser.get_usage()
     sys.exit(1)

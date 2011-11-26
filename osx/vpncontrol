@@ -11,28 +11,71 @@
 # the passwords as well.
 #
 
-import sys,time,logging
+import sys,os,time,signal,logging
 from optparse import OptionParser
+
 from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
 
-# Name of your VPN service
-DEFAULT_CONNECTION="NXme"
+def Interrupted(signum,frame):
+    print 'Interrupted'
+    sys.exit(1)
+
+CONFIG_PATH = os.path.join(os.getenv('HOME'),'.networks.conf')
+
+signal.signal(signal.SIGINT, Interrupted)
+
+if os.path.basename(sys.argv[0]) == 'btcontrol':
+    linktype = 'dialup'
+elif os.path.basename(sys.argv[0]) == 'vpncontrol':
+    linktype = 'vpn'
 
 parser = OptionParser()
 parser.set_usage("""%s <start|stop|status>
 
-Connect, disconnect or show status of VPN connection.""" % sys.argv[0])
-parser.set_defaults(name=DEFAULT_CONNECTION)
-parser.add_option('-n','--name',dest='name',type='string',help='Connection name')
-parser.add_option('-w','--wait',dest='wait',action='store_true',help='Wait for connect/disconnect')
-parser.add_option('-v','--verbose',dest='verbose',action='store_true',help='Show verbose messages')
+Connect, disconnect or show status of on-demand network connection.""" % sys.argv[0])
+parser.add_option('-n','--name',help='Connection name')
+parser.add_option('-w','--wait',action='store_true',help='Wait for connect/disconnect')
+parser.add_option('-l','--list',action='store_true',help='List connections')
+parser.add_option('-v','--verbose',action='store_true',help='Show verbose messages')
 (opts,args) = parser.parse_args()
 if opts.verbose:
     logging.basicConfig(level=logging.INFO)
 
-n = NetworkConnection(opts.name)
-if len(args) == 0:
+if not opts.list and len(args) == 0:
     print parser.get_usage()
+    sys.exit(1)
+
+npl = NetworkProfileList(config=CONFIG_PATH)
+links = npl.filter(linktype)
+if opts.list:
+    if len(links) == 0:
+        print 'No %s connections defined' % linktype
+        sys.exit(1)
+    for l in links:
+        print l.name
+    sys.exit(0)
+
+try:
+    if opts.name is not None:
+        try:
+            n = npl[opts.name]
+            if n not in links:
+                raise ValueError('Not a %s link: %s' % (linktype,opts.name))
+        except KeyError:
+            raise ValueError('No such %s link: %s' % (linktype,opts.name))
+    else:
+        if npl.config.has_key(linktype):
+            default = npl.config[linktype]['default']
+            try:
+                n = npl[default]
+            except KeyError:
+                print 'WARNING: Default %s link %s not found' % (linktype,default)
+                n = links[0]
+        else:
+            n = links[0]
+
+except ValueError,emsg:
+    print emsg
     sys.exit(1)
 
 if args[0] in ['start','connect']:
@@ -41,18 +84,19 @@ if args[0] in ['start','connect']:
         sys.exit(0)
     n.connect()
     if opts.wait:
-        logging.info('Waiting for VPN connection...')
+        logging.info('Waiting for %s to connect...' % n.name)
         while True:
             if n.connected: 
                 break
             time.sleep(1)
+
 elif args[0] in ['stop','disconnect']:
     if not n.connected:
         print 'Not connected'
         sys.exit(0)
     n.disconnect()
     if opts.wait:
-        logging.info('Waiting for VPN disconnect...')
+        logging.info('Waiting for %s to disconnect...' % n.name)
         while True:
             if not n.connected: 
                 break
@@ -61,13 +105,14 @@ elif args[0] in ['stop','disconnect']:
         if not n.connected: 
             break
         time.sleep(1)
+
 elif args[0] in ['status']:
-    if n.connected:
-        print '%s is connected' % n.name
-        sys.exit(0)
-    else:
-        '%s is not connected' % n.name
-        sys.exit(1) 
+    status = n.connected
+    print '%s %s %s' % (
+        n.name,linktype,status and 'is connected' or 'is not connected'
+    )
+    sys.exit(status)
+
 elif args[0] in ['wait']:
     try:
         while True:
@@ -78,6 +123,7 @@ elif args[0] in ['wait']:
     except KeyboardInterrupt:
         print 'Interrupted.'
         sys.exit(1)
+
 else:
     print parser.get_usage()
     sys.exit(1)
