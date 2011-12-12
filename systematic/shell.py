@@ -3,7 +3,10 @@
 Utility functions for python in unix shell.
 """
 
-import os,sys,logging,unicodedata
+import sys,os,time,signal,logging
+import threading,inspect,ctypes,unicodedata
+from optparse import OptionParser
+from setproctitle import setproctitle
 
 # Values for TERM environment variable which support setting title
 TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
@@ -74,7 +77,65 @@ def xterm_title(value,max_lenght=74,bypass_term_check=False):
     sys.stdout.write('\033]2;'+value[:max_length]+'',)
     sys.stdout.flush()
 
-if __name__ == '__main__':
-    for f in sys.argv[1:]:
-        print normalized(f)
+def Interrupted(signum,frame):
+    for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+        t.join()
+    sys.exit(1)
+
+class ScriptThread(threading.Thread):
+    """
+    Common execution thread base class
+    """
+    def __init__(self,name):
+        threading.Thread.__init__(self)
+        self.daemon = True
+        self.name = name
+        self.status = 'not running'
+        self.log = logging.getLogger('modules')
+
+class PythonScript(object):
+    """
+    Wrapper class for common python shell script
+    """
+    def __init__(self):
+        self.name = os.path.basename(sys.argv[0])
+        setproctitle('%s %s' % (self.name,' '.join(sys.argv[1:])))
+        signal.signal(signal.SIGINT, Interrupted)
+
+        reload(sys)
+        sys.setdefaultencoding('utf-8')
+
+        self.parser = OptionParser()
+        self.logging = logging.getLogger('console')
+        self.parser.add_option('-v','--verbose',dest='verbose',
+            action='store_true',help='Show verbose messages'
+        )
+
+    def set_usage(self,*args,**kwargs):
+        return self.parser.set_usage(*args,**kwargs)
+
+    def set_defaults(self,*args,**kwargs):
+        return self.parser.set_defaults(*args,**kwargs)
+
+    def get_usage(self):
+        return self.parser.get_usage()
+
+    def add_option(self,*args,**kwargs):
+        return self.parser.add_option(*args,**kwargs)
+
+    def parse_args(self):
+        (opts,args) = self.parser.parse_args()
+        if opts.verbose:
+            logging.basicConfig(level=logging.INFO)
+        return (opts,args)
+
+    def exit(self,value,message=None):
+        if message is not None:
+            print message
+        while True:
+            active = filter(lambda t: t.name!='MainThread', threading.enumerate())
+            if len(active) == 0:
+                break
+            time.sleep(1)
+        sys.exit(value)
 

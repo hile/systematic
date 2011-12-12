@@ -11,49 +11,39 @@
 # the passwords as well.
 #
 
-import sys,os,time,signal,logging
-from optparse import OptionParser
+import os
 
+from systematic.shell import PythonScript
 from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
-
-def Interrupted(signum,frame):
-    print 'Interrupted'
-    sys.exit(1)
 
 CONFIG_PATH = os.path.join(os.getenv('HOME'),'.networks.conf')
 
-signal.signal(signal.SIGINT, Interrupted)
+script = PythonScript()
+script.set_usage("""%s <start|stop|status>
 
-if os.path.basename(sys.argv[0]) == 'btcontrol':
+Connect, disconnect or show status of on-demand network connection.""" % script.name
+)
+script.add_option('-n','--name',help='Connection name')
+script.add_option('-w','--wait',action='store_true',help='Wait for connect/disconnect')
+script.add_option('-l','--list',action='store_true',help='List connections')
+(opts,args) = script.parse_args()
+
+if script.name == 'btcontrol':
     linktype = 'dialup'
-elif os.path.basename(sys.argv[0]) == 'vpncontrol':
+if script.name == 'vpncontrol':
     linktype = 'vpn'
 
-parser = OptionParser()
-parser.set_usage("""%s <start|stop|status>
-
-Connect, disconnect or show status of on-demand network connection.""" % sys.argv[0])
-parser.add_option('-n','--name',help='Connection name')
-parser.add_option('-w','--wait',action='store_true',help='Wait for connect/disconnect')
-parser.add_option('-l','--list',action='store_true',help='List connections')
-parser.add_option('-v','--verbose',action='store_true',help='Show verbose messages')
-(opts,args) = parser.parse_args()
-if opts.verbose:
-    logging.basicConfig(level=logging.INFO)
-
 if not opts.list and len(args) == 0:
-    print parser.get_usage()
-    sys.exit(1)
+    script.exit(1,parser.get_usage())
 
 npl = NetworkProfileList(config=CONFIG_PATH)
 links = npl.filter(linktype)
 if opts.list:
     if len(links) == 0:
-        print 'No %s connections defined' % linktype
-        sys.exit(1)
+        script.exit(1,'No %s connections defined' % linktype)
     for l in links:
         print l.name
-    sys.exit(0)
+    script.exit(0)
 
 try:
     if opts.name is not None:
@@ -75,13 +65,11 @@ try:
             n = links[0]
 
 except ValueError,emsg:
-    print emsg
-    sys.exit(1)
+    script.exit(1,emsg)
 
 if args[0] in ['start','connect']:
     if n.connected:
-        print 'Already connected.'
-        sys.exit(0)
+        script.exit(0,'Already connected.')
     n.connect()
     if opts.wait:
         logging.info('Waiting for %s to connect...' % n.name)
@@ -92,8 +80,7 @@ if args[0] in ['start','connect']:
 
 elif args[0] in ['stop','disconnect']:
     if not n.connected:
-        print 'Not connected'
-        sys.exit(0)
+        script.exit(0,'Not connected.')
     n.disconnect()
     if opts.wait:
         logging.info('Waiting for %s to disconnect...' % n.name)
@@ -111,22 +98,16 @@ elif args[0] in ['status']:
     print '%s %s %s' % (
         n.name,linktype,status and 'is connected' or 'is not connected'
     )
-    sys.exit(status)
+    script.exit(status==False and 1 or 0)
 
 elif args[0] in ['wait']:
-    try:
-        while True:
-            if n.connected: 
-                break
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        print 'Interrupted.'
-        sys.exit(1)
+    while True:
+        if n.connected: 
+            break
+        time.sleep(1)
 
 else:
-    print parser.get_usage()
-    sys.exit(1)
+    script.exit(1,parser.get_usage())
 
-sys.exit(0)
+script.exit(0)
 
