@@ -7,14 +7,12 @@ Designed for usage over ssh, could work with other protocols I guess at
 least for interactive sessions (start VNC etc).
 """
 
-import os,logging
+import sys,os,logging
 from subprocess import Popen,PIPE
 from configobj import ConfigObj
 
-DEFAULT_CONFIG_PATH = '/etc/servers.list'
-
 class OrganizationServers(dict):
-    def __init__(self,path=DEFAULT_CONFIG_PATH):
+    def __init__(self,path):
         self.log = logging.getLogger('modules')
 
         if not os.path.isfile(path):
@@ -99,25 +97,4 @@ class ServerConfig(object):
         p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
         p.wait()    
         return p.returncode
-
-if __name__ == '__main__':
-    import sys
-    logging.basicConfig(level=logging.DEBUG)
-    try:
-        sl = OrganizationServers(sys.argv[1])
-    except IndexError:
-        print 'Usage: %s <servers.list>' % sys.argv[0]
-        sys.exit(1)
-    for name,group in sl.items():
-        for server in group:
-            (rc,stdout,stderr) = server.check_output(sys.argv[2:])
-            if rc != 0:
-                print 'Error running uname on %s:\n%s\n%s' % (
-                    server.name,stdout,stderr
-                )
-                continue 
-            print '%s: %s' % (server.name,stdout)
-            continue
-            if server.shell(sys.argv[2:])!=0:
-                print 'Error running uname on %s' % server.name
 

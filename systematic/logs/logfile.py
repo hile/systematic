@@ -12,12 +12,13 @@ class LogError(Exception):
 class LogFile(object):
     __slots__ = ['log','__next','path','fd','stat','logclass','start_ts','end_ts']
 
-    def __init__(self,filename,logclass=None,start_ts=None,end_ts=None):
+    def __init__(self,filename,logclass=None,start_ts=None,end_ts=None,ignore_errors=False):
         self.log = logging.getLogger('modules')
         self.__next = 0
         self.path = filename
         self.fd = None
         self.stat = None
+        self.ignore_errors = ignore_errors
 
         if logclass is not None:
             self.logclass = logclass
@@ -77,7 +78,13 @@ class LogFile(object):
                     self.fd.close()
                     self.fd = None
                     raise StopIteration
-                entry = self.logclass(line=line.rstrip(),path=self.path)
+                try:
+                    entry = self.logclass(line=line.rstrip(),path=self.path)
+                except LogError,emsg:
+                    if not self.ignore_errors:
+                        raise LogError(emsg)
+                    self.log.debug(emsg)
+                    continue
                 if filter_function is None:
                     break
                 if filter_function(entry):

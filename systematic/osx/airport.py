@@ -38,7 +38,9 @@ class AirportStatus(dict):
         for k in ['BSSID']:
             if not self.has_key(k):
                 continue
-            self[k] = ':'.join(['%02x'.upper() % int(x,16) for x in self[k].split(':')])
+            self[k] = ':'.join(
+                ['%02x'.upper() % int(x,16) for x in self[k].split(':')]
+            )
 
     def proximity(self):
         headers = ['SSID','BSSID','RSSI','CHANNEL','HT','CC','SECURITY']

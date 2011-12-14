@@ -141,17 +141,3 @@ class AFPShareDisk(dict):
         except CalledProcessError,emsg:
             raise AFPShareError(emsg)
 
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    config = AFPShareConfig()
-    for k,v in config.items():
-        print 'Option %s value %s' % (k,v)
-    for d in config.disks:
-        print '%s: %s' % (d.name,d.status())
-        try:
-            d.mount()
-            d.umount()
-        except AFPShareError,e:
-            print 'ERROR:', e
-            continue
-

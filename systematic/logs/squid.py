@@ -66,8 +66,8 @@ class SquidCacheLogEntry(LogEntry):
                 
 
 class SquidAccessLog(LogFile):
-    def __init__(self,path,start_ts=None,end_ts=None):
-        LogFile.__init__(self,path,SquidAccessLogEntry,start_ts,end_ts)
+    def __init__(self,path,start_ts=None,end_ts=None,ignore_errors=False):
+        LogFile.__init__(self,path,SquidAccessLogEntry,start_ts,end_ts,ignore_errors)
 
 class SquidAccessLogEntry(LogEntry):
     def __init__(self,line,path):
@@ -103,7 +103,15 @@ class SquidAccessLogEntry(LogEntry):
 
 if __name__ == '__main__':
     import sys
-    log = SquidCacheLog(sys.argv[1])
+    log = SquidAccessLog(sys.argv[1],ignore_errors=True)
+    net = IPv4Address('10.0.0.0/24')
+    for entry in log:
+        if not net.hostInNetwork(entry.client.ipaddress): 
+            continue
+        print '%15s %s' % (entry.client,entry.url)
+
+    sys.exit(0)
+
     for address in sorted(list(set([l.address for l in log.filter(
             lambda e: e['code'] in ['clientTryParseRequest']
         )]))):

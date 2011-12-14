@@ -106,7 +106,7 @@ class PythonScript(object):
         sys.setdefaultencoding('utf-8')
 
         self.parser = OptionParser()
-        self.logging = logging.getLogger('console')
+        self.log = logging.getLogger('console')
         self.parser.add_option('-v','--verbose',dest='verbose',
             action='store_true',help='Show verbose messages'
         )

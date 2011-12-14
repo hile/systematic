@@ -3,36 +3,23 @@
 Script to update all linux and freebsd servers
 """
 
-import sys,os,logging
-from subprocess import Popen,PIPE
-from optparse import OptionParser
-from configobj import ConfigObj
+from systematic.shell import PythonScript
+from systematic.serverlist import OrganizationServers
 
-DEFAULT_CONFIG = '/etc/nxme/servers.list'
+DEFAULT_CONFIG = '/etc/all-servers.list'
 
-parser = OptionParser()
-parser.add_option('-c','--config',help='Server list configuration file')
-parser.add_option('-d','--debug',help='Show debug messages')
-parser.set_defaults(**{'config':DEFAULT_CONFIG})
-(opts,args) = parser.parse_args()
+script = PythonScript()
+script.add_option('-c','--config',help='Server list configuration file')
+script.add_option('-d','--debug',help='Show debug messages')
+script.set_defaults(**{'config':DEFAULT_CONFIG})
+(opts,args) = script.parse_args()
 
-if opts.debug:  
-    logging.basicConfig(level=logging.DEBUG)
+servers = OrganizationServers(opts.config)
 
-serverconfig = ConfigObj(opts.config)
-
-for group in sorted(serverconfig.keys()):
-    try:
-        servers = sorted(serverconfig[group]['servers'])
-        commands = serverconfig[group]['commands']
-    except KeyError:
-        logging.debug('Invalid configuration for group %s' % group)
-    if servers == []:
-        continue
-    print 'Updating %s servers' % group
-    for server in servers:
-        cmd = ['ssh','-t',server,' && '.join(commands)]
-        print 'Updating: %s' % server
-        p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
-        p.wait()    
+for name,group in servers.items():
+    script.log.info('Updating %s servers' % group)
+    for server in group:
+        rc = server.update()
+        if rc != 0:
+            script.log.info('Updating %s failed' % server)
 

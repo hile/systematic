@@ -130,7 +130,7 @@ if __name__ == '__main__':
     accounts = OSXUserAccounts()
     for u in accounts.keys():
         print u,accounts[u].items()
-    sys.exit(0)
+
     folders = OSXUserFolders()
     for k in sorted(FOLDER_NAME_MAP.keys()):
         v = folders[k]

@@ -72,7 +72,7 @@ if args[0] in ['start','connect']:
         script.exit(0,'Already connected.')
     n.connect()
     if opts.wait:
-        logging.info('Waiting for %s to connect...' % n.name)
+        script.log.info('Waiting for %s to connect...' % n.name)
         while True:
             if n.connected: 
                 break
@@ -83,7 +83,7 @@ elif args[0] in ['stop','disconnect']:
         script.exit(0,'Not connected.')
     n.disconnect()
     if opts.wait:
-        logging.info('Waiting for %s to disconnect...' % n.name)
+        script.log.info('Waiting for %s to disconnect...' % n.name)
         while True:
             if not n.connected: 
                 break
