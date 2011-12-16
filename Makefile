@@ -6,6 +6,7 @@
 ifndef PREFIX
 	PREFIX:=/usr/local
 endif
+PACKAGE= $(shell basename ${PWD})
 VERSION= $(shell awk -F\' '/^VERSION/ {print $$2}' setup.py)
 
 clean:
@@ -13,7 +14,11 @@ clean:
 	rm -rf build dist *.egg-info */*.egg-info *.pyc */*.pyc */*/*.pyc
 
 package: clean
-	tar -zcf ../systematic-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc .
+	mkdir -p ../packages/$(PACKAGE) 
+	tar -zcf ../packages/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc .  
+
+register:
+	python setup.py register
 
 modules:
 	python setup.py build

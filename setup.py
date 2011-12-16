@@ -17,7 +17,7 @@ setup(
     version = VERSION,
     license = 'PSF',
     keywords = 'System Management Utility Classes Scripts',
-    url = 'https://github.com/hile/musa/downloads',
+    url = 'http://tuohela.net/packages/systematic',
     zip_safe = False,
     install_requires = [ 'setproctitle', 'lxml','configobj', 'seine', ],
     scripts = scripts,
