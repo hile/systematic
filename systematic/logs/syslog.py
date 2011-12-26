@@ -1,7 +1,12 @@
 #!/usr/bin/env python
 """
 Generic parser for syslog log files
+
+Also contains a simple wrapper for SysLogHandler logging module.
 """
+
+import logging,socket
+from logging.handlers import SysLogHandler
 
 import os,gzip,re,sys,time
 from systematic.logs.logfile import LogFile,LogEntry,LogError
@@ -72,12 +77,41 @@ class SyslogEntry(LogEntry):
             ' '.join(['%s' % self[k] for k in SYSLOG_FIELD_ORDER[1:]])
         )
 
-if __name__ == '__main__':
-    if len(sys.argv)>2:
-        sl = SyslogFile(path=sys.argv[1],start_ts=sys.argv[2],end_ts=sys.argv[3])
-    else:
-        sl = SyslogFile(path=sys.argv[1])
+DEFAULT_LOGFORMAT = '%(name)s %(levelname)s %(message)s'
+class SyslogExample(object):
+    """
+    Example class how to use and send logging messages to local syslog file
+    or remote server. 
+    
+    Target is given either as local syslog filename or (address,port) tuple.
+    """
+    def __init__(self,target,name='modules',
+            facility='daemon',socktype=socket.AF_INET,logformat=DEFAULT_LOGFORMAT):
 
-    for l in sl:
-        print l.message
+        self.level = logging.NOTSET
+        self.target = target
+        self.facility = facility
+        self.socktype = socktype
+        self.logformat = logformat
+
+        handler = SysLogHandler(self.target,self.facility,self.socktype)
+        handler.setFormatter(logging.Formatter(self.logformat))
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(self.level)
+        self.logger.addHandler(handler)
+
+    def setLevel(self,level):
+        self.level = level
+        self.logger.setLevel(self.level)
+
+    def info(self,*args,**kwargs):
+        self.logger.info(*args,**kwargs)
+
+    def debug(self,*args,**kwargs):
+        self.logger.info(*args,**kwargs)
+
+if __name__ == '__main__':
+    l = SyslogExample(target=('10.3.10.22',514))
+    l.setLevel(logging.INFO)
+    l.info('Test message!')
 
