@@ -3,48 +3,58 @@
 Parser for /etc/services file
 """
 
+import os
+
 class ServiceError(Exception):
     def __str__(self):
         return self.args[0]
 
 class ServiceList(dict):
+    """
+    Dictionary of all services found in services file. Dictionary key is 
+    the port number, and each entry is dictionary with protocol name in
+    uppercase pointing to a ServiceListEntry object.
+
+    For example: ServiceList[22]['TCP'] 
+    """
     def __init__(self,path='/etc/services'):
+        if not os.path.isfile(path):
+            raise ServiceError('No such file: %s' % path)
         try:
             fd = open(path,'r')
-            for l in open('/etc/services','r').readlines():
-                if l.startswith('#'): 
-                    continue
-                try:
-                    l = l[:l.index('#')]
-                except ValueError:
-                    pass
-
-                try:
-                    (name,target,aliases) =  map(lambda x: x.strip(), l.split(None,2))
-                    names = [name] + aliases.split()
-                except ValueError:
-                    try:
-                        (name,target) = map(lambda x: x.strip(), l.split(None,1))
-                    except ValueError:
-                        continue
-                    names = [name]
-
-                try:
-                    (port,protocol) = target.split('/')
-                    port = int(port)
-                    protocol = protocol.upper()
-                except ValueError:
-                    continue
-
-                if not self.has_key(port):
-                    self[port] = {}
-                self[port][protocol] = ServiceListEntry(port,protocol,names)
-
+            lines = open('/etc/services','r').readlines()
         except IOError,(ecode,emsg):
             raise ServiceError('Error reading %s: %s' % (path,emsg))
         except OSError,(ecode,emsg):
             raise ServiceError('Error reading %s: %s' % (path,emsg))
-        
+
+        for l in filter(lambda l: not l.startswith('#'), lines):
+            try:
+                l = l[:l.index('#')]
+            except ValueError:
+                pass
+
+            try:
+                (name,target,aliases) =  map(lambda x: x.strip(), l.split(None,2))
+                names = [name] + aliases.split()
+            except ValueError:
+                try:
+                    (name,target) = map(lambda x: x.strip(), l.split(None,1))
+                except ValueError:
+                    continue
+                names = [name]
+
+            try:
+                (port,protocol) = target.split('/')
+                port = int(port)
+                protocol = protocol.upper()
+            except ValueError:
+                continue
+
+            if not self.has_key(port):
+                self[port] = {}
+            self[port][protocol] = ServiceListEntry(port,protocol,names)
+
     def keys(self):
         return sorted(dict.keys(self))
 
@@ -72,7 +82,7 @@ class ServiceList(dict):
                     for p in protocols.values():
                         matches.append(p)
             for m in matches:
-                if name in m.names:
+                if name in m:
                     entries.append(m)
             return entries
 
@@ -100,35 +110,28 @@ class ServiceList(dict):
         else:
             raise ValueError('No search terms given')
 
-class ServiceListEntry(dict):
+class ServiceListEntry(list):
     """
     Class representing exactly one port,protocol pair from /etc/services
     """
     def __init__(self,port,protocol,names):
-        self['port'] = int(port)
-        self['protocol'] = protocol.upper()
-        if type(names) in [list]:
-            self['names'] = names
-        else:
+        self.port = int(port)
+        self.protocol = protocol.upper()
+        if isinstance(names,basestring):
             self['names'] = [names]
-
-    def __getattr__(self,item):
-        try:
-            return self[item]
-        except KeyError:
-            raise AttributeError('No such ServiceListEntry item: %s' % item)
+        self.extend(names)
 
     def __repr__(self):
-        return '%s/%s %s' % (self.port,self.protocol,','.join(self.names))
+        return '%s/%s %s' % (self.port,self.protocol,','.join(self))
 
 if __name__ == '__main__':
     import sys
     services = ServiceList()
-    if len(sys.argv)==1:
+    if len(sys.argv)>1:
+        for srv in sys.argv[1:]:
+            for r in services.find(name=srv.lower()):
+                print r
+    else:
         for port,s in services.items():
             print port, s
-    else:
-        for srv in sys.argv[1:]:
-            for r in services.find(name=srv):
-                print r
 
