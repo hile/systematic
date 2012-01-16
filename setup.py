@@ -3,7 +3,7 @@
 import sys,os,glob
 from setuptools import setup,find_packages
 
-VERSION='1.2'
+VERSION='1.3'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 packages = ['systematic','systematic.logs']
