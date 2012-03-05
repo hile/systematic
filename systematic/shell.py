@@ -139,3 +139,20 @@ class PythonScript(object):
             time.sleep(1)
         sys.exit(value)
 
+def uniq(lines,count=False,duplicates=False,unique=False,ignore_case=False,
+    field=0,char_offset=0):
+    """
+    Function similar to unix uniq against given input lines.
+
+    Options:
+    lines:  iterable strings to process
+    count:  print number of occurrances for each line (-c)
+    duplicates: print only lines where there are more than one match (-d)
+    unique: print only unique lines (-u)
+    ignore_case: match lines case insensitively (-i)
+    field: start matching from given space separated field (-f num)
+    char_offset: start from char count offset from beginning of match (-s num)
+    """
+
+    return []
+
