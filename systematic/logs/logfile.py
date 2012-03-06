@@ -5,6 +5,10 @@ Common classes for logfile iteration and log entry processing
 
 import os,time,gzip,logging
 
+class LogLineTypeError(Exception):
+    def __str__(self):
+        return self.args[0]
+
 class LogError(Exception):
     def __str__(self):
         return self.args[0]
@@ -80,6 +84,8 @@ class LogFile(object):
                     raise StopIteration
                 try:
                     entry = self.logclass(line=line.rstrip(),path=self.path)
+                except LogLineTypeError,emsg:
+                    continue
                 except LogError,emsg:
                     if not self.ignore_errors:
                         raise LogError(emsg)
