@@ -6,7 +6,7 @@ easy consumption.
 """
 
 import re
-from subprocess import check_output,Popen,PIPE,CalledProcessError
+from subprocess import check_output,CalledProcessError
 
 re_header = re.compile('^CoreStorage logical volume groups \((\d+) found\)$')
 re_lvg_header = re.compile('^Logical Volume Group ([A-Z0-9-]+)$')
@@ -53,6 +53,7 @@ LV_HEADER_MAP = {
 
 class coreStorage(list):
     def __init__(self):
+        list.__init__(self)
         self.lvg_count = 0
         self.update()
 
@@ -64,57 +65,61 @@ class coreStorage(list):
         pv = None
         lvf = None
         lv = None
-        for l in check_output(['diskutil','coreStorage','list']).split('\n'):
-            l = l.lstrip('|+-<> ')
-            if l.strip() == '' or l.strip('-=') == '':
-                continue
-            m = re_header.match(l)
-            if m:
-                self.lvg_count = int(m.group(1))
-                continue
-            m = re_lvg_header.match(l)
-            if m:
-                lvg = coreStorageLVG(m.group(1))
-                self.append(lvg)
-                pv = None
-                lvf = None
-                lv = None
-                continue
-            m = re_pv_header.match(l)
-            if m:
-                pv = coreStoragePV(lvg,m.group(1))
-                lvg.pvs.append(pv)
-                lv = None
-                lvf = None
-                continue
-            m = re_lvf_header.match(l)
-            if m:
-                lvf = coreStorageLVFamily(lvg,m.group(1))
-                lvg.lvfs.append(lvf)
-                lv = None
-                continue
-            m = re_lv_header.match(l)
-            if m:
-                lv = coreStorageLV(lvg,m.group(1))
-                lvf.lvs.append(lv)
-                continue
-            try:
-                (key,value) = map(lambda x: x.strip(), l.split(':',1))
-            except ValueError:
-                raise ValueError('Error parsing line %s' % l)
-            if lv is not None:
-                lv[key] = value
-            elif lvf is not None:
-                lvf[key] = value
-            elif pv is not None:
-                pv[key] = value
-            elif lvg is not None:
-                lvg[key] = value
-            else:
-                raise ValueError('Out of order line: %s' % l) 
+        try:
+            for l in check_output(['diskutil','coreStorage','list']).split('\n'):
+                l = l.lstrip('|+-<> ')
+                if l.strip() == '' or l.strip('-=') == '':
+                 continue
+                m = re_header.match(l)
+                if m:
+                    self.lvg_count = int(m.group(1))
+                    continue
+                m = re_lvg_header.match(l)
+                if m:
+                    lvg = coreStorageLVG(m.group(1))
+                    self.append(lvg)
+                    pv = None
+                    lvf = None
+                    lv = None
+                    continue
+                m = re_pv_header.match(l)
+                if m:
+                    pv = coreStoragePV(lvg,m.group(1))
+                    lvg.pvs.append(pv)
+                    lv = None
+                    lvf = None
+                    continue
+                m = re_lvf_header.match(l)
+                if m:
+                    lvf = coreStorageLVFamily(lvg,m.group(1))
+                    lvg.lvfs.append(lvf)
+                    lv = None
+                    continue
+                m = re_lv_header.match(l)
+                if m:
+                    lv = coreStorageLV(lvg,m.group(1))
+                    lvf.lvs.append(lv)
+                    continue
+                try:
+                    (key,value) = map(lambda x: x.strip(), l.split(':',1))
+                except ValueError:
+                    raise ValueError('Error parsing line %s' % l)
+                if lv is not None:
+                    lv[key] = value
+                elif lvf is not None:
+                    lvf[key] = value
+                elif pv is not None:
+                    pv[key] = value
+                elif lvg is not None:
+                    lvg[key] = value
+                else:
+                    raise ValueError('Out of order line: %s' % l)
+        except CalledProcessError:
+            raise ValueError('Error listing corestorege volumes')
 
 class coreStorageLVG(dict):
     def __init__(self,uuid):
+        dict.__init__(self)
         self.uuid = uuid
         self.pvs = []
         self.lvfs = []
@@ -134,6 +139,7 @@ class coreStorageLVG(dict):
 
 class coreStoragePV(dict):
     def __init__(self,lvg,uuid):
+        dict.__init__(self)
         self.lvg = lvg
         self.uuid = uuid
 
@@ -152,6 +158,7 @@ class coreStoragePV(dict):
 
 class coreStorageLVFamily(dict):
     def __init__(self,lvg,uuid):
+        dict.__init__(self)
         self.lvg = lvg
         self.uuid = uuid
         self.lvs = []
@@ -171,6 +178,7 @@ class coreStorageLVFamily(dict):
 
 class coreStorageLV(dict):
     def __init__(self,lvf,uuid):
+        dict.__init__(self)
         self.lvf = lvf
         self.uuid = uuid
 

@@ -3,7 +3,7 @@
 Classes to handle AFP mountpoints, mounting and configuring them.
 """
 
-import os,sys,logging,re
+import os,re
 from configobj import ConfigObj
 from subprocess import call,CalledProcessError
 
@@ -12,12 +12,18 @@ re_mountpoint = re.compile(r'^/Volumes/[A-Za-z0-9_-]*$')
 DEFAULT_CONFIG_PATH = os.path.join(os.getenv('HOME'),'.afpshares.conf')
 
 class AFPShareError(Exception):
+    """
+    Exceptions raised when accessing AFP shares
+    """
     def __str__(self):
         return self.args[0]
 
 class AFPShareConfig(dict):
+    """
+    Reader for AFP share configuration files.
+    """
     def __init__(self,config_path=DEFAULT_CONFIG_PATH):
-
+        dict.__init__(self)
         self.config = None
         self.path = config_path
         if not os.path.isfile(self.path):
@@ -53,10 +59,11 @@ class AFPShareConfig(dict):
             return self[item]
         except KeyError:
             pass
-        raise KeyError('No such AFP share: %s' % (item))
+        raise KeyError('No such AFP share: %s' % item)
 
 class AFPShareDisk(dict):
     def __init__(self,name,settings):
+        dict.__init__(self)
         self.name = name
         self.update(**{
             'address': None, 
@@ -87,10 +94,13 @@ class AFPShareDisk(dict):
 
     def __getattr__(self,attr):
         if attr == 'afp_path_nopass':
+            #noinspection PyStringFormat
             return 'afp://%(address)s%(path)s' % self
         if attr == 'afp_path':
             if self.username is not None:
+                #noinspection PyStringFormat
                 return 'afp://%(username)s:%(password)s@%(address)s%(path)s' % self
+            #noinspection PyStringFormat
             return 'afp://%(address)s%(path)s' % self
         try:
             return self[attr]
@@ -112,7 +122,6 @@ class AFPShareDisk(dict):
             return 'mounted by myself'
 
     def mount(self):
-        path = self.path
         if os.path.ismount(self.mountpoint):
             raise AFPShareError('Already mounted: %s' % self.mountpoint)
 

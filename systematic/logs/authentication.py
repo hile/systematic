@@ -3,18 +3,20 @@
 Parser for common authentication log messages
 """
 
-import re,time,logging
-
-from seine.address import IPv4Address,IPv6Address
-from systematic.logs.logfile import LogFile,LogEntry,LogError
 from systematic.logs.syslog import SyslogFile,SyslogEntry
 
 class AuthenticationLog(SyslogFile):
+    """
+    Log parser class for /var/log/auth.log logs
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         SyslogFile.__init__(self,path,start_ts,end_ts)
         self.logclass = AuthenticationLogEntry
 
 class AuthenticationLogEntry(SyslogEntry):
+    """
+    Log entry abstraction for authentication log entries
+    """
     def __init__(self,line,path):
         SyslogEntry.__init__(self,line,path)
 
@@ -32,6 +34,7 @@ class AuthenticationLogEntry(SyslogEntry):
 
 class AuthLogMessage(dict):
     def __init__(self,entry):
+        dict.__init__(self)
         self.entry = entry
         self.message = entry.message
 
@@ -60,19 +63,3 @@ class CronLogMessage(AuthLogMessage):
 class SshdLogMessage(AuthLogMessage):
     def __init__(self,entry):
         AuthLogMessage.__init__(self,entry)
-
-if __name__ == '__main__':
-    import sys
-    al = AuthenticationLog(sys.argv[1])
-
-    while True:
-        try:
-            l = al.next() #lambda e: e['client'].ipaddress=='10.3.10.23')
-        except StopIteration:
-            break
-        if l.has_key('parser'):
-            continue
-            print l.parser,l.message
-        else:
-            print l.program,l.message
-

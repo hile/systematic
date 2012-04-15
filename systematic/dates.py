@@ -4,7 +4,7 @@ Class to parse and represent local calendar,suited for walking weeks and
 months and to get working days for certain calendar date week easily.
 """
 
-import sys,os,time,datetime,calendar
+import time,datetime,calendar
 
 # Default first day of week: range 0 (sunday) to 6 (saturday)
 WEEK_START_DEFAULT = 1
@@ -18,10 +18,16 @@ WEEKDAY_NAMES = [
 ]
 
 class DatesError(Exception):
+    """
+    Exceptions raised when parsing dates
+    """
     def __str__(self):  
         return self.args[0]
 
 class Day(object):
+    """
+    Presentation of one Day in the dates module
+    """
     def __init__(self,timeval=None,input_format='%Y-%m-%d',output_format='%Y-%m-%d'):
         if timeval is None:
             dateval = time.localtime()
@@ -43,6 +49,7 @@ class Day(object):
             '-'.join('%02d' % x for x in dateval[:3]), '%Y-%m-%d'
         )))
         self.timetuple = time.localtime(self.timestamp)
+        #noinspection PyTypeChecker
         self.datetime = datetime.datetime.fromtimestamp(self.timestamp)
         self.isoweekday = time.localtime(self.timestamp).tm_wday
 
@@ -145,8 +152,9 @@ class Week(object):
                 raise ValueError
             return self.first + index
         except ValueError:
-            raise IndexError('Invalid week day index: %s' % attr)
-        raise IndexError
+            pass
+        raise IndexError('Invalid week day index: %s' % attr)
+
 
     def __sub__(self,value):
         value = int(value) * 7 * 86400
@@ -206,7 +214,7 @@ class Month(object):
         )
         while int(week.first.timestamp) <= int(self.last.timestamp):
             self.weeks.append(week)
-            week = week+1
+            week+=1
         self.timestamps = [self.first.timestamp+i*86400 for i in range(0,self.days)]
 
     def __hash__(self):
@@ -219,10 +227,10 @@ class Month(object):
                 raise ValueError
             return self.first + index
         except ValueError:
-            raise IndexError(
-                'Invalid month day index: %s (month has %d days)' % (attr,self.days)
-            )
-        raise IndexError
+            pass
+        raise IndexError(
+            'Invalid month day index: %s (month has %d days)' % (attr,self.days)
+        )
 
     def __str__(self):
          return time.strftime('%B %Y',self.first.timetuple)
@@ -232,7 +240,7 @@ class Month(object):
 
     def __add__(self,value):
         value = int(value) 
-        if value == 0: 
+        if not value:
             return self
         m = self
         for i in range(0,value):
@@ -243,7 +251,7 @@ class Month(object):
 
     def __sub__(self,value):
         value = int(value) 
-        if value == 0: 
+        if not value:
             return self
         m = self
         for i in range(0,value):

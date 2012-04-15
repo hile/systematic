@@ -12,7 +12,12 @@ from subprocess import Popen,PIPE
 from configobj import ConfigObj
 
 class OrganizationServers(dict):
+    """
+    Parser for configuration file describing organization's servers and
+    their operating systems.
+    """
     def __init__(self,path):
+        dict.__init__(self)
         self.log = logging.getLogger('modules')
 
         if not os.path.isfile(path):
@@ -26,6 +31,7 @@ class OrganizationServers(dict):
 
 class OperatingSystemGroup(list):
     def __init__(self,name,opts):
+        list.__init__(self)
         self.log = logging.getLogger('modules')
         self.name = name
         try:
@@ -44,7 +50,7 @@ class OperatingSystemGroup(list):
 
         try:
             self.update_commands = opts['commands']
-            if len(self.update_commands) == 0:
+            if not len(self.update_commands):
                 self.update_commands = None
         except KeyError:
             self.update_commands = None
@@ -76,7 +82,7 @@ class ServerConfig(object):
         cmd = self.connect_command + command
         p = Popen(cmd,stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
-        return (p.returncode,stdout.rstrip('\n'),stderr.rstrip('\n'))
+        return p.returncode,stdout.rstrip('\n'),stderr.rstrip('\n')
 
     def shell(self,command):
         if type(command) != list:

@@ -1,25 +1,35 @@
 #!/usr/bin/env python
-
-import os,sys,time,subprocess
+"""
+Module for Apple OS/X airport status command access from python
+"""
+import os,time,subprocess
 
 AIRPORT_BINARY = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
 class AirportError(Exception):
+    """
+    Exception raised by errors processing AirPort status
+    """
     def __str__(self):
         return self.args[0]
 
 class AirportStatus(dict):
+    """
+    Class to call the system 'airport' command.
+    """
     def __init__(self):
+        dict.__init__(self)
         if not os.path.isfile(AIRPORT_BINARY):
             raise AirportError('No such command: %s' % AIRPORT_BINARY)
 
     def __repr__(self):
         self.probe()
+        #noinspection PyStringFormat
         return '%(BSSID)s %(SSID)s channel %(channel)s %(agrCtlRSSI)s dB' % self
 
     def __getattr__(self,attr):
         try:
-            if self.keys() == []:
+            if not self.keys():
                 self.probe()
             return self[attr]
         except KeyError:

@@ -3,7 +3,7 @@
 Wrapper for running rsync commands from python
 """
 
-import sys,os,time,logging
+import time,logging
 from subprocess import Popen,PIPE
 
 from systematic.shell import CommandPathCache
@@ -59,6 +59,7 @@ class RsyncCommand(object):
                 time.sleep(0.2)
                 rval = p.poll()
             logging.debug('Return code: %s' % rval)
+            #noinspection PySimplifyBooleanCheck
             if rval != 0:
                 raise RsyncError('Error running command %s: %s' % (
                     self,p.stderr.read()
@@ -66,12 +67,3 @@ class RsyncCommand(object):
         except KeyboardInterrupt:
             logging.debug('Rsync interrupted')
             raise KeyboardInterrupt
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-    r = RsyncCommand( src=sys.argv[1],dst=sys.argv[2])
-    try:
-        r.run(verbose=False)
-    except KeyboardInterrupt:
-        pass
-

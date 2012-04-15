@@ -6,6 +6,9 @@ Parser for /etc/services file
 import os
 
 class ServiceError(Exception):
+    """
+    Exceptions raised while parsing /etc/services file
+    """
     def __str__(self):
         return self.args[0]
 
@@ -18,11 +21,11 @@ class ServiceList(dict):
     For example: ServiceList[22]['TCP'] 
     """
     def __init__(self,path='/etc/services'):
+        dict.__init__(self)
         if not os.path.isfile(path):
             raise ServiceError('No such file: %s' % path)
         try:
-            fd = open(path,'r')
-            lines = open('/etc/services','r').readlines()
+            lines = open(path,'r').readlines()
         except IOError,(ecode,emsg):
             raise ServiceError('Error reading %s: %s' % (path,emsg))
         except OSError,(ecode,emsg):
@@ -115,6 +118,7 @@ class ServiceListEntry(list):
     Class representing exactly one port,protocol pair from /etc/services
     """
     def __init__(self,port,protocol,names):
+        list.__init__(self)
         self.port = int(port)
         self.protocol = protocol.upper()
         if isinstance(names,basestring):

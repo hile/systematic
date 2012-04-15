@@ -1,17 +1,20 @@
 #!/usr/bin/env python
+"""
+Package setup script for easy_install
+"""
 
-import sys,os,glob
-from setuptools import setup,find_packages
+import sys,os
+from setuptools import setup
 
 VERSION='1.3'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 packages = ['systematic','systematic.logs']
+package_dirs = {'systematic': 'systematic'}
 deps = [ 'setproctitle', 'lxml','configobj', 'seine' ]
-scripts = glob.glob('bin/*')
+
 if sys.platform == 'darwin':
-    packages.append('systematic.osx')
-    scripts.extend(glob.glob('osx/*'))
+    packages.append('systematic/darwin')
     deps.append('appscript')
 
 setup(
@@ -21,8 +24,8 @@ setup(
     keywords = 'System Management Utility Classes Scripts',
     url = 'http://tuohela.net/packages/systematic',
     zip_safe = False,
-    scripts = scripts,
     packages = packages,
+    package_dirs = package_dirs,
     install_requires = deps,
     author = 'Ilkka Tuohela', 
     author_email = 'hile@iki.fi',

@@ -3,7 +3,7 @@
 Parser for squid access and cache logs
 """
 
-import re,time,logging
+import re,time
 
 from seine.address import IPv4Address,IPv6Address
 from systematic.logs.logfile import LogFile,LogEntry,LogError
@@ -100,21 +100,3 @@ class SquidAccessLogEntry(LogEntry):
                 raise LogError('Could not parse %s value %s' % (name,self[name]))
 
         self['time'] = time.localtime(int(float(self['timestamp'])))
-
-if __name__ == '__main__':
-    import sys
-    log = SquidAccessLog(sys.argv[1],ignore_errors=True)
-    net = IPv4Address('10.0.0.0/24')
-    for entry in log:
-        if not net.hostInNetwork(entry.client.ipaddress): 
-            continue
-        print '%15s %s' % (entry.client,entry.url)
-
-    sys.exit(0)
-
-    for address in sorted(list(set([l.address for l in log.filter(
-            lambda e: e['code'] in ['clientTryParseRequest']
-        )]))):
-        print address.ipaddress
-        #print l.code,l.address.ipaddress,l.port
-

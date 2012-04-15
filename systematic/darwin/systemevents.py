@@ -1,6 +1,8 @@
 #!/usr/bin/env python
-
-import logging,appscript
+"""
+Abstraction of AppleScript system events class for python
+"""
+import appscript
 
 FOLDER_NAME_MAP = {
     'applications': 'applications_folder',
@@ -33,6 +35,7 @@ class SystemEventsError(Exception):
 
 class OSXUserAccounts(dict):
     def __init__(self):
+        dict.__init__(self)
         try:
             self.app = appscript.app('System Events')
         except appscript.reference.CommandError,e:
@@ -45,6 +48,7 @@ class OSXUserAccounts(dict):
 
 class OSXUserAccount(dict):
     def __init__(self,app,reference):
+        dict.__init__(self)
         self.app = app
         self.reference = reference
 
@@ -73,6 +77,7 @@ class OSXUserAccount(dict):
 
 class OSXUserFolders(dict):
     def __init__(self):
+        dict.__init__(self)
         try:
             self.app = appscript.app('System Events')
         except appscript.reference.CommandError,e:
@@ -81,7 +86,7 @@ class OSXUserFolders(dict):
             )
         for k in sorted(FOLDER_NAME_MAP.keys()):
             ref = getattr(self.app,FOLDER_NAME_MAP[k]).get()
-            if ref == None:
+            if ref is None:
                 self[k] = None
                 continue
             self[k] = OSXFolderItem(self,ref)
@@ -89,6 +94,7 @@ class OSXUserFolders(dict):
 
 class OSXFolderItem(dict):
     def __init__(self,app,reference):
+        dict.__init__(self)
         if reference is None:
             raise 
         self.app = app
@@ -124,21 +130,3 @@ class OSXFolderItem(dict):
 
     def items(self):
         return [(k,self[k]) for k in self.keys()]
-
-if __name__ == '__main__':
-    import sys
-    accounts = OSXUserAccounts()
-    for u in accounts.keys():
-        print u,accounts[u].items()
-
-    folders = OSXUserFolders()
-    for k in sorted(FOLDER_NAME_MAP.keys()):
-        v = folders[k]
-        print v.keys()
-        for k,v in v.items():
-            print k,v
-        break
-        if v is None:
-            continue
-        print v.name,v.path,v.mtime
-

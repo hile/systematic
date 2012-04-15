@@ -3,10 +3,9 @@
 Parser for dovecot server logs
 """
 
-import re,time,logging
+import re
 
-from seine.address import IPv4Address,IPv6Address
-from systematic.logs.logfile import LogFile,LogEntry,LogError
+from systematic.logs.logfile import LogFile
 from systematic.logs.syslog import SyslogFile,SyslogEntry
 
 re_system = re.compile('^dovecot: (?P<message>.*)$')
@@ -17,10 +16,14 @@ re_connection_closed = re.compile('^(?P<service>[A-Z0-9]+)\((?P<username>[^\)]+)
 re_disconnect_user = re.compile('^(?P<service>[A-Z0-9]+)\((?P<username>[^\)]+)\): Disconnected(?P<details>.*)$')
 
 class DovecotLog(SyslogFile):
+    """
+    Parser for dovecot mail server log messages.
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         SyslogFile.__init__(self,path,start_ts,end_ts)
         self.logclass = DovecotLogEntry
 
+    #noinspection PyMethodOverriding
     def next(self):
         while True:
             try:

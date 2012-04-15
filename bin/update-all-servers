@@ -3,23 +3,27 @@
 Script to update all linux and freebsd servers
 """
 
-from systematic.shell import PythonScript
+from systematic.shell import Script
 from systematic.serverlist import OrganizationServers
 
 DEFAULT_CONFIG = '/etc/all-servers.list'
 
-script = PythonScript()
+script = Script()
 script.add_option('-c','--config',help='Server list configuration file')
-script.add_option('-d','--debug',help='Show debug messages')
 script.set_defaults(**{'config':DEFAULT_CONFIG})
 (opts,args) = script.parse_args()
 
-servers = OrganizationServers(opts.config)
+servers = None
+try:
+    servers = OrganizationServers(opts.config)
+except ValueError,emsg:
+    script.exit(1,emsg)
 
 for name,group in servers.items():
     script.log.info('Updating %s servers' % group)
     for server in group:
         rc = server.update()
+        #noinspection PySimplifyBooleanCheck
         if rc != 0:
             script.log.info('Updating %s failed' % server)
 

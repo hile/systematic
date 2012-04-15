@@ -3,7 +3,7 @@
 Parser for apache access logs
 """
 
-import re,time,logging
+import re,time
 
 from seine.address import IPv4Address,IPv6Address
 from systematic.logs.logfile import LogFile,LogEntry,LogError
@@ -52,7 +52,7 @@ class ApacheAccessLogEntry(LogEntry):
                 self.update(m.groupdict())
                 break
 
-        if len(self.keys()) == 0:
+        if not len(self.keys()):
             raise LogError('Could not parse access log line %s' % line) 
 
         for k in self.keys():
@@ -91,7 +91,7 @@ class ApacheErrorLog(LogFile):
         LogFile.__init__(self,path,ApacheErrorLogEntry,start_ts,end_ts)
 
 class ApacheErrorLogEntry(LogEntry):
-    def __init__(self,line,path,matches=re_accesslogs):
+    def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
 
         m = re_errorlog.match(line)

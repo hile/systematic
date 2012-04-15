@@ -3,10 +3,9 @@
 Parser for postfix SMTP logs
 """
 
-import re,time,logging
+import re
 
-from seine.address import IPv4Address,IPv6Address
-from systematic.logs.logfile import LogFile,LogEntry,LogError
+from systematic.logs.logfile import LogFile,LogError
 from systematic.logs.syslog import SyslogFile,SyslogEntry
 
 re_errorlog = re.compile('^%s$' % '\s*'.join([
@@ -16,7 +15,7 @@ re_errorlog = re.compile('^%s$' % '\s*'.join([
 ]))
 
 # Regular expressions to match various message types in the log for postfix
-re_msgid_msg = re.compile('^(?P<msgid>[A-Z0-9]{9,9}): (?P<flags>.*)$')
+re_msgid_msg = re.compile('^(?P<msgid>[A-Z0-9]{9}): (?P<flags>.*)$')
 re_noqueue_msg = re.compile('^NOQUEUE: (?P<code>[a-z0-9]+): RCPT from (?P<source>[^\[]+)\[(?P<address>[^\]]+)\]: (?P<response>.*); (?P<flags>.*)$')
 re_table_msg = re.compile('^table (?P<db>[^\s]+) (?P<event>.*)$')
 re_dbfile_msg = re.compile('^warning: database (?P<db>[^\s]+) is older than source file (?P<source>.*)$')
@@ -37,6 +36,7 @@ class PostfixSMTPLog(SyslogFile):
         SyslogFile.__init__(self,path,start_ts,end_ts)
         self.logclass = PostFixSMTPLogEntry
 
+    #noinspection PyMethodOverriding,PyMethodOverriding
     def next(self):
         while True:
             try:
@@ -80,7 +80,7 @@ class PostFixSMTPLogEntry(SyslogEntry):
                         flags = flags[len(s):]
                     except ValueError:
                         raise LogError('Error parsing %s %s' % (v,flags))
-                    if len(flags)==0:
+                    if not len(flags):
                         break
                 try:
                     (key,value) = v.split('=',1)

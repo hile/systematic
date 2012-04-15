@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+"""
+Script to load and view ssh keys found from user directories
+"""
+
+import os
+
+from systematic.shell import Script
+from systematic.sshconfig import UserSSHKeys
+
+DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
+
+script = Script()
+script.set_usage("""%s [options]
+
+Wrapper for ssh-add command.
+
+Load SSH keys configured in ~/.ssh/sshkeys.conf, only loading the key
+if not already in keychain, skipping key if file is not available.
+""" % script.name)
+script.add_option('-c','--config',help='Configuration file path')
+script.add_option('-l','--list',action='store_true',help='List loaded keys')
+script.add_option('-k','--keys',action='store_true',help='List available keys')
+script.add_option('-s','--status',action='store_true',help='List key load status')
+script.add_option('-a','--load',action='store_true',help='Load all keys to agent')
+script.add_option('-u','--unload',action='store_true',help='Unload all agent keys')
+script.set_defaults(**{'config': DEFAULT_CONFIG})
+(opts,args) = script.parse_args()
+
+usk = UserSSHKeys()
+if os.path.isfile(opts.config):
+    usk.read_config(path=opts.config)
+
+if opts.list:
+    for k in usk.sshagent_loaded_keys().values():
+        print """%(path)s
+  Algorithm:   %(algorithm)s
+  Key Bits:    %(bits)s
+  Fingerprint: %(fingerprint)s
+        """ % k
+
+if opts.keys:
+    for k in filter(lambda x: x.available, usk.values()):
+        print """%(path)s
+  Algorithm:   %(algorithm)s
+  Key Bits:    %(bits)s
+  Fingerprint: %(fingerprint)s
+""" % k
+
+if opts.status:
+    for k in usk.values():
+        if k.available:
+            status = k.is_loaded and 'LOADED' or 'UNLOADED'
+        else:
+            status = 'UNAVAILABLE'
+        print '%12s %s' % (status,k.path)
+
+if opts.load:
+    for k in filter(lambda k: k.available and k.autoload and not k.is_loaded, usk.values()):
+        k.load()
+
+if opts.unload:
+    for k in filter(lambda k: k.is_loaded, usk.values()):
+        k.unload()

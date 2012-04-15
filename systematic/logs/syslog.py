@@ -8,7 +8,7 @@ Also contains a simple wrapper for SysLogHandler logging module.
 import logging,socket
 from logging.handlers import SysLogHandler
 
-import os,gzip,re,sys,time
+import os,re,time
 from systematic.logs.logfile import LogFile,LogEntry,LogError
 
 SYSLOG_FIELD_ORDER = ['timestamp','host','program','message']
@@ -58,7 +58,7 @@ class SyslogEntry(LogEntry):
                 self['timestamp'] = time.mktime(self['time'])
             except ValueError:
                 continue
-        if self['timestamp'] == None:
+        if self['timestamp'] is None:
             raise LogError('Invalid time value: %s' % timevalue)
 
         for k in ['timestamp','pid']:

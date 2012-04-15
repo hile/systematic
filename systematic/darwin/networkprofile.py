@@ -17,10 +17,16 @@ NETWORK_CONNECTION_TYPES = {
 }
 
 class NetworkConfigError(Exception):
+    """
+    Exceptions raised while parsing OS/X network profiles
+    """
     def __str__(self): 
         return self.args[0]
 
 class NetworkProfileList(object):
+    """
+    List of network profiles found on the OS/X system
+    """
     def __init__(self,config=None):
         self.config = self.__read_config(config)
         try:
@@ -38,11 +44,11 @@ class NetworkProfileList(object):
         names = filter(
             lambda s: s.name.get()==item, self.location.services.get()
         )
-        if len(names) == 0:
+        if not len(names):
             raise KeyError('No such connection: %s' % item)
         try:
             return NetworkConnection(item,profiles=self)
-        except appscript.reference.CommandError,e:
+        except appscript.reference.CommandError:
             raise KeyError('No such network service configured: %s' % item)
 
     def keys(self):
@@ -90,7 +96,7 @@ class NetworkConnection(object):
             s.name.get()==name,
             profiles.location.services.get()
         )
-        if len(names) == 0:
+        if not len(names):
             raise NetworkConfigError('No such connection: %s' % name)
         try:
             self.connection = profiles.location.services[name].get()
@@ -129,7 +135,7 @@ class NetworkConnection(object):
             try:
                 interface = self.connection.interface.get()
                 return getattr(interface,item).get()
-            except appscript.reference.CommandError,e:
+            except appscript.reference.CommandError:
                 raise AttributeError(
                     'Value %s not available for interface %s' % (item,self.name)
                 )
@@ -137,7 +143,7 @@ class NetworkConnection(object):
         if item == 'kind':
             try:
                 return self.connection.kind.get()
-            except appscript.reference.CommandError,e:
+            except appscript.reference.CommandError:
                 raise NetworkConfigError(
                     'Error getting service type for %s' % self.name
                 )
@@ -152,11 +158,11 @@ class NetworkConnection(object):
         if item == 'connected':
             try:
                 return self.connection.current_configuration.connected.get()
-            except appscript.reference.CommandError,e:
+            except appscript.reference.CommandError:
                 return False
         raise AttributeError('No such NetworkConnection attribute: %s' % item)
 
-    def connect(self,password=None):
+    def connect(self):
         """
         Connects the network interface. 
         

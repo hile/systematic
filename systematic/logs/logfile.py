@@ -6,16 +6,24 @@ Common classes for logfile iteration and log entry processing
 import os,time,gzip,logging
 
 class LogLineTypeError(Exception):
+    """
+    Exception raised when log lines of unknown types are detected
+    """
     def __str__(self):
         return self.args[0]
 
 class LogError(Exception):
+    """
+    Exception raised for errors processing log files
+    """
     def __str__(self):
         return self.args[0]
 
 class LogFile(object):
-    __slots__ = ['log','__next','path','fd','stat','logclass','start_ts','end_ts']
-
+    """
+    Base class for parsing generic log file as iterator. Normally you
+    want to inherit this and write a log file specific parser.
+    """
     def __init__(self,filename,logclass=None,start_ts=None,end_ts=None,ignore_errors=False):
         self.log = logging.getLogger('modules')
         self.__next = 0
@@ -67,6 +75,7 @@ class LogFile(object):
             raise LogError('Error opening %s: %s' % (self.path,emsg))
 
     def next(self,filter_function=None):
+        entry = None
         if not self.fd:
             try:
                 if self.path.endswith('gz'):
@@ -84,7 +93,7 @@ class LogFile(object):
                     raise StopIteration
                 try:
                     entry = self.logclass(line=line.rstrip(),path=self.path)
-                except LogLineTypeError,emsg:
+                except LogLineTypeError:
                     continue
                 except LogError,emsg:
                     if not self.ignore_errors:
@@ -97,9 +106,9 @@ class LogFile(object):
                     break
 
         except IOError,(ecode,emsg):
-            raise LogError('Error reading %s: %s' % path,emsg)
+            raise LogError('Error reading %s: %s' % self.path,emsg)
         except OSError,(ecode,emsg):
-            raise LogError('Error reading %s: %s' % path,emsg)
+            raise LogError('Error reading %s: %s' % self.path,emsg)
         return entry
 
     def filter(self,function):
@@ -142,8 +151,8 @@ class LogFile(object):
             time.sleep(1)
 
 class LogEntry(dict):
-    __slots__ = ['data','line','path']
     def __init__(self,line,path=None):
+        dict.__init__(self)
         self.path = path
         self.line = line
 

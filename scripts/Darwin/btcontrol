@@ -1,24 +1,24 @@
 #!/usr/bin/env python
-#
-# Connect, disconnect or show status of a VPN connection in OS/X.
-#
-# Can be used for OS/X integrated VPN connections only. VPN will still
-# ask password in a graphical window, if not permanently configured, so you 
-# can't run this headless remotely.
-#
-# If you can figure out how to enter the VPN passphrase, please send the info
-# to hile@iki.fi and I'll update the module and this script to allow entering
-# the passwords as well.
-#
+"""
+Connect, disconnect or show status of a VPN connection in OS/X.
 
-import os
+Can be used for OS/X integrated VPN connections only. VPN will still
+ask password in a graphical window, if not permanently configured, so you
+can't run this headless remotely.
 
-from systematic.shell import PythonScript
-from systematic.osx.networkprofile import NetworkConnection,NetworkProfileList,NetworkConfigError 
+If you can figure out how to enter the VPN passphrase, please send the info
+to hile@iki.fi and I'll update the module and this script to allow entering
+the passwords as well.
+"""
+
+import os,time
+
+from systematic.shell import Script
+from systematic.darwin.networkprofile import NetworkProfileList
 
 CONFIG_PATH = os.path.join(os.getenv('HOME'),'.networks.conf')
 
-script = PythonScript()
+script = Script()
 script.set_usage("""%s <start|stop|status>
 
 Connect, disconnect or show status of on-demand network connection.""" % script.name
@@ -30,21 +30,25 @@ script.add_option('-l','--list',action='store_true',help='List connections')
 
 if script.name == 'btcontrol':
     linktype = 'dialup'
-if script.name == 'vpncontrol':
+elif script.name == 'vpncontrol':
     linktype = 'vpn'
+else:
+    linktype = None
+    script.exit(1,'Unknown called name: %s' % script.name)
 
 if not opts.list and len(args) == 0:
-    script.exit(1,parser.get_usage())
+    script.exit(1,script.get_usage())
 
 npl = NetworkProfileList(config=CONFIG_PATH)
 links = npl.filter(linktype)
 if opts.list:
-    if len(links) == 0:
+    if not len(links):
         script.exit(1,'No %s connections defined' % linktype)
     for l in links:
         print l.name
-    script.exit(0)
+    script.exit()
 
+n = None
 try:
     if opts.name is not None:
         try:
@@ -69,7 +73,7 @@ except ValueError,emsg:
 
 if args[0] in ['start','connect']:
     if n.connected:
-        script.exit(0,'Already connected.')
+        script.exit(message='Already connected.')
     n.connect()
     if opts.wait:
         script.log.info('Waiting for %s to connect...' % n.name)
@@ -80,7 +84,7 @@ if args[0] in ['start','connect']:
 
 elif args[0] in ['stop','disconnect']:
     if not n.connected:
-        script.exit(0,'Not connected.')
+        script.exit(message='Not connected.')
     n.disconnect()
     if opts.wait:
         script.log.info('Waiting for %s to disconnect...' % n.name)
@@ -107,7 +111,7 @@ elif args[0] in ['wait']:
         time.sleep(1)
 
 else:
-    script.exit(1,parser.get_usage())
+    script.exit(1,script.get_usage())
 
-script.exit(0)
+script.exit()
 
