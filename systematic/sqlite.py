@@ -15,7 +15,7 @@ class SQLiteDatabase(object):
     """
     Parent class to simplify access to sqlite databases from python 
     """
-    def __init__(self,db_path,tables_sql=None):
+    def __init__(self,db_path,tables_sql=None,foreign_keys=True):
         """
         Opens given database reference. If tables_sql list is given, 
         each SQL command in the list is executed to initialize the
@@ -38,6 +38,9 @@ class SQLiteDatabase(object):
         #self.log.debug('Opening database: %s' % self.db_path)
         self.conn = sqlite3.Connection(self.db_path)
         c = self.cursor
+        if foreign_keys:
+            c.execute('PRAGMA foreign_keys=ON')
+            c.fetchone()
         if tables_sql:
             for q in tables_sql:
                 try:

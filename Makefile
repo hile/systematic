@@ -29,11 +29,11 @@ install: install_modules
 endif
 
 package: clean
-	mkdir -p ../packages/$(PACKAGE)
+	mkdir -p ../../Releases/$(PACKAGE)
 	git log --pretty=format:'%ai %an%n%n%B' > CHANGELOG.txt
-	rsync -a . --exclude='*.swp' --exclude=.git --exclude=.gitignore ./ $(PACKAGE)-$(VERSION)/
+	rsync -a . --exclude='*.swp' --exclude=.DS_Store --exclude=.idea --exclude=.git --exclude=.gitignore ./ $(PACKAGE)-$(VERSION)/
 	rm CHANGELOG.txt
-	tar -zcf ../packages/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc $(PACKAGE)-$(VERSION) 
+	tar -zcf ../../Releases/$(PACKAGE)/$(PACKAGE)-$(VERSION).tar.gz --exclude=.git --exclude=.gitignore --exclude=*.swp --exclude=*.pyc $(PACKAGE)-$(VERSION) 
 	rm -rf $(PACKAGE)-$(VERSION)
 
 register:
