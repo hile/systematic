@@ -5,6 +5,7 @@ Parser for apache access logs
 
 import re,time
 
+#noinspection PyPackageRequirements
 from seine.address import IPv4Address,IPv6Address
 from systematic.logs.logfile import LogFile,LogEntry,LogError
 
@@ -39,10 +40,16 @@ re_errorlog = re.compile('^%s$' % '\s*'.join([
 ]))
 
 class ApacheAccessLog(LogFile):
+    """
+    Apache access log parser
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         LogFile.__init__(self,path,ApacheAccessLogEntry,start_ts,end_ts)
 
 class ApacheAccessLogEntry(LogEntry):
+    """
+    One entry in apache access logs
+    """
     def __init__(self,line,path,matches=re_accesslogs):
         LogEntry.__init__(self,line,path)
 
@@ -87,10 +94,16 @@ class ApacheAccessLogEntry(LogEntry):
             raise LogError('Error parsing date: %s' % self['date'])
 
 class ApacheErrorLog(LogFile):
+    """
+    Apache error log parser
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         LogFile.__init__(self,path,ApacheErrorLogEntry,start_ts,end_ts)
 
 class ApacheErrorLogEntry(LogEntry):
+    """
+    One entry in apache error logs
+    """
     def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
 

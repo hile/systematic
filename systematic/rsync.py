@@ -23,10 +23,16 @@ DEFAULT_RSYNC_FLAGS = [
 DEFAULT_OUTPUT_FORMAT = '--out-format="%t %o:%f %b"'
 
 class RsyncError(Exception):
+    """
+    Exceptions raised when running rsync commands
+    """
     def __str__(self):
         return self.args[0]
 
 class RsyncCommand(object):
+    """
+    Wrapper to execute rsync to target nicely from python
+    """
     def __init__(self,src,dst,flags=DEFAULT_RSYNC_FLAGS,output_format=DEFAULT_OUTPUT_FORMAT):
         self.src = src
         self.dst = dst
@@ -44,6 +50,9 @@ class RsyncCommand(object):
         return ' '.join(self.command)
 
     def run(self,verbose=False):
+        """
+        Run the rsync command specific in __init__()
+        """
         if not verbose and logging.getLogger().level == logging.DEBUG:
             verbose = True
         try:

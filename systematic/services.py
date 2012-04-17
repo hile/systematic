@@ -59,12 +59,27 @@ class ServiceList(dict):
             self[port][protocol] = ServiceListEntry(port,protocol,names)
 
     def keys(self):
+        """
+        Return services sorted by name
+        """
         return sorted(dict.keys(self))
 
     def items(self):
+        """
+        Return (name,service) value pairs sorted by self.keys()
+        """
         return [(k,self[k]) for k in self.keys()] 
 
+    def values(self):
+        """
+        Return services sorted by self.keys()
+        """
+        return [self[k] for k in self.keys()]
+
     def find(self,name=None,port=None,protocol=None):
+        """
+        Find service matching name, port or protocol
+        """
         entries = []
 
         if port is not None:

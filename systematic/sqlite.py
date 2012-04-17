@@ -24,6 +24,8 @@ class SQLiteDatabase(object):
         self.db_path = db_path
         self.log = logging.getLogger('modules')
 
+        if db_path is None:
+            raise SQLiteError('Database path is None')
         db_dir = os.path.dirname(db_path)
         if not os.path.isdir(db_dir):
             try:
@@ -35,19 +37,25 @@ class SQLiteDatabase(object):
 
         #self.log.debug('Opening database: %s' % self.db_path)
         self.conn = sqlite3.Connection(self.db_path)
+        c = self.cursor
         if tables_sql:
-            c = self.cursor
             for q in tables_sql:
-                c.execute(q)
-            del c
+                try:
+                    c.execute(q)
+                except sqlite3.OperationalError,emsg:
+                    raise SQLiteError(
+                        'Error executing SQL:\n%s\n%s' % (q,emsg)
+                    )
+        del c
 
     def __del__(self):
         """
         Closes the database reference
         """
         #self.log.debug('Closing database: %s' % self.db_path)
-        self.conn.close()
-        self.conn = None
+        if hasattr(self,'conn') and self.conn is not None:
+            self.conn.close()
+            self.conn = None
 
     def __getattr__(self,attr):
         """
@@ -55,7 +63,10 @@ class SQLiteDatabase(object):
         cursor      Returns new connection cursor
         """
         if attr == 'cursor':
-            return self.conn.cursor()
+            c= self.conn.cursor()
+            if c is None:
+                raise SQLiteError('Could not get cursor to database')
+            return c
         raise AttributeError('No such SQLiteDatabase attribute: %s' %  attr)
 
     def __result2dict__(self,cursor,result):

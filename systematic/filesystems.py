@@ -39,12 +39,18 @@ class FileSystemFlags(dict):
         except KeyError:
             return False
 
-    def set(self,flag,value=True): 
+    def set(self,flag,value=True):
+        """
+        Set a filesystem flag
+        """
         if self.has_key(flag):
             raise ValueError('Flag already set: %s' % flag)
         self.__setitem__(flag,value)
 
 class MountPoint(dict):
+    """
+    Common OS/X filesystem mountpoint
+    """
     def __init__(self,device,mountpoint,filesystem):
         dict.__init__(self)
         self['device'] = device
@@ -62,6 +68,9 @@ class MountPoint(dict):
         return self.mountpoint
 
 class MountPoints(object):
+    """
+    List of mountpoints on OS/X
+    """
     def __init__(self):
         try:
             model = OS_FILESYSTEM_CLASSES[sys.platform]
@@ -75,19 +84,19 @@ class MountPoints(object):
         return iter(sorted(self.values()))
 
     def keys(self):
+        """
+        Return mountpoint names
+        """
         return self.mp.keys()
 
     def items(self):
+        """
+        Return (name,mountpoint) pairs
+        """
         return self.mp.items()
 
     def values(self):
+        """
+        Return mountpoints
+        """
         return self.mp.values()
-
-if __name__ == '__main__':
-    m = MountPoints()
-    for k,v in m.items():
-        try:
-            print k,v.mountpoint,v.usage['free']
-        except FileSystemError,e:
-            print e
-

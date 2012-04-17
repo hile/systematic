@@ -27,6 +27,9 @@ class MountPoints(list):
             pass
 
     def update(self):
+        """
+        Update mount points from /sbin/mount output
+        """
         self.__delslice__(0,len(self))
         try:
             output = check_output(['/sbin/mount'])
@@ -57,15 +60,28 @@ class MountPoints(list):
             self.append(entry)
 
     def keys(self):
-        return [m.mountpoint for m in self] 
-
-    def values(self):
-        return self
+        """
+        Return mountpoint names from objects
+        """
+        return [m.mountpoint for m in self]
 
     def items(self):
+        """
+        Return (mountpoint name,mountpoint) list
+        """
         return [(self[i].mountpoint,self[i]) for i in range(0,len(self))]
 
+    def values(self):
+        """
+        Return mountpoints
+        """
+        return self
+
+
 class OSXMountPoint(MountPoint):
+    """
+    One OS/X mountpoint parsed from /sbin/mount output
+    """
     def __init__(self,mountpoint,device=None,filesystem=None):
         MountPoint.__init__(self,device,mountpoint,filesystem)
         try:
@@ -81,6 +97,10 @@ class OSXMountPoint(MountPoint):
         return MountPoint.__getattr__(self,attr)
 
     def checkusage(self):
+        """
+        Check usage percentage for this mountpoint.
+        Returns dictionary with usage details.
+        """
         try:
             output = check_output(['df','-k',self.mountpoint])
         except CalledProcessError,e:
@@ -99,9 +119,3 @@ class OSXMountPoint(MountPoint):
             'size': long(size),'used': long(used), 
             'free': long(free),'percent': int(percent)
         }
-
-if __name__ == '__main__':
-    mps = MountPoints() 
-    for m in mps.values():
-        print m.path,m.usage 
-

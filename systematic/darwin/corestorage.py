@@ -52,6 +52,9 @@ LV_HEADER_MAP = {
 }
 
 class coreStorage(list):
+    """
+    Class for OS/X corestorage LVM implementation status parsing
+    """
     def __init__(self):
         list.__init__(self)
         self.lvg_count = 0
@@ -61,6 +64,9 @@ class coreStorage(list):
         return '%d groups' % self.lvg_count
 
     def update(self):
+        """
+        Parse output of diskutil corestorage list to update data
+        """
         lvg = None
         pv = None
         lvf = None
@@ -118,6 +124,9 @@ class coreStorage(list):
             raise ValueError('Error listing corestorege volumes')
 
 class coreStorageLVG(dict):
+    """
+    Class to represent one corestorage LVG (logical volume group)
+    """
     def __init__(self,uuid):
         dict.__init__(self)
         self.uuid = uuid
@@ -138,6 +147,9 @@ class coreStorageLVG(dict):
         dict.__setitem__(self,item,value)
 
 class coreStoragePV(dict):
+    """
+    Class to represent one corestorage PV (physical volume)
+    """
     def __init__(self,lvg,uuid):
         dict.__init__(self)
         self.lvg = lvg
@@ -157,6 +169,9 @@ class coreStoragePV(dict):
         dict.__setitem__(self,item,value)
 
 class coreStorageLVFamily(dict):
+    """
+    Core storage LV (Logical Volume) family
+    """
     def __init__(self,lvg,uuid):
         dict.__init__(self)
         self.lvg = lvg
@@ -177,6 +192,9 @@ class coreStorageLVFamily(dict):
         dict.__setitem__(self,item,value)
 
 class coreStorageLV(dict):
+    """
+    Core storage LV (logical volume)
+    """
     def __init__(self,lvf,uuid):
         dict.__init__(self)
         self.lvf = lvf
@@ -198,19 +216,3 @@ class coreStorageLV(dict):
             if m:
                 value = long(m.group(1))
         dict.__setitem__(self,item,value)
-
-if __name__ == '__main__':
-    cs = coreStorage()
-    print cs
-    for lvg in cs:
-        for lvf in lvg.lvfs:
-            if lvf['conversion_status'] != 'Converting':
-                continue
-            for lv in lvf.lvs:
-                total = float(lv['size_total'])/2**30
-                complete = float(lv['size_converted'])/2**30
-                percent = float(lv['size_converted'])/lv['size_total']*100
-                print '%8s %.02f %% (%02.f/%02.f GB)' % (
-                    lv['disk'],percent,complete,total
-                )
-

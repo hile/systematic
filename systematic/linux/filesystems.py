@@ -6,6 +6,7 @@ Implementation of linux filesystem mount point parsing
 import os,re,logging
 from subprocess import Popen,PIPE
 
+#noinspection PyPackageRequirements,PyPackageRequirements,PyPackageRequirements,PyPackageRequirements
 from systematic.filesystems import MountPoint,FileSystemError
 
 PSEUDO_FILESYSTEM = [
@@ -21,9 +22,14 @@ UUID_PATH = '/dev/disk/by-uuid'
 LABEL_PATH = '/dev/disk/by-label'
 
 class MountPoints(dict):
-
+    """
+    Mount points for linux filesystems
+    """
     #noinspection PyMethodOverriding
     def update(self):
+        """
+        Update list of linux mountpoints based on /bin/mount output
+        """
         p = Popen('/bin/mount',stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
         #noinspection PySimplifyBooleanCheck,PySimplifyBooleanCheck,PySimplifyBooleanCheck
@@ -48,6 +54,9 @@ class MountPoints(dict):
             self[mountpoint] = entry
 
 class LinuxMountPoint(MountPoint):
+    """
+    One linux mountpoint based on /bin/mount output line
+    """
     def __init__(self,device,mountpoint,filesystem):
         MountPoint.__init__(self,device,mountpoint,filesystem)
 
@@ -81,6 +90,9 @@ class LinuxMountPoint(MountPoint):
         return MountPoint.__getattr__(self,item)
 
     def checkusage(self):
+        """
+        Function to parse usage of this filesystem
+        """
         if self.filesystem in PSEUDO_FILESYSTEM:
             raise FileSystemError('%s: no usage data' % self.filesystem)
         p = Popen(['df','-k',self.mountpoint],stdout=PIPE,stderr=PIPE)

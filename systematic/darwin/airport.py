@@ -2,7 +2,7 @@
 """
 Module for Apple OS/X airport status command access from python
 """
-import os,time,subprocess
+import os,subprocess
 
 AIRPORT_BINARY = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
@@ -36,6 +36,9 @@ class AirportStatus(dict):
             raise AttributeError('No such AirportStatus attribute: %s' % attr)
 
     def probe(self):
+        """
+        Probe airport status
+        """
         self.clear()
         for l in subprocess.check_output([AIRPORT_BINARY,'-I']).split('\n'):
             if l.strip() == '': continue
@@ -53,6 +56,9 @@ class AirportStatus(dict):
             )
 
     def proximity(self):
+        """
+        Return proximity of base stations based on signal levels
+        """
         headers = ['SSID','BSSID','RSSI','CHANNEL','HT','CC','SECURITY']
         aps = []
         for l in subprocess.check_output([AIRPORT_BINARY,'-s',self.SSID]).split('\n'):
@@ -71,11 +77,3 @@ class AirportStatus(dict):
         aps.sort(lambda x,y: cmp(y['RSSI'],x['RSSI']))
         return aps
         
-
-if __name__ == '__main__':
-    ass = AirportStatus()
-    while True:
-        for ap in ass.proximity():
-            print ap['BSSID'],ap['RSSI']
-        time.sleep(1)
-    

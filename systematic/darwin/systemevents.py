@@ -2,6 +2,7 @@
 """
 Abstraction of AppleScript system events class for python
 """
+#noinspection PyPackageRequirements,PyPackageRequirements,PyPackageRequirements
 import appscript
 
 FOLDER_NAME_MAP = {
@@ -30,10 +31,16 @@ FOLDER_NAME_MAP = {
 }
 
 class SystemEventsError(Exception):
+    """
+    Exceptions for OS/X system events
+    """
     def __str__(self):
         return self.args[0]
 
 class OSXUserAccounts(dict):
+    """
+    List of user accounts from appscript system events
+    """
     def __init__(self):
         dict.__init__(self)
         try:
@@ -47,6 +54,9 @@ class OSXUserAccounts(dict):
             self[u.name] = u
 
 class OSXUserAccount(dict):
+    """
+    One user account parsed from appscript system events API
+    """
     def __init__(self,app,reference):
         dict.__init__(self)
         self.app = app
@@ -70,12 +80,21 @@ class OSXUserAccount(dict):
         return self.full_name
 
     def keys(self):
+        """
+        User details keys
+        """
         return [k.name for k in self.reference.properties.get().keys()]
 
     def items(self):
+        """
+        User details as (key,value) list
+        """
         return [(k,self[k]) for k in self.keys()]
 
 class OSXUserFolders(dict):
+    """
+    List of OS/X user folders from system events API
+    """
     def __init__(self):
         dict.__init__(self)
         try:
@@ -93,6 +112,9 @@ class OSXUserFolders(dict):
             print self[k]
 
 class OSXFolderItem(dict):
+    """
+    One OS/X folder item from system events
+    """
     def __init__(self,app,reference):
         dict.__init__(self)
         if reference is None:
@@ -124,9 +146,15 @@ class OSXFolderItem(dict):
         return self.path
 
     def keys(self):
+        """
+        Folder detail keys
+        """
         return [k.name for k in self.reference.properties.get().keys()] + [
             'ctime','mtime','path'
         ]
 
     def items(self):
+        """
+        Folder details as (key,value) list
+        """
         return [(k,self[k]) for k in self.keys()]

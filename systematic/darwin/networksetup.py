@@ -6,6 +6,7 @@ Wrapper to call the networksetup command line script.
 import os,re
 from subprocess import check_output,CalledProcessError
 
+#noinspection PyPackageRequirements
 from seine.address import IPv4Address,EthernetMACAddress
 
 CMD = '/usr/sbin/networksetup'
@@ -22,6 +23,9 @@ class NetworkSetupError(Exception):
         return self.args[0]
 
 class NetworkSetup(object):
+    """
+    Wrapper for OS/X 'networksetup' command line tool
+    """
     def __init__(self):
         if not os.path.isfile(CMD):
             raise NetworkSetupError('No such file: %s' % CMD)
@@ -39,6 +43,9 @@ class NetworkSetup(object):
         raise AttributeError('No such NetworkSetup attribute: %s' % attr)
 
 class NetworkService(object):
+    """
+    One specific network service parsed from 'networksetup' output
+    """
     def __init__(self,name):
         self.name = name
 
@@ -53,6 +60,9 @@ class NetworkService(object):
         return self.name
 
     def __parse_info(self):
+        """
+        Parser for the device details (called when attributes are requested)
+        """
         details = {}
         try:
             out = filter(lambda x: x!='', check_output(
@@ -82,6 +92,9 @@ class NetworkService(object):
         return details
 
     def __parse_mac_address(self):
+        """
+        Parser for device MAC address
+        """
         try:
             out = check_output(
                 ['networksetup','-getmacaddress',self.name]
@@ -97,6 +110,12 @@ class NetworkService(object):
         return mac
 
     def set_mode(self,mode,client_id=None,ipaddress=None,netmask=None,router=None):
+        """
+        Set interface mode to given value. Each mode has it's specific allowed flags,
+        see OS/X documentation or source code of this module.
+
+        Mode can be: dhcp, manual or bootp
+        """
         if mode not in ['dhcp','manual','bootp']:
             raise ValueError('Invalid IPv4 configuratio mode')
 

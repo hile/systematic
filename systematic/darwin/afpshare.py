@@ -62,6 +62,9 @@ class AFPShareConfig(dict):
         raise KeyError('No such AFP share: %s' % item)
 
 class AFPShareDisk(dict):
+    """
+    AFP network share disk specification
+    """
     def __init__(self,name,settings):
         dict.__init__(self)
         self.name = name
@@ -114,6 +117,10 @@ class AFPShareDisk(dict):
         )
 
     def status(self):
+        """
+        Return status of mountpoint as string:
+        'not mounted', 'mounted by other user', 'mounted by myself'
+        """
         if not os.path.ismount(self.mountpoint):
             return 'not mounted'
         if not os.access(self.mountpoint,os.W_OK):
@@ -122,6 +129,9 @@ class AFPShareDisk(dict):
             return 'mounted by myself'
 
     def mount(self):
+        """
+        Mount the AFP share
+        """
         if os.path.ismount(self.mountpoint):
             raise AFPShareError('Already mounted: %s' % self.mountpoint)
 
@@ -141,6 +151,9 @@ class AFPShareDisk(dict):
             raise AFPShareError(emsg)
 
     def umount(self):
+        """
+        Umount the AFP share
+        """
         if not os.path.ismount(self.mountpoint):
             return
         if not os.access(self.mountpoint,os.W_OK):

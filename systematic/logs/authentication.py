@@ -3,6 +3,7 @@
 Parser for common authentication log messages
 """
 
+#noinspection PyPackageRequirements,PyPackageRequirements
 from systematic.logs.syslog import SyslogFile,SyslogEntry
 
 class AuthenticationLog(SyslogFile):
@@ -33,6 +34,9 @@ class AuthenticationLogEntry(SyslogEntry):
             self['parser'] = CronLogMessage(self)
 
 class AuthLogMessage(dict):
+    """
+    One logging entry in authentication logs
+    """
     def __init__(self,entry):
         dict.__init__(self)
         self.entry = entry
@@ -49,17 +53,29 @@ class AuthLogMessage(dict):
         return self.entry.program
 
 class SuLogMessage(AuthLogMessage):
+    """
+    Specific log class for su logs
+    """
     def __init__(self,entry):
         AuthLogMessage.__init__(self,entry)
 
 class SudoLogMessage(AuthLogMessage):
+    """
+    Specific log class for sudo logs
+    """
     def __init__(self,entry):
         AuthLogMessage.__init__(self,entry)
 
 class CronLogMessage(AuthLogMessage):
+    """
+    Specific log class for cron authentication logs
+    """
     def __init__(self,entry):
         AuthLogMessage.__init__(self,entry)
 
 class SshdLogMessage(AuthLogMessage):
+    """
+    Specific log class for ssh authentication logs
+    """
     def __init__(self,entry):
         AuthLogMessage.__init__(self,entry)

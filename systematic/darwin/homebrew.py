@@ -4,7 +4,7 @@ Wrapper for scons build systems to install dependencies from homebrew
 build system on OS/X.
 
 This is only meant to allow automatic tool installs and not at all to
-replace or replicate all funcationality of direct use of brew command.
+replace or replicate all functionality of direct use of brew command.
 
 Example usage:
 import logging,sys
@@ -40,6 +40,9 @@ HOMEBREW_FORMULAS = os.path.join(HOMEBREW_PREFIX,'Library','Formula')
 HOMEBREW_DEFAULT_COMMAND = os.path.join(HOMEBREW_PREFIX,'bin','brew')
 
 class HomebrewError(Exception):
+    """
+    Exception raised trying to run homebrew commands
+    """
     def __str__(self):
         return self.args[0]
 
@@ -99,10 +102,12 @@ class Homebrew(dict):
         cmd = [self.brew,'cleanup']
         p = Popen(cmd,stdin=PIPE,stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
+        #noinspection PySimplifyBooleanCheck
         if p.returncode != 0:
             raise HomebrewError('Error cleaning up homebrew: %s' % stderr)
         return stdout
 
+    #noinspection PyMethodOverriding
     def update(self):
         """
         Update homebrew package descriptions with brew update
@@ -111,6 +116,7 @@ class Homebrew(dict):
         cmd = [self.brew,'update']
         p = Popen(cmd,stdin=PIPE,stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
+        #noinspection PySimplifyBooleanCheck
         if p.returncode != 0:
             raise HomebrewError('Error updating homebrew\n%s' % stdout)
         return stdout
@@ -124,6 +130,7 @@ class Homebrew(dict):
         cmd = [self.brew,'upgrade','--all']
         p = Popen(cmd,stdin=PIPE,stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
+        #noinspection PySimplifyBooleanCheck
         if p.returncode != 0:
             raise HomebrewError('Error upgrading brew packages\n%s' % stdout)
         return stdout
@@ -138,7 +145,7 @@ class Homebrew(dict):
         """
         Install package if formula is available
         """
-        if self.is_installed(package):
+        if not force_install and self.is_installed(package):
             self.log.debug('Homebrew already installed: %s' % package)
             return
         if not package in self.available_formulas():
@@ -170,13 +177,14 @@ class HomebrewPackage(object):
         Install a package from homebrew
         """
         if os.path.isdir(self.cellar) and not force_install:
-            self.log.debug('Homebrew already installed: %s' % package)
+            self.log.debug('Homebrew already installed: %s' % self.name)
             return
 
         self.log.debug('Homebrew running: brew install %s' % self.name)
         cmd = [self.brew.brew,'install',self.name]
         p = Popen(cmd,stdin=PIPE,stdout=PIPE,stderr=PIPE)
         (stdout,stderr) = p.communicate()
+        #noinspection PySimplifyBooleanCheck
         if p.returncode != 0:
             raise HomebrewError('Homebrew: error installing %s\n%s' % (self.name,stdout))
         return stdout,stderr

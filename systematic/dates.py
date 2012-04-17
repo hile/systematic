@@ -26,7 +26,7 @@ class DatesError(Exception):
 
 class Day(object):
     """
-    Presentation of one Day in the dates module
+    Presentation of one day
     """
     def __init__(self,timeval=None,input_format='%Y-%m-%d',output_format='%Y-%m-%d'):
         if timeval is None:
@@ -82,6 +82,9 @@ class Day(object):
         )
 
 class Week(object):
+    """
+    Class for a week.
+    """
     def __init__(self,timeval=None,input_format='%Y-%m-%d',
                  output_format='%Y-%m-%d',firstweekday=WEEK_START_DEFAULT,
                  workdays=None,workdays_per_week=WORKDAYS_PER_WEEK):
@@ -177,6 +180,9 @@ class Week(object):
         return self
 
     def next(self):
+        """
+        Return next day object in this week, until exhausted
+        """
         if self.__next < 7:
             day = self.first + self.__next
             self.__next += 1
@@ -186,6 +192,9 @@ class Week(object):
         return day
 
 class Month(object):
+    """
+    Class for a month.
+    """
     def __init__(self,timeval=None,input_format='%Y-%m-%d',
             output_format='%Y-%m-%d',firstweekday=WEEK_START_DEFAULT):
 
@@ -264,6 +273,10 @@ class Month(object):
         return self
 
     def next(self):
+        """
+        Return next day in month.
+        Raises StopIteration when day is out of month range
+        """
         if self.__next < self.days:
             day = self.first + self.__next
             self.__next += 1

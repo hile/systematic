@@ -2,7 +2,8 @@
 """
 Generic parser for syslog log files
 
-Also contains a simple wrapper for SysLogHandler logging module.
+Also contains a simple wrapper for SysLogHandler logging module. This
+is just an example, better implementation is in systematic.script.
 """
 
 import logging,socket
@@ -26,10 +27,16 @@ re_syslogline = re.compile(r'^%s\s*$' % '\s*'.join([
 )
 
 class SyslogFile(LogFile):
+    """
+    Generic syslog file log parser
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         LogFile.__init__(self,path,SyslogEntry,start_ts,end_ts)
 
 class SyslogEntry(LogEntry):
+    """
+    Generic syslog file log entry
+    """
     def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
 
@@ -101,17 +108,20 @@ class SyslogExample(object):
         self.logger.addHandler(handler)
 
     def setLevel(self,level):
+        """
+        Set logging level for all loggers
+        """
         self.level = level
         self.logger.setLevel(self.level)
 
     def info(self,*args,**kwargs):
+        """
+        Send info logging message
+        """
         self.logger.info(*args,**kwargs)
 
     def debug(self,*args,**kwargs):
+        """
+        Send debug logging message
+        """
         self.logger.info(*args,**kwargs)
-
-if __name__ == '__main__':
-    l = SyslogExample(target=('10.3.10.22',514))
-    l.setLevel(logging.INFO)
-    l.info('Test message!')
-

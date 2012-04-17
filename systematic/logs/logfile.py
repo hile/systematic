@@ -63,6 +63,9 @@ class LogFile(object):
         return self
 
     def open(self):
+        """
+        Open logfile, to be used as an iterator
+        """
         if self.fd: 
             self.fd.close()
             self.fd = None
@@ -75,6 +78,11 @@ class LogFile(object):
             raise LogError('Error opening %s: %s' % (self.path,emsg))
 
     def next(self,filter_function=None):
+        """
+        Return next log line from the log
+        If function is given, only log messages passing filter function
+        are returned.
+        """
         entry = None
         if not self.fd:
             try:
@@ -112,6 +120,9 @@ class LogFile(object):
         return entry
 
     def filter(self,function):
+        """
+        Filter lines from logs with given function.
+        """
         entries = []
         while True:
             try:
@@ -121,6 +132,10 @@ class LogFile(object):
         return entries
 
     def tail(self):
+        """
+        Keep the log file open, returning new lines when they appear.
+        Reopens truncated and replaced files automatically.
+        """
         if self.fd is None:
             self.open()
             self.fd.seek(self.stat.st_size)
@@ -130,7 +145,7 @@ class LogFile(object):
             except OSError,(ecode,emsg):
                 if ecode == 2:
                     raise LogError('File was removed: %s' % self.path)
-                raise LogError(e)
+                raise LogError(emsg)
 
             if stat.st_ino != self.stat.st_ino:
                 self.open()
@@ -151,6 +166,9 @@ class LogFile(object):
             time.sleep(1)
 
 class LogEntry(dict):
+    """
+    Base class for all more specific log entry types
+    """
     def __init__(self,line,path=None):
         dict.__init__(self)
         self.path = path
@@ -160,6 +178,10 @@ class LogEntry(dict):
         return self.line
 
     def __getattr__(self,item):
+        """
+        Dynamic attributes:
+        date        returns log timestamp formatted as '%Y-%m-%d %H:%M:%S'
+        """
         if item == 'date':
             if not self.has_key('timestamp'):
                 raise AttributeError('No timestamp defined for log entry')
@@ -170,14 +192,4 @@ class LogEntry(dict):
             pass
         raise AttributeError('No such LogEntry attribute: %s' % item)
 
-
-if __name__ == '__main__':
-    import sys
-    logging.basicConfig(level=logging.DEBUG)
-    try:
-        lf = LogFile(sys.argv[1])
-        while True:
-            print lf.tail()
-    except LogError,e:
-        print e
 

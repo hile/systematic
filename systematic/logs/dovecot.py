@@ -25,6 +25,9 @@ class DovecotLog(SyslogFile):
 
     #noinspection PyMethodOverriding
     def next(self):
+        """
+        Iterate to next dovecot entry in logfile
+        """
         while True:
             try:
                 entry = DovecotLogEntry(LogFile.next(self).line,self.path)
@@ -35,6 +38,9 @@ class DovecotLog(SyslogFile):
         raise StopIteration
 
 class DovecotLogEntry(SyslogEntry):
+    """
+    Dovecot IMAP/POP server log entry
+    """
     def __init__(self,line,path):
         SyslogEntry.__init__(self,line,path)
         try:

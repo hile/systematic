@@ -6,7 +6,7 @@ Package setup script for easy_install
 import sys,os
 from setuptools import setup
 
-VERSION='1.3'
+VERSION='1.4.1'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 packages = ['systematic','systematic.logs']

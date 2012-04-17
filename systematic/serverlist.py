@@ -30,6 +30,9 @@ class OrganizationServers(dict):
             self[k] = OperatingSystemGroup(k,config[k])
 
 class OperatingSystemGroup(list):
+    """
+    Group of operating systems in configuration file
+    """
     def __init__(self,name,opts):
         list.__init__(self)
         self.log = logging.getLogger('modules')
@@ -61,6 +64,9 @@ class OperatingSystemGroup(list):
             pass
 
 class ServerConfig(object):
+    """
+    Configuration for one server
+    """
     def __init__(self,os,name):
         self.log = logging.getLogger('modules')
         self.os = os
@@ -77,6 +83,9 @@ class ServerConfig(object):
         )
 
     def check_output(self,command):
+        """
+        Wrapper to check output of a command
+        """
         if type(command) != list:
             command = [command]
         cmd = self.connect_command + command
@@ -85,6 +94,9 @@ class ServerConfig(object):
         return p.returncode,stdout.rstrip('\n'),stderr.rstrip('\n')
 
     def shell(self,command):
+        """
+        Wrapper to run interactive shell on the host
+        """
         if type(command) != list:
             command = [command]
         cmd = self.connect_command + command
@@ -93,6 +105,9 @@ class ServerConfig(object):
         return p.returncode
 
     def update(self):
+        """
+        Wrapper to call correct update commands for this host
+        """
         if self.os.update_commands is None:
             self.log.debug('No update commands for OS %s' % self.os.name)
             return

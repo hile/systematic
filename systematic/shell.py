@@ -7,6 +7,7 @@ import sys,os,time,signal,logging
 import logging.handlers
 import threading,unicodedata
 from optparse import OptionParser
+#noinspection PyPackageRequirements
 from setproctitle import setproctitle
 
 # Default logging configuration for ScriptLogger
@@ -88,12 +89,16 @@ def xterm_title(value,max_length=74,bypass_term_check=False):
     sys.stdout.flush()
 
 class ScriptError(Exception):
+    """
+    Exceptions raised by running scripts
+    """
     def __str__(self):
         return self.args[0]
 
 class ScriptLogger(object):
     """
-    Singleton class for common script logging tasks
+    Class for common script logging tasks. Implemented as singleton to prevent
+    errors in duplicate handler initialization.
     """
     __instance = None
     def __init__(self,logformat=DEFAULT_LOGFORMAT,program='python'):
@@ -118,6 +123,9 @@ class ScriptLogger(object):
         return self.__instance[item]
 
     class __impl(dict):
+        """
+        Singleton implementation of logging configuration for scripts.
+        """
         def __init__(self,logformat=DEFAULT_LOGFORMAT,program='python'):
             dict.__init__(self)
             self.program = program
@@ -128,6 +136,9 @@ class ScriptLogger(object):
                 self.stream_handler(name)
 
         def stream_handler(self,name,logformat=None):
+            """
+            Register a common log stream handler
+            """
             logformat = logformat is not None and logformat or self.default_logformat
             loggers = [l.name for l in logging.Logger.manager.loggerDict.values()]
             if name in loggers:
@@ -141,6 +152,9 @@ class ScriptLogger(object):
         def file_handler(self,name,directory,logformat=None,
                          maxBytes=DEFAULT_LOGSIZE_LIMIT,
                          backupCount=DEFAULT_LOG_BACKUPS):
+            """
+            Register a common log file handler for rotating file based logs
+            """
 
             logformat = logformat is not None and logformat or self.default_logformat
             loggers = [l.name for l in logging.Logger.manager.loggerDict.values()]
@@ -166,6 +180,7 @@ class ScriptThread(threading.Thread):
     """
     Common script thread base class
     """
+    #noinspection PyPropertyAccess
     def __init__(self,name):
         threading.Thread.__init__(self)
         self.daemon = True
@@ -198,23 +213,42 @@ class Script(object):
 
     #noinspection PyUnusedLocal,PyUnusedLocal
     def SIGINT(self,signum,frame):
+        """
+        Parse SIGINT signal by quitting the program cleanly with exit code 1
+        """
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
             t.join()
         self.exit(1)
 
     def set_usage(self,*args,**kwargs):
+        """
+        Set command usage help text. See optparse.OptionParser for usage
+        """
         return self.parser.set_usage(*args,**kwargs)
 
     def get_usage(self):
+        """
+        Get command usage help text. See optparse.OptionParser for usage
+        """
         return self.parser.get_usage()
 
     def set_defaults(self,*args,**kwargs):
+        """
+        Set option defaults. See optparse.OptionParser for usage
+        """
         return self.parser.set_defaults(*args,**kwargs)
 
     def add_option(self,*args,**kwargs):
+        """
+        Add command line option. See optparse.OptionParser for usage
+        """
         return self.parser.add_option(*args,**kwargs)
 
     def exit(self,value=0,message=None):
+        """
+        Exit the script with given exit value.
+        If message is not None, it is printed on screen.
+        """
         if message is not None:
             print message
         while True:

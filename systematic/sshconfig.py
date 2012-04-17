@@ -103,12 +103,21 @@ class UserSSHKeys(dict):
         return keys
 
     def keys(self):
+        """
+        Return key filenames as sorted list
+        """
         return sorted(dict.keys(self))
 
     def items(self):
+        """
+        Return (filename,key) value pairs sorted with self.keys()
+        """
         return [(k,self[k]) for k in self.keys()]
 
     def values(self):
+        """
+        Return keys sorted with self.keys()
+        """
         return [self[k] for k in self.keys()]
 
     def fix_permissions(self,directory_permissions=SSH_DIR_PERMS,file_permissions=SSH_FILE_PERMS):
@@ -124,7 +133,7 @@ class UserSSHKeys(dict):
         dperm = int(directory_permissions,8)
         fperm = int(file_permissions,8)
         if not os.path.isdir(ssh_dir):
-            self.log.debug('No such directory: %s' % sshdir)
+            self.log.debug('No such directory: %s' % ssh_dir)
             return
         for (root,dirs,files) in os.walk(ssh_dir):
             if stat.S_IMODE(os.stat(root).st_mode) != dperm:
@@ -153,6 +162,9 @@ class SSHKeyFile(object):
         self.parse_public_key()
 
     def parse_public_key(self):
+        """
+        Parse the public key file for this SSH key
+        """
         public_key = '%s.pub' % self.path
         if not os.path.isfile(public_key):
             self.available = False

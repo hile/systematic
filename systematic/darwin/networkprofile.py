@@ -4,8 +4,10 @@ Control and see status of OS/X network interfaces from python.
 """
 
 import os
+#noinspection PyPackageRequirements
 from configobj import ConfigObj
 
+#noinspection PyPackageRequirements
 import logging,appscript
 
 NETWORK_CONNECTION_TYPES = {
@@ -52,21 +54,33 @@ class NetworkProfileList(object):
             raise KeyError('No such network service configured: %s' % item)
 
     def keys(self):
+        """
+        Return names of network locations
+        """
         return map(lambda s: s.name.get(), self.location.services.get())
 
     def items(self):
+        """
+        Return (name,NetworkConnection() list based on self.keys()
+        """
         return dict((
             s.name.get(), NetworkConnection(s.name.get(),profiles=self))
             for s in self.location.services.get()
         )
 
     def values(self):
+        """
+        Return NetworkConnection() list based on self.keys()
+        """
         return dict(
             (NetworkConnection(s.name.get(),profiles=self))
             for s in self.location.services.get()
         )
 
     def filter(self,connection_type):
+        """
+        Return network connections matching connection_type
+        """
         try:
             connection_type = int(connection_type)
         except ValueError:
@@ -86,6 +100,9 @@ class NetworkProfileList(object):
         ]
 
 class NetworkConnection(object):
+    """
+    Details and control of one OS/X network connection
+    """
     def __init__(self,name,profiles=None):
         if profiles is None:
             profiles = NetworkProfileList()
@@ -128,6 +145,14 @@ class NetworkConnection(object):
         )
 
     def __getattr__(self,item):
+        """
+        Dynamic attributes available:
+        mac_address,mac     MAC address
+        speed,mtu,duplex    Integer interface parameters
+        kind                OS/X interface type (kind)
+        connection_type     OS/X network connection type
+        connected           Boolean indicating if the link is up
+        """
         if item.lower() in ['mac','mac_address']:
             item = 'MAC_address'
 

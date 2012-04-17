@@ -35,6 +35,9 @@ class Application(object):
         raise AttributeError('No such Application attribute: %s' % attr)
 
 class Applicationinfo(dict):
+    """
+    Information for an application, as dictionary
+    """
     def __init__(self,application):
         dict.__init__(self)
         self.path = os.path.join(application.path,'Contents','Info.plist')
@@ -57,6 +60,9 @@ class Applicationinfo(dict):
         raise AttributeError('No such Application attribute: %s' % attr)
 
 class ApplicationTree(list):
+    """
+    Tree of OS/X applications (.app directory bundles)
+    """
     def __init__(self,path='/Applications',max_depth=2):
         list.__init__(self)
         self.path = path
@@ -64,12 +70,18 @@ class ApplicationTree(list):
         self.update()
 
     def update(self):
+        """
+        Update application tree recursively with load_tree()
+        """
         if not os.path.isdir(self.path):
             return
         
         list.__delslice__(self,0,len(self))
 
         def load_tree(path,depth=0):
+            """
+            Load tree items from given path
+            """
             if depth >= self.max_depth:
                 return []
             apps = []

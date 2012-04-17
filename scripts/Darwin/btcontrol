@@ -13,6 +13,7 @@ the passwords as well.
 
 import os,time
 
+#noinspection PyPackageRequirements
 from systematic.shell import Script
 from systematic.darwin.networkprofile import NetworkProfileList
 

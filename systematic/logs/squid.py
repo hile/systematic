@@ -5,6 +5,7 @@ Parser for squid access and cache logs
 
 import re,time
 
+#noinspection PyPackageRequirements
 from seine.address import IPv4Address,IPv6Address
 from systematic.logs.logfile import LogFile,LogEntry,LogError
 
@@ -25,10 +26,16 @@ re_cachelog = re.compile('^(?P<date>[0-9/:\s]+)\|\s+(?P<message>.+)$')
 re_clienttryparse = re.compile('^FD\s+(?P<fd>[0-9]+)\s+\((?P<client>[0-9.:]+)\)\s+(?P<error>.*)$')
 
 class SquidCacheLog(LogFile):
+    """
+    Parser for squid cache log files
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         LogFile.__init__(self,path,SquidCacheLogEntry,start_ts,end_ts)
 
 class SquidCacheLogEntry(LogEntry):
+    """
+    Parser for squid cache log entries
+    """
     def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
         m = re_cachelog.match(line)
@@ -66,10 +73,16 @@ class SquidCacheLogEntry(LogEntry):
                 
 
 class SquidAccessLog(LogFile):
+    """
+    Parser for squid access log
+    """
     def __init__(self,path,start_ts=None,end_ts=None,ignore_errors=False):
         LogFile.__init__(self,path,SquidAccessLogEntry,start_ts,end_ts,ignore_errors)
 
 class SquidAccessLogEntry(LogEntry):
+    """
+    Parser for squid access log entries
+    """
     def __init__(self,line,path):
         LogEntry.__init__(self,line,path)
 

@@ -32,12 +32,18 @@ re_warn_no_valid_mx = re.compile('^no MX host for (?P<domain>[^\s]+) has a valid
 re_warn_addr_not_listed = re.compile('^(?P<address>[^:]+): address not listed for hostname (?P<hostname>.*)$')
 
 class PostfixSMTPLog(SyslogFile):
+    """
+    Parser for postfix SMTP logs
+    """
     def __init__(self,path,start_ts=None,end_ts=None):
         SyslogFile.__init__(self,path,start_ts,end_ts)
         self.logclass = PostFixSMTPLogEntry
 
     #noinspection PyMethodOverriding,PyMethodOverriding
     def next(self):
+        """
+        Fetch next postfix log item
+        """
         while True:
             try:
                 entry = PostFixSMTPLogEntry(LogFile.next(self).line,self.path)
@@ -48,6 +54,9 @@ class PostfixSMTPLog(SyslogFile):
         raise StopIteration
 
 class PostFixSMTPLogEntry(SyslogEntry):
+    """
+    One logging entry from postfix logs
+    """
     def __init__(self,line,path):
         SyslogEntry.__init__(self,line,path)
         try:
@@ -197,15 +206,3 @@ class PostFixSMTPLogEntry(SyslogEntry):
                 self.update(m.groupdict())
                 return
             return
-
-if __name__ == '__main__':
-    import sys
-    al = PostfixSMTPLog(sys.argv[1])
-
-    while True:
-        try:
-            l = al.next() #lambda e: e['client'].ipaddress=='10.3.10.23')
-        except StopIteration:
-            break
-        print l.msgtype,l.items()
-

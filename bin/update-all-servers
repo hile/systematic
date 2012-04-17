@@ -3,6 +3,7 @@
 Script to update all linux and freebsd servers
 """
 
+#noinspection PyPackageRequirements,PyPackageRequirements,PyPackageRequirements
 from systematic.shell import Script
 from systematic.serverlist import OrganizationServers
 
