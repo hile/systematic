@@ -51,6 +51,8 @@ class CommandPathCache(list):
             if not self.paths.count(path):
                 self.paths.append(path)
         for path in self.paths:
+            if not os.path.isdir(path):
+                continue
             for cmd in [os.path.join(path,f) for f in os.listdir(path)]:
                 if os.path.isdir(cmd) or not os.access(cmd,os.X_OK):
                     continue
