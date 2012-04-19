@@ -47,56 +47,69 @@ class FileSystemFlags(dict):
             raise ValueError('Flag already set: %s' % flag)
         self.__setitem__(flag,value)
 
-class MountPoint(dict):
+class MountPoint(object):
     """
-    Common OS/X filesystem mountpoint
+    Parent class for device mountpoints created in OS specific code.
+    Do not call directly.
     """
     def __init__(self,device,mountpoint,filesystem):
-        dict.__init__(self)
-        self['device'] = device
-        self['mountpoint'] = mountpoint
-        self['filesystem'] = filesystem
-        self['flags'] = FileSystemFlags()
+        self.device = device
+        self.mountpoint = mountpoint
+        self.filesystem = filesystem
+        self.flags = FileSystemFlags()
     
-    def __getattr__(self,item):
-        try:
-            return self[item]
-        except KeyError:
-            raise AttributeError('No such MountPoint attribute: %s' % item)
+    def __getattr__(self,attr):
+        if attr == 'usage':
+            return self.checkusage()
+        if attr == 'path':
+            attr = 'mountpoint'
+        return getattr(self,attr)
 
     def __repr__(self):
-        return self.mountpoint
+        return '%s mounted on %s' % (self.device,self.path)
+
+    def checkusage(self):
+        """
+        Parse and return filesystem usage info as dictionary.
+        Must be implemented in child classes
+        """
+        raise NotImplementedError('Implement checkusage() is child class')
 
 class MountPoints(object):
     """
-    List of mountpoints on OS/X
+    Thin wrapper to load OS specific module for mountpoints
     """
     def __init__(self):
         try:
             model = OS_FILESYSTEM_CLASSES[sys.platform]
             m = __import__(model,globals(),fromlist=[model.split('.')[-1]])
-            self.mp = getattr(m,'MountPoints')()
+            mp = getattr(m,'MountPoints')()
+            self.__dict__['mp'] = mp
+            self.mp.update()
         except KeyError:
             raise ValueError('System type not supported: %s' % sys.platform)
-        self.mp.update()
 
-    def __iter__(self):
-        return iter(sorted(self.values()))
+    def __getattr__(self,attr):
+        """
+        Delegate implementation to OS specific class
+        """
+        return getattr(self.mp,attr)
 
-    def keys(self):
+    def __setattr__(self,attr,value):
         """
-        Return mountpoint names
+        Delegate implementation to OS specific class
         """
-        return self.mp.keys()
+        return setattr(self.mp,attr,value)
 
-    def items(self):
-        """
-        Return (name,mountpoint) pairs
-        """
-        return self.mp.items()
 
-    def values(self):
+    def __getitem__(self,item):
         """
-        Return mountpoints
+        Delegate implementation to OS specific class
         """
-        return self.mp.values()
+        return self.mp[item]
+
+    def __setitem__(self,item,value):
+        """
+        Delegate implementation to OS specific class
+        """
+        self.mp[item] = value

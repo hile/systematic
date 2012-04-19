@@ -11,26 +11,20 @@ from systematic.filesystems import MountPoint,FileSystemError
 re_mountpoint = re.compile(r'([^\s]*) on (.*) \(([^\)]*)\)$')
 re_df = re.compile(r'^([^\s]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(.*)$')
 
-class MountPoints(list):
+class MountPoints(dict):
     """
     OS/X mount points parser
     """
     def __init__(self):
-        list.__init__(self)
+        dict.__init__(self)
         self.update()
 
-    def __getitem__(self,item):
-        try:
-            item = int(item)
-            return list.__getitem__(self,item)
-        except ValueError:
-            pass
-
+    #noinspection PyMethodOverriding
     def update(self):
         """
         Update mount points from /sbin/mount output
         """
-        self.__delslice__(0,len(self))
+        self.clear()
         try:
             output = check_output(['/sbin/mount'])
         except CalledProcessError,e:
@@ -57,43 +51,23 @@ class MountPoints(list):
                     entry.flags.set(f,v)
                 else:
                     entry.flags.set(f,True)
-            self.append(entry)
-
-    def keys(self):
-        """
-        Return mountpoint names from objects
-        """
-        return [m.mountpoint for m in self]
-
-    def items(self):
-        """
-        Return (mountpoint name,mountpoint) list
-        """
-        return [(self[i].mountpoint,self[i]) for i in range(0,len(self))]
-
-    def values(self):
-        """
-        Return mountpoints
-        """
-        return self
-
+            self[entry.path] = entry
 
 class OSXMountPoint(MountPoint):
     """
     One OS/X mountpoint parsed from /sbin/mount output
+
+    Extra attributes:
+    hfspath     Returns OS/X 'hfs path', if available, or None
     """
     def __init__(self,mountpoint,device=None,filesystem=None):
         MountPoint.__init__(self,device,mountpoint,filesystem)
         try:
-            self['hfspath'] = Alias(self.mountpoint).hfspath
+            self.hfspath = Alias(self.mountpoint).hfspath
         except ValueError:  
-            self['hfspath'] = None
+            self.hfspath = None
 
     def __getattr__(self,attr):
-        if attr == 'usage':
-            return self.checkusage()            
-        if attr == 'path':
-            attr = 'mountpoint'
         return MountPoint.__getattr__(self,attr)
 
     def checkusage(self):
@@ -114,6 +88,7 @@ class OSXMountPoint(MountPoint):
         used = m.group(3)
         free = m.group(4)
         percent = m.group(5)
+
         return {
             'mountpoint': self.mountpoint,
             'size': long(size),'used': long(used), 

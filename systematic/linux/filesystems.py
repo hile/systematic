@@ -25,6 +25,10 @@ class MountPoints(dict):
     """
     Mount points for linux filesystems
     """
+    def __init__(self):
+        dict.__init__(self)
+        self.update()
+
     #noinspection PyMethodOverriding
     def update(self):
         """
@@ -56,6 +60,9 @@ class MountPoints(dict):
 class LinuxMountPoint(MountPoint):
     """
     One linux mountpoint based on /bin/mount output line
+    Additional attributes:
+    uuid        Filesystem uuid
+    label       Filesystem label
     """
     def __init__(self,device,mountpoint,filesystem):
         MountPoint.__init__(self,device,mountpoint,filesystem)
@@ -85,8 +92,6 @@ class LinuxMountPoint(MountPoint):
             logging.debug('Missing directory: %s' % LABEL_PATH)
 
     def __getattr__(self,item):
-        if item == 'usage':
-            return self.checkusage()            
         return MountPoint.__getattr__(self,item)
 
     def checkusage(self):

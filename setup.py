@@ -9,13 +9,11 @@ from setuptools import setup
 VERSION='1.4.1'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
-packages = ['systematic','systematic.logs']
-package_dirs = {'systematic': 'systematic'}
-deps = [ 'setproctitle', 'lxml','configobj', 'seine' ]
-
+platform_packages = []
+platform_deps = []
 if sys.platform == 'darwin':
-    packages.append('systematic/darwin')
-    deps.append('appscript')
+    platform_packages.extend(['systematic/darwin'])
+    platform_deps.extend(['appscript','pyfsevents'])
 
 setup(
     name = 'systematic',
@@ -24,13 +22,13 @@ setup(
     keywords = 'System Management Utility Classes Scripts',
     url = 'http://tuohela.net/packages/systematic',
     zip_safe = False,
-    packages = packages,
-    package_dirs = package_dirs,
-    install_requires = deps,
+    packages = ['systematic','systematic.logs'] + platform_packages,
+    package_dirs = {'systematic': 'systematic'},
+    install_requires = [ 'setproctitle', 'lxml','configobj', 'seine' ] + platform_deps,
     author = 'Ilkka Tuohela', 
     author_email = 'hile@iki.fi',
     description = 'Sysadmin utility classes and scripts',
-    long_description = README,
+    long_description = README, requires=['systematic'],
 
 )   
 
