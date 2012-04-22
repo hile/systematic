@@ -102,33 +102,20 @@ class ScriptLogger(object):
     Class for common script logging tasks. Implemented as singleton to prevent
     errors in duplicate handler initialization.
     """
-    __instance = None
-    def __init__(self,logformat=DEFAULT_LOGFORMAT,program='python'):
-        if ScriptLogger.__instance is None:
-            ScriptLogger.__instance = ScriptLogger.__impl(logformat,program)
-        self.__dict__['_ScriptLogger__instance'] = ScriptLogger.__instance
+    __instances = {}
+    def __init__(self,program='python',logformat=DEFAULT_LOGFORMAT):
+        if not ScriptLogger.__instances.has_key(program):
+            ScriptLogger.__instances[program] = ScriptLogger.ScriptLoggerInstance(    
+                program,logformat
+            )
+        self.__dict__['_ScriptLogger__instances'] = ScriptLogger.__instances
+        self.__dict__['program'] = program
 
-    def __getattr__(self,attr):
-        if attr == 'level':
-            return self.__instance.loglevel
-        raise AttributeError('No such ScriptLogger attribute: %s' % attr)
-
-    def __setattr__(self,attr,value):
-        if attr in ['level','loglevel']:
-            for logger in self.__instance.values():
-                logger.setLevel(value)
-            self.__instance.__dict__['loglevel'] = value
-        else:
-            object.__setattr__(self.__instance,attr,value)
-
-    def __getitem__(self,item):
-        return self.__instance[item]
-
-    class __impl(dict):
+    class ScriptLoggerInstance(dict):
         """
-        Singleton implementation of logging configuration for scripts.
+        Singleton implementation of logging configuration for one program
         """
-        def __init__(self,logformat=DEFAULT_LOGFORMAT,program='python'):
+        def __init__(self,program,logformat):
             dict.__init__(self)
             self.program = program
             self.loglevel = logging.Logger.root.level
@@ -137,14 +124,28 @@ class ScriptLogger(object):
             for name in DEFAULT_STREAM_HANDLERS:
                 self.stream_handler(name)
 
+        def __getattr__(self,attr):
+            if attr == 'level':
+                return self.loglevel
+            raise AttributeError('No such ScriptLoggerInstance attribute: %s' % attr)
+
+        def __setattr__(self,attr,value):
+            if attr in ['level','loglevel']:
+                for logger in self.values():
+                    logger.setLevel(value)
+                self.__dict__['loglevel'] = value
+            else:
+                object.__setattr__(self,attr,value)
+
         def stream_handler(self,name,logformat=None):
             """
             Register a common log stream handler
             """
-            logformat = logformat is not None and logformat or self.default_logformat
-            loggers = [l.name for l in logging.Logger.manager.loggerDict.values()]
-            if name in loggers:
+            if logformat is None:
+                logformat = self.default_logformat 
+            if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
                 return
+
             logger = logging.getLogger(name)
             handler = logging.StreamHandler()
             handler.setFormatter(logging.Formatter(logformat))
@@ -157,13 +158,15 @@ class ScriptLogger(object):
             """
             Register a common log file handler for rotating file based logs
             """
-
-            logformat = logformat is not None and logformat or self.default_logformat
-            loggers = [l.name for l in logging.Logger.manager.loggerDict.values()]
-            if name in loggers:
+            if logformat is None:
+                logformat = self.default_logformat 
+            if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
                 return
             if not os.path.isdir(directory):
-                raise ScriptError('No such directory: %s' % directory)
+                try:
+                    os.makedirs(directory)
+                except OSError:
+                    raise ScriptError('Error creating directory: %s' % directory)
 
             logger = logging.getLogger(name)
             logfile = os.path.join(directory,'%s.log' % name)
@@ -178,16 +181,28 @@ class ScriptLogger(object):
             logger.setLevel(self.loglevel)
             self[name] = logger
 
+    def __getattr__(self,attr):
+        return getattr(self.__instances[self.program],attr)
+
+    def __setattr__(self,attr,value):
+        setattr(self.__instances[self.program],attr,value)
+
+    def __getitem__(self,item):
+        return self.__instances[self.program][item]
+
+    def __setitem__(self,item,value):
+        self.__instances[self.program][item] = value
+
 class ScriptThread(threading.Thread):
     """
     Common script thread base class
     """
-    #noinspection PyPropertyAccess
     def __init__(self,name):
         threading.Thread.__init__(self)
-        self.daemon = True
-        self.name = name
         self.status = 'not running'
+        self.setDaemon(True)
+        self.setName(name)
+        self.logger = ScriptLogger()
         self.log = logging.getLogger('modules')
 
 class Script(object):
@@ -245,6 +260,18 @@ class Script(object):
         Add command line option. See optparse.OptionParser for usage
         """
         return self.parser.add_option(*args,**kwargs)
+
+    def wait(self,poll_interval=1):
+        """
+        Wait for running threads to finish. 
+        Poll interval is time to wait between checks for threads
+        """
+        while True:
+            active = filter(lambda t: t.name!='MainThread', threading.enumerate())
+            if not len(active):
+                break
+            self.log.debug('Waiting for %d threads' % len(active))
+            time.sleep(poll_interval)
 
     def exit(self,value=0,message=None):
         """

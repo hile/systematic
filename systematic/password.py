@@ -1,8 +1,25 @@
 #!/usr/bin/env python
 """
 Password configuration module for LDAP servers
+
+Example password configuration file contents:
+
+[default]
+server = ldap://localhost/
+admin_dn = cn=manager,dc=example,dc=com
+uid_format = uid=%(username)s,%(dn)s
+
+[mail]
+description = Mail account password
+dn = ou=users,dc=mail,dc=example,dc=com
+
+[shell]
+description = Shell access password
+dn = ou=users,dc=shell,dc=example,dc=com
+
 """
 
+#noinspection PyUnresolvedReferences
 import os,configobj,string,random,base64,ldap
 from hashlib import sha1
 
@@ -11,6 +28,9 @@ VALID_CONFIG_FIELDS = ['server','dn','admin_dn','uid_format','description']
 SEARCH_FIELDS = ['uid','gecos']
 
 class PasswordServiceError(Exception):
+    """
+    Exception raised by issues with LDAP server or password changes
+    """
     def __str__(self):
         return self.args[0]
 
@@ -158,8 +178,8 @@ class PasswordService(object):
             info = session.search_s(
                 self.dn,ldap.SCOPE_SUBTREE,'(uid=%s)' % username,SEARCH_FIELDS
             )[0]
-            user = info[1]['uid'][0]
-            gecos = info[1]['gecos'][0]
+            #noinspection PyStatementEffect
+            info[1]['uid'][0]
         except ldap.FILTER_ERROR,emsg:
             raise PasswordServiceError('Error in query: %s' % emsg)
         except IndexError:
