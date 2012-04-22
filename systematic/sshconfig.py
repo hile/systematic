@@ -284,9 +284,6 @@ class AuthorizedKeys(dict):
                     entry['modulus'] = parts[2]
                     entry['comment'] = parts[3]
 
-
-            print entry
-
 if __name__ == '__main__':
     import logging
     logging.basicConfig(level=logging.DEBUG)
