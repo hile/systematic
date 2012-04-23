@@ -6,7 +6,7 @@ Package setup script for easy_install
 import sys,os
 from setuptools import setup
 
-VERSION='1.4.1'
+VERSION='1.4.2'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 platform_packages = []
