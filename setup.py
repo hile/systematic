@@ -6,7 +6,7 @@ Package setup script for easy_install
 import sys,os
 from setuptools import setup
 
-VERSION='1.4.2'
+VERSION='1.4.3'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 platform_packages = []
@@ -24,11 +24,10 @@ setup(
     zip_safe = False,
     packages = ['systematic','systematic.logs'] + platform_packages,
     package_dirs = {'systematic': 'systematic'},
-    install_requires = [ 'setproctitle', 'lxml','configobj', 'seine' ] + platform_deps,
+    install_requires = [ 'setproctitle', 'configobj', 'seine'] + platform_deps,
     author = 'Ilkka Tuohela', 
     author_email = 'hile@iki.fi',
     description = 'Sysadmin utility classes and scripts',
-    long_description = README, requires=['systematic'],
-
+    long_description = README, 
 )   
 

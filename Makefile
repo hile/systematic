@@ -5,6 +5,13 @@
 
 PACKAGE= $(shell basename ${PWD})
 VERSION= $(shell awk -F\' '/^VERSION/ {print $$2}' setup.py)
+SYSTEM= $(shell uname -s)
+
+ifeq ($(SYSTEM),Darwin)
+PREFIX_INSTALL_FLAGS='--no-user-cfg'
+else
+PREFIX_INSTALL_FLAGS=
+endif
 
 all: build
 
@@ -18,7 +25,7 @@ build:
 
 ifdef PREFIX
 install_modules: build
-	python setup.py --no-user-cfg install --prefix=${PREFIX}
+	python setup.py $(PREFIX_INSTALL_FLAGS) install --prefix=${PREFIX}
 install: install_modules 
 	install -m 0755 -d $(PREFIX)/bin
 	for f in bin/*; do echo " $(PREFIX)/$$f";install -m 755 $$f $(PREFIX)/bin/;done;
