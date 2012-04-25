@@ -8,7 +8,7 @@ Platform dependent modules are now split to their own packages.
 import sys,os
 from setuptools import setup
 
-VERSION='1.4.4'
+VERSION='2.0.0'
 README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
 
 setup(
