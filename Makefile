@@ -18,7 +18,7 @@ all: build
 clean:
 	@rm -rf build
 	@rm -rf dist
-	@find . -name '*.egg-info'|xargs rm -rf
+	@find . -name '*.pyc' -o -name '*.egg-info'|xargs rm -rf
 
 build:
 	python setup.py build
