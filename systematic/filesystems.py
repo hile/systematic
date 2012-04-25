@@ -3,7 +3,7 @@
 Parse filesystem mount information to Mountpoints class
 """
 
-import sys
+import os,sys
 
 OS_FILESYSTEM_CLASSES = {
     'darwin':   'darwinist.filesystems',
@@ -45,34 +45,6 @@ class FileSystemFlags(dict):
         if self.has_key(flag):
             raise ValueError('Flag already set: %s' % flag)
         self.__setitem__(flag,value)
-
-class MountPoint(object):
-    """
-    Parent class for device mountpoints created in OS specific code.
-    Do not call directly.
-    """
-    def __init__(self,device,mountpoint,filesystem):
-        self.device = device
-        self.mountpoint = mountpoint
-        self.filesystem = filesystem
-        self.flags = FileSystemFlags()
-    
-    def __getattr__(self,attr):
-        if attr == 'usage':
-            return self.checkusage()
-        if attr == 'path':
-            attr = 'mountpoint'
-        return getattr(self,attr)
-
-    def __repr__(self):
-        return '%s mounted on %s' % (self.device,self.path)
-
-    def checkusage(self):
-        """
-        Parse and return filesystem usage info as dictionary.
-        Must be implemented in child classes
-        """
-        raise NotImplementedError('Implement checkusage() is child class')
 
 class MountPoints(object):
     """
@@ -136,6 +108,33 @@ class MountPoints(object):
             self.__iternames = []
             raise StopIteration
 
+class MountPoint(object):
+    """
+    Parent class for device mountpoints created in OS specific code.
+    Do not call directly.
+    """
+    def __init__(self,device,mountpoint,filesystem):
+        self.device = device
+        self.mountpoint = mountpoint
+        self.filesystem = filesystem
+        self.flags = FileSystemFlags()
 
+    def __getattr__(self,attr):
+        if attr == 'name':
+            return os.path.basename(self.mountpoint)
+        if attr == 'usage':
+            return self.checkusage()
+        if attr in ['mountpoint','path']:
+            return self.mountpoint
+        raise AttributeError('No such MountPoint attribute: %s' % attr)
 
+    def __repr__(self):
+        return '%s mounted on %s' % (self.device,self.path)
+
+    def checkusage(self):
+        """
+        Parse and return filesystem usage info as dictionary.
+        Must be implemented in child classes
+        """
+        raise NotImplementedError('Implement checkusage() is child class')
 
