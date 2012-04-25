@@ -214,6 +214,9 @@ class ScriptLogger(object):
             if os.path.exists('/dev/log'):
                 address = '/dev/log'
             else:
+                # TODO - check if this actually works, did not see it 
+                # while developing this, but might have been syslog config
+                # issue!
                 address = ('localhost',logging.handlers.SYSLOG_UDP_PORT)
         self.address = address
 

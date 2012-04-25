@@ -83,10 +83,12 @@ class MountPoints(object):
             model = OS_FILESYSTEM_CLASSES[sys.platform]
             m = __import__(model,globals(),fromlist=[model.split('.')[-1]])
             mp = getattr(m,'MountPoints')()
-            self.__dict__['mp'] = mp
+            self.mp = mp
             self.mp.update()
         except KeyError:
             raise ValueError('System type not supported: %s' % sys.platform)
+        self.__next = None
+        self.__iternames = None
 
     def __getattr__(self,attr):
         """
@@ -98,8 +100,10 @@ class MountPoints(object):
         """
         Delegate implementation to OS specific class
         """
-        return setattr(self.mp,attr,value)
-
+        if attr in ['mp','__next','__iternames']:
+            object.__setattr__(self,attr,value)
+        else:
+            return setattr(self.mp,attr,value)
 
     def __getitem__(self,item):
         """
@@ -112,3 +116,26 @@ class MountPoints(object):
         Delegate implementation to OS specific class
         """
         self.mp[item] = value
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        """
+        Iterate detected mountpoints
+        """
+        if self.__next is None:
+            self.__next = 0
+            self.__iternames = self.keys()
+        try:
+            entry = self[self.__iternames[self.__next]]
+            self.__next+=1
+            return entry
+        except IndexError:
+            self.__next = None
+            self.__iternames = []
+            raise StopIteration
+
+
+
+
