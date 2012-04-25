@@ -6,9 +6,8 @@ Parse filesystem mount information to Mountpoints class
 import sys
 
 OS_FILESYSTEM_CLASSES = {
-    'darwin':   'systematic.darwin.filesystems',
-    'linux2':   'systematic.linux.filesystems',
-    'freebsd8': 'systematic.freebsd.filesystems',
+    'darwin':   'darwinist.filesystems',
+    'linux2':   'penguinist.linux.filesystems',
 }
 
 class FileSystemError(Exception):
