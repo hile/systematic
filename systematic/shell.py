@@ -3,10 +3,13 @@
 Utility functions for python in unix shell.
 """
 
-import sys,os,time,signal,logging
+import sys,os,time,signal,logging,socket
+
 import logging.handlers
 import threading,unicodedata
+
 from optparse import OptionParser
+
 #noinspection PyPackageRequirements
 from setproctitle import setproctitle
 
@@ -17,6 +20,8 @@ DEFAULT_LOGFILEFORMAT = \
     '%(asctime)s %(funcName)s[%(process)d] %(levelname)s: %(message)s'
 DEFAULT_LOGSIZE_LIMIT = 2**20
 DEFAULT_LOG_BACKUPS = 10
+# Syslog logger parameters
+DEFAULT_SYSLOG_LOGFORMAT = '%(name)s %(levelname)s %(message)s'
 
 # Values for TERM environment variable which support setting title
 TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
@@ -111,6 +116,9 @@ class ScriptLogger(object):
         self.__dict__['_ScriptLogger__instances'] = ScriptLogger.__instances
         self.__dict__['program'] = program
 
+        for name in DEFAULT_STREAM_HANDLERS:
+            self.stream_handler(name)
+
     class ScriptLoggerInstance(dict):
         """
         Singleton implementation of logging configuration for one program
@@ -120,9 +128,6 @@ class ScriptLogger(object):
             self.program = program
             self.loglevel = logging.Logger.root.level
             self.default_logformat = logformat
-
-            for name in DEFAULT_STREAM_HANDLERS:
-                self.stream_handler(name)
 
         def __getattr__(self,attr):
             if attr == 'level':
@@ -137,50 +142,6 @@ class ScriptLogger(object):
             else:
                 object.__setattr__(self,attr,value)
 
-        def stream_handler(self,name,logformat=None):
-            """
-            Register a common log stream handler
-            """
-            if logformat is None:
-                logformat = self.default_logformat 
-            if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
-                return
-
-            logger = logging.getLogger(name)
-            handler = logging.StreamHandler()
-            handler.setFormatter(logging.Formatter(logformat))
-            logger.addHandler(handler)
-            self[name] = logger
-
-        def file_handler(self,name,directory,logformat=None,
-                         maxBytes=DEFAULT_LOGSIZE_LIMIT,
-                         backupCount=DEFAULT_LOG_BACKUPS):
-            """
-            Register a common log file handler for rotating file based logs
-            """
-            if logformat is None:
-                logformat = self.default_logformat 
-            if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
-                return
-            if not os.path.isdir(directory):
-                try:
-                    os.makedirs(directory)
-                except OSError:
-                    raise ScriptError('Error creating directory: %s' % directory)
-
-            logger = logging.getLogger(name)
-            logfile = os.path.join(directory,'%s.log' % name)
-            handler = logging.handlers.RotatingFileHandler(
-                filename=logfile,
-                mode='a+',
-                maxBytes=maxBytes,
-                backupCount=backupCount
-            )
-            handler.setFormatter(logging.Formatter(logformat))
-            logger.addHandler(handler)
-            logger.setLevel(self.loglevel)
-            self[name] = logger
-
     def __getattr__(self,attr):
         return getattr(self.__instances[self.program],attr)
 
@@ -192,6 +153,79 @@ class ScriptLogger(object):
 
     def __setitem__(self,item,value):
         self.__instances[self.program][item] = value
+
+    def stream_handler(self,name,logformat=None):
+        """
+        Register a common log stream handler
+        """
+        if logformat is None:
+            logformat = self.default_logformat 
+        if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
+            return
+
+        logger = logging.getLogger(name)
+        handler = logging.StreamHandler()
+        handler.setFormatter(logging.Formatter(logformat))
+        logger.addHandler(handler)
+        self[name] = logger
+
+    def file_handler(self,name,directory,logformat=None,
+                     maxBytes=DEFAULT_LOGSIZE_LIMIT,
+                     backupCount=DEFAULT_LOG_BACKUPS):
+        """
+        Register a common log file handler for rotating file based logs
+        """
+        if logformat is None:
+            logformat = self.default_logformat 
+        if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
+            return
+        if not os.path.isdir(directory):
+            try:
+                os.makedirs(directory)
+            except OSError:
+                raise ScriptError('Error creating directory: %s' % directory)
+
+        logger = logging.getLogger(name)
+        logfile = os.path.join(directory,'%s.log' % name)
+        handler = logging.handlers.RotatingFileHandler(
+            filename=logfile,
+            mode='a+',
+            maxBytes=maxBytes,
+            backupCount=backupCount
+        )
+        handler.setFormatter(logging.Formatter(logformat))
+        logger.addHandler(handler)
+        logger.setLevel(self.loglevel)
+        self[name] = logger
+
+    def syslog_handler(self,name,facility=None,address=None,logformat=None):
+        """
+        Register a handler writing to syslog services.
+
+        The priority is decided by SysLogHandler based on log level and
+        can't be altered from here. 
+        """
+        if logformat is None:   
+            logformat = DEFAULT_SYSLOG_LOGFORMAT
+        if facility is None:
+            facility = 'daemon'
+        
+        if address is None:
+            if os.path.exists('/dev/log'):
+                address = '/dev/log'
+            else:
+                address = ('localhost',logging.handlers.SYSLOG_UDP_PORT)
+        self.address = address
+
+        try:
+            handler = logging.handlers.SysLogHandler(address,facility)
+        except socket.error,(ecode,emsg):
+            raise ScriptError('Error creating SysLogHandler: %s' % emsg)
+        handler.setFormatter(logging.Formatter(logformat))
+        handler.mapPriority(self.level)
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(self.level)
+        self.logger.addHandler(handler)
 
 class ScriptThread(threading.Thread):
     """
