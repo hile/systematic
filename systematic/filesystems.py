@@ -7,7 +7,7 @@ import os,sys
 
 OS_FILESYSTEM_CLASSES = {
     'darwin':   'darwinist.filesystems',
-    'linux2':   'penguinist.linux.filesystems',
+    'linux2':   'penguinist.filesystems',
 }
 
 class FileSystemError(Exception):
