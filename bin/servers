@@ -6,7 +6,7 @@ Script to update all linux and freebsd servers
 import os
 
 from systematic.shell import Script
-from systematic.serverlist import OrganizationServers,OperatingSystemGroup
+from systematic.serverlist import OrganizationServers,OperatingSystemGroup,ServerConfig
 
 DEFAULT_CONFIG = '/etc/all-servers.list'
 USER_CONFIG = os.path.expanduser('~/.all-servers.list')
@@ -35,20 +35,20 @@ if opts.group:
     modified = False
     if opts.group in servers.keys():
         group = servers[opts.group]
-        if opts.description and group.description!=opts.description:
-            group.description = opts.description
+        if opts.description:
+            group.setDescription(opts.description)
             modified = True
-        if opts.update_commands and group.update_commands!=opts.update_commands:
-            group.commands = opts.update_commands
+        if opts.update_commands:
+            group.setUpdateCommands(opts.update_commands)
+        if args:
+            for server in args:
+                group.addServer(server)
     else:
         flags = {}
         if opts.description:
             flags['description'] = opts.description
         if opts.update_commands:
             flags['commands'] = opts.update_commands
-        flags['servers'] = []
-        for server in args:
-            flags['servers'].append(server)
         group = OperatingSystemGroup(opts.group,flags)
         servers[opts.group] = group
         modified = True
@@ -70,12 +70,12 @@ if opts.list:
                 print '\t%s' % cmd
         print 'Servers in group:'
         for server in group:
-            script.debug('Updating server: %s' % server.name)
             print '\t%s' % server
 
 if opts.update:
     for name in groups:
         group = servers[name]
         for server in group:
+            script.log.info('Updating server: %s' % server.name)
             server.update()
 

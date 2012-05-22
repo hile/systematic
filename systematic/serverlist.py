@@ -11,6 +11,9 @@ import sys,os,logging
 from subprocess import Popen,PIPE
 from configobj import ConfigObj
 
+DEFAULT_COMMAND_SEPARATOR = ' && '
+DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
+
 class OrganizationServers(dict):
     """
     Parser for configuration file describing organization's servers and
@@ -47,47 +50,67 @@ class OrganizationServers(dict):
             print k,v
         config.write(outfile=open(self.path,'w'))
 
-DEFAULT_COMMAND_SEPARATOR = ' && '
-DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
-
 class OperatingSystemGroup(list):
     """
     Group of operating systems in configuration file
     """
     def __init__(self,name,opts):
         list.__init__(self)
+        self.modified = False
         self.log = logging.getLogger('modules')
         self.name = name
-        try:
-            self.description = opts['description']
-        except KeyError:
-            self.description = name
-        try:
-            self.connect_command = opts['connect']
-        except KeyError:
-            self.connect_command = DEFAULT_CONNECT_COMMAND
+        self.description = name
+        self.connect_command = DEFAULT_CONNECT_COMMAND
+        self.command_separator = DEFAULT_COMMAND_SEPARATOR
+        self.update_commands = None
 
-        try:
-            self.command_separator = opts['command_separator']
-        except KeyError:
-            self.command_separator = DEFAULT_COMMAND_SEPARATOR
-
-        try:
-            self.update_commands = opts['commands']
-            if not len(self.update_commands):
-                self.update_commands = None
-        except KeyError:
-            self.update_commands = None
-
-        try:
-            self.extend(map(lambda s: ServerConfig(self,s), opts['servers']))
-        except KeyError:
-            pass
+        if opts.has_key('description'):
+            self.setDescription(opts['description'])
+        if opts.has_key('connect'):
+            self.setConnectCommand(opts['connect'])
+        if opts.has_key('command_separator'):
+            self.setCommandSeparator(opts['command_separator'])
+        if opts.has_key('commands'):
+            self.setUpdateCommands(opts['commands'])
+        if opts.has_key('servers'):
+            for server in opts['servers']:
+                self.addServer(server)
 
     def __repr__(self):
         return '%s: %s (%d servers)' % (
             self.name,self.description,len(self)
         )
+
+    def setCommandSeparator(self,separator):
+        if self.command_separator != separator:
+            self.command_separator = separator
+            self.modified = True
+
+    def setConnectCommand(self,command):
+        if not isinstance(command,list):
+            raise ValueError('Connect command must be a list')
+        if self.connect_command != command:
+            self.connect_command = command
+            self.modified = True
+
+    def setDescription(self,description):
+        if self.description != description:
+            self.description = description
+            self.modified = True
+
+    def setUpdateCommands(self,update_commands):
+        if not isinstance(update_commands,list):
+            raise ValueError('Update commands value not a list')
+        if self.update_commands!=update_commands:
+            self.update_commands = update_commands
+            self.modified = True
+
+    def addServer(self,name):
+        try:
+            filter(lambda s: s.name==name, self)[0]
+        except IndexError:
+            self.append(ServerConfig(self,name))
+            self.modified = True
 
 class ServerConfig(object):
     """
@@ -137,10 +160,13 @@ class ServerConfig(object):
         if self.os.update_commands is None:
             self.log.debug('No update commands for OS %s' % self.os.name)
             return
+        self.log.debug("Running: %s '%s'" % (
+            ' '.join(self.connect_command),
+            self.os.command_separator.join(self.os.update_commands)
+        ))
         cmd = self.connect_command + [
             self.os.command_separator.join(self.os.update_commands)
         ]
-        self.log.debug('Running: %s' % cmd)
         p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
         p.wait()    
         return p.returncode
