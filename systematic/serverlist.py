@@ -19,15 +19,36 @@ class OrganizationServers(dict):
     def __init__(self,path):
         dict.__init__(self)
         self.log = logging.getLogger('modules')
+        self.path = path
 
-        if not os.path.isfile(path):
-            raise ValueError('No such file: %s' % path)
+        if not os.path.isfile(self.path):
+            return
         try:
-            config  = ConfigObj(path)
+            config  = ConfigObj(self.path)
         except ValueError,emsg:
-            raise ValueError('Error parsing %s: %s' % (path,emsg))
+            raise ValueError('Error parsing %s: %s' % (self.path,emsg))
         for k in config.keys():
             self[k] = OperatingSystemGroup(k,config[k])
+
+    def save(self):
+        config = ConfigObj()
+        for name,group in self.items():
+            config[name] = {
+                'commands': group.update_commands,
+                'servers': [s.name for s in group],
+            }
+            if group.description != group.name:
+                config[name]['description'] = group.description
+            if group.connect_command!=DEFAULT_CONNECT_COMMAND:
+                config[name]['connect'] = group.connect_command
+            if group.command_separator!=DEFAULT_COMMAND_SEPARATOR:
+                config[name]['command_separator'] = group.command_separator
+        for k,v in config.items():
+            print k,v
+        config.write(outfile=open(self.path,'w'))
+
+DEFAULT_COMMAND_SEPARATOR = ' && '
+DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
 
 class OperatingSystemGroup(list):
     """
@@ -44,12 +65,12 @@ class OperatingSystemGroup(list):
         try:
             self.connect_command = opts['connect']
         except KeyError:
-            self.connect_command = ['ssh','-qt','SERVER']
+            self.connect_command = DEFAULT_CONNECT_COMMAND
 
         try:
             self.command_separator = opts['command_separator']
         except KeyError:
-            self.command_separator = ' && '
+            self.command_separator = DEFAULT_COMMAND_SEPARATOR
 
         try:
             self.update_commands = opts['commands']
@@ -62,6 +83,11 @@ class OperatingSystemGroup(list):
             self.extend(map(lambda s: ServerConfig(self,s), opts['servers']))
         except KeyError:
             pass
+
+    def __repr__(self):
+        return '%s: %s (%d servers)' % (
+            self.name,self.description,len(self)
+        )
 
 class ServerConfig(object):
     """

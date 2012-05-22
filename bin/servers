@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+"""
+Script to update all linux and freebsd servers
+"""
+
+import os
+
+from systematic.shell import Script
+from systematic.serverlist import OrganizationServers,OperatingSystemGroup
+
+DEFAULT_CONFIG = '/etc/all-servers.list'
+USER_CONFIG = os.path.expanduser('~/.all-servers.list')
+
+script = Script()
+script.add_option('-g','--group',help='Server OS Group')
+script.add_option('-D','--description',help='Group description')
+script.add_option('-U','--update-commands',action='append',help='Update command')
+script.add_option('-l','--list',action='store_true',help='List configured items')
+script.add_option('-u','--update',action='store_true',help='Update servers')
+script.add_option('-c','--config',help='Server list configuration file')
+script.set_defaults(**{'config':DEFAULT_CONFIG})
+(opts,args) = script.parse_args()
+
+config = opts.config
+if not config or not os.path.isfile(config):
+    config = USER_CONFIG
+
+servers = None
+try:
+    servers = OrganizationServers(config)
+except ValueError,emsg:
+    script.exit(1,emsg)
+
+if opts.group:
+    modified = False
+    if opts.group in servers.keys():
+        group = servers[opts.group]
+        if opts.description and group.description!=opts.description:
+            group.description = opts.description
+            modified = True
+        if opts.update_commands and group.update_commands!=opts.update_commands:
+            group.commands = opts.update_commands
+    else:
+        flags = {}
+        if opts.description:
+            flags['description'] = opts.description
+        if opts.update_commands:
+            flags['commands'] = opts.update_commands
+        flags['servers'] = []
+        for server in args:
+            flags['servers'].append(server)
+        group = OperatingSystemGroup(opts.group,flags)
+        servers[opts.group] = group
+        modified = True
+    if modified:
+        servers.save()
+    groups = [opts.group]
+else:
+    groups = servers.keys()
+
+if opts.list:
+    for name in groups:
+        group = servers[name]
+        print "Server group: %s" % group
+        print "Connect command: %s" % ' '.join(group.connect_command)
+        print "Command separator: %s" % group.command_separator
+        if group.update_commands:
+            print "Update commands:" 
+            for cmd in group.update_commands:
+                print '\t%s' % cmd
+        print 'Servers in group:'
+        for server in group:
+            script.debug('Updating server: %s' % server.name)
+            print '\t%s' % server
+
+if opts.update:
+    for name in groups:
+        group = servers[name]
+        for server in group:
+            server.update()
+
