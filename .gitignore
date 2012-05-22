@@ -1,6 +1,8 @@
 .*.swp
+config.dox
 *.pyc
 build/
+doc/
 dist/
 *.egg-info/
 .idea/
