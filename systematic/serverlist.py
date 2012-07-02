@@ -46,8 +46,7 @@ class OrganizationServers(dict):
                 config[name]['connect'] = group.connect_command
             if group.command_separator!=DEFAULT_COMMAND_SEPARATOR:
                 config[name]['command_separator'] = group.command_separator
-        for k,v in config.items():
-            print k,v
+        self.log.debug('Saving configuration to %s' % self.path)
         config.write(outfile=open(self.path,'w'))
 
 class OperatingSystemGroup(list):
@@ -65,16 +64,18 @@ class OperatingSystemGroup(list):
         self.update_commands = None
 
         if opts.has_key('description'):
-            self.setDescription(opts['description'])
+            self.description = opts['description']
         if opts.has_key('connect'):
-            self.setConnectCommand(opts['connect'])
+            self.connect_command = opts['connect']
         if opts.has_key('command_separator'):
-            self.setCommandSeparator(opts['command_separator'])
+            self.command_separator = opts['command_separator']
         if opts.has_key('commands'):
-            self.setUpdateCommands(opts['commands'])
+            self.update_commands = opts['commands']
+            if isinstance(self.update_commands,basestring):
+                self.update_commands = [self.update_commands]
         if opts.has_key('servers'):
             for server in opts['servers']:
-                self.addServer(server)
+                self.append(ServerConfig(self,server))
 
     def __repr__(self):
         return '%s: %s (%d servers)' % (
@@ -83,6 +84,7 @@ class OperatingSystemGroup(list):
 
     def setCommandSeparator(self,separator):
         if self.command_separator != separator:
+            self.log.debug('Modified command separator for %s' % self.name)
             self.command_separator = separator
             self.modified = True
 
@@ -90,11 +92,13 @@ class OperatingSystemGroup(list):
         if not isinstance(command,list):
             raise ValueError('Connect command must be a list')
         if self.connect_command != command:
+            self.log.debug('Modified connect commands for %s' % self.name)
             self.connect_command = command
             self.modified = True
 
     def setDescription(self,description):
         if self.description != description:
+            self.log.debug('Modified description for %s' % self.name)
             self.description = description
             self.modified = True
 
@@ -102,15 +106,27 @@ class OperatingSystemGroup(list):
         if not isinstance(update_commands,list):
             raise ValueError('Update commands value not a list')
         if self.update_commands!=update_commands:
+            self.log.debug('Modified update commands for %s' % self.name)
             self.update_commands = update_commands
             self.modified = True
 
     def addServer(self,name):
         try:
             filter(lambda s: s.name==name, self)[0]
+            self.log.debug('Error adding: server already in group: %s' % name)
         except IndexError:
+            self.log.debug('Added server to %s' % self.name)
             self.append(ServerConfig(self,name))
             self.modified = True
+
+    def removeServer(self,name):
+        try:
+            server = filter(lambda s: s.name==name, self)[0]
+            self.log.debug('Removed server from %s' % self.name)
+            self.remove(server)
+            self.modified = True
+        except IndexError:
+            self.log.debug('Error removing: server not in group: %s' % name)
 
 class ServerConfig(object):
     """

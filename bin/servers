@@ -14,6 +14,8 @@ USER_CONFIG = os.path.expanduser('~/.all-servers.list')
 script = Script()
 script.add_option('-g','--group',help='Server OS Group')
 script.add_option('-D','--description',help='Group description')
+script.add_option('-a','--add-servers',help='Add server to group')
+script.add_option('-r','--remove-servers',help='Add server to group')
 script.add_option('-U','--update-commands',action='append',help='Update command')
 script.add_option('-l','--list',action='store_true',help='List configured items')
 script.add_option('-u','--update',action='store_true',help='Update servers')
@@ -31,28 +33,44 @@ try:
 except ValueError,emsg:
     script.exit(1,emsg)
 
+if opts.add_servers or opts.remove_servers:
+    if not opts.group:
+        script.exit(1,'Servers list modification requires group')
+
+added_servers = []
+if opts.add_servers:
+    added_servers = opts.add_servers.split(',')
+
+removed_servers = []
+if opts.remove_servers:
+    removed_servers = opts.remove_servers.split(',')
+
 if opts.group:
-    modified = False
     if opts.group in servers.keys():
+        script.log.debug('Modifying server group')
         group = servers[opts.group]
         if opts.description:
             group.setDescription(opts.description)
-            modified = True
         if opts.update_commands:
             group.setUpdateCommands(opts.update_commands)
-        if args:
-            for server in args:
+        if added_servers:
+            for server in added_servers:
                 group.addServer(server)
+        if removed_servers:
+            for server in removed_servers:
+                group.removeServer(server)
     else:
-        flags = {}
+        script.log.debug('Adding new server group')
+        group = OperatingSystemGroup(opts.group)
         if opts.description:
-            flags['description'] = opts.description
+            group.setDescription(opts.description)
         if opts.update_commands:
-            flags['commands'] = opts.update_commands
-        group = OperatingSystemGroup(opts.group,flags)
+            group.setUpdateCommands(opts.update_commands)
+        if added_servers:
+            for server in added_servers:
+                group.addServer(server)
         servers[opts.group] = group
-        modified = True
-    if modified:
+    if group.modified:
         servers.save()
     groups = [opts.group]
 else:
