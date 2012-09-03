@@ -14,6 +14,8 @@ from configobj import ConfigObj
 DEFAULT_COMMAND_SEPARATOR = ' && '
 DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
 
+SERVERINFO_FIELDS = ['hostname','description']
+
 class OrganizationServers(dict):
     """
     Parser for configuration file describing organization's servers and
@@ -30,12 +32,32 @@ class OrganizationServers(dict):
             config  = ConfigObj(self.path)
         except ValueError,emsg:
             raise ValueError('Error parsing %s: %s' % (self.path,emsg))
+
+        self.serverinfo = {}
         for k in config.keys():
-            self[k] = OperatingSystemGroup(k,config[k])
+            if config[k].has_key('servers'):
+                self[k] = OperatingSystemGroup(k,config[k])
+            else:
+                self.serverinfo[k] = config[k]
+
+        for group in self.values():
+            for server in group:
+                if not server.name in self.serverinfo.keys():
+                    continue
+                info = self.serverinfo[server.name]
+                for k in SERVERINFO_FIELDS:
+                    if k not in info.keys():
+                        continue
+                    v = info[k]
+                    if isinstance(v,list):
+                        v = ', '.join(v)
+                    setattr(server,k,v)
 
     def save(self):
         config = ConfigObj()
         for name,group in self.items():
+            if len(group)==0:
+                continue
             config[name] = {
                 'commands': group.update_commands,
                 'servers': [s.name for s in group],
@@ -53,7 +75,7 @@ class OperatingSystemGroup(list):
     """
     Group of operating systems in configuration file
     """
-    def __init__(self,name,opts):
+    def __init__(self,name,opts={}):
         list.__init__(self)
         self.modified = False
         self.log = logging.getLogger('modules')
@@ -67,6 +89,8 @@ class OperatingSystemGroup(list):
             self.description = opts['description']
         if opts.has_key('connect'):
             self.connect_command = opts['connect']
+            if isinstance(self.connect_command,basestring):
+                self.connect_command = self.connect_command.split()
         if opts.has_key('command_separator'):
             self.command_separator = opts['command_separator']
         if opts.has_key('commands'):
@@ -74,8 +98,10 @@ class OperatingSystemGroup(list):
             if isinstance(self.update_commands,basestring):
                 self.update_commands = [self.update_commands]
         if opts.has_key('servers'):
-            for server in opts['servers']:
-                self.append(ServerConfig(self,server))
+            servers = opts['servers']
+            if not isinstance(servers,list):
+                servers = [servers]
+            self.extend(ServerConfig(self,s) for s in servers)
 
     def __repr__(self):
         return '%s: %s (%d servers)' % (
@@ -132,20 +158,20 @@ class ServerConfig(object):
     """
     Configuration for one server
     """
-    def __init__(self,os,name):
+    def __init__(self,os,name,description=None):
         self.log = logging.getLogger('modules')
         self.os = os
         self.name = name
+        self.description = description
         self.connect_command = [
             x=='SERVER' and name or x for x in os.connect_command
         ]
 
     def __repr__(self):
-        return '%s (OS: %s, Update: %s)' % (
-            self.name,
-            self.os.description,
-            self.os.update_commands is not None and 'Yes' or 'No'
-        )
+        if self.description is not None:
+            return '%s (%s)' % (self.name,self.description)
+        else:
+            return '%s' % self.name
 
     def check_output(self,command):
         """

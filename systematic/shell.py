@@ -4,9 +4,9 @@ Utility functions for python in unix shell.
 """
 
 import sys,os,time,signal,logging,socket
-
 import logging.handlers
 import threading,unicodedata
+from subprocess import Popen,PIPE
 
 from optparse import OptionParser
 
@@ -17,7 +17,8 @@ from setproctitle import setproctitle
 DEFAULT_STREAM_HANDLERS = ['console','modules']
 DEFAULT_LOGFORMAT = '%(levelname)s %(message)s'
 DEFAULT_LOGFILEFORMAT = \
-    '%(asctime)s %(funcName)s[%(process)d] %(levelname)s: %(message)s'
+    '%(asctime)s %(module)s.%(funcName)s %(message)s'
+DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_LOGSIZE_LIMIT = 2**20
 DEFAULT_LOG_BACKUPS = 10
 # Syslog logger parameters
@@ -123,11 +124,12 @@ class ScriptLogger(object):
         """
         Singleton implementation of logging configuration for one program
         """
-        def __init__(self,program,logformat):
+        def __init__(self,program,logformat,timeformat=DEFAULT_TIME_FORMAT):
             dict.__init__(self)
             self.program = program
             self.loglevel = logging.Logger.root.level
             self.default_logformat = logformat
+            self.timeformat = timeformat
 
         def __getattr__(self,attr):
             if attr == 'level':
@@ -165,7 +167,7 @@ class ScriptLogger(object):
 
         logger = logging.getLogger(name)
         handler = logging.StreamHandler()
-        handler.setFormatter(logging.Formatter(logformat))
+        handler.setFormatter(logging.Formatter(logformat,self.timeformat))
         logger.addHandler(handler)
         self[name] = logger
 
@@ -176,7 +178,7 @@ class ScriptLogger(object):
         Register a common log file handler for rotating file based logs
         """
         if logformat is None:
-            logformat = self.default_logformat 
+            logformat = DEFAULT_LOGFILEFORMAT
         if name in [l.name for l in logging.Logger.manager.loggerDict.values()]:
             return
         if not os.path.isdir(directory):
@@ -193,7 +195,7 @@ class ScriptLogger(object):
             maxBytes=maxBytes,
             backupCount=backupCount
         )
-        handler.setFormatter(logging.Formatter(logformat))
+        handler.setFormatter(logging.Formatter(logformat,self.timeformat))
         logger.addHandler(handler)
         logger.setLevel(self.loglevel)
         self[name] = logger
@@ -224,7 +226,7 @@ class ScriptLogger(object):
             handler = logging.handlers.SysLogHandler(address,facility)
         except socket.error,(ecode,emsg):
             raise ScriptError('Error creating SysLogHandler: %s' % emsg)
-        handler.setFormatter(logging.Formatter(logformat))
+        handler.setFormatter(logging.Formatter(logformat,self.timeformat))
         handler.mapPriority(self.level)
         self.logger = logging.getLogger(name)
         self.logger.setLevel(self.level)
@@ -335,4 +337,21 @@ class Script(object):
             self.logger.level = logging.DEBUG
 
         return opts,args
+
+    def execute(self,args,dryrun=False):
+        """
+        Default wrapper to execute given interactive shell command 
+        """
+        if not isinstance(args,list):
+            raise ValueErro('Execute arguments must be a list')
+        if not dryrun:
+            self.log.debug('EXECUTE: %s' % ' '.join(args))
+            p = Popen(args, 
+                stdin=sys.stdin,
+                stdout=sys.stdout,
+                stderr=sys.stderr
+            )
+            p.wait()
+            return p.returncode
+
 

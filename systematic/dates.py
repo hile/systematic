@@ -36,6 +36,8 @@ class Day(object):
                 dateval = time.localtime(timeval)
             except ValueError:
                 raise DatesError('Invalid timestamp: %s' % timeval)
+        elif isinstance(timeval,time.struct_time):
+            dateval = timeval
         else:
             try:
                 dateval = time.strptime(str(timeval),input_format)

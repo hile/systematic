@@ -12,7 +12,7 @@ DEFAULT_CONFIG = '/etc/all-servers.list'
 USER_CONFIG = os.path.expanduser('~/.all-servers.list')
 
 script = Script()
-script.add_option('-g','--group',help='Server OS Group')
+script.add_option('-g','--group',action='append',help='Server OS Group')
 script.add_option('-D','--description',help='Group description')
 script.add_option('-a','--add-servers',help='Add server to group')
 script.add_option('-r','--remove-servers',help='Add server to group')
@@ -46,39 +46,49 @@ if opts.remove_servers:
     removed_servers = opts.remove_servers.split(',')
 
 if opts.group:
-    if opts.group in servers.keys():
-        script.log.debug('Modifying server group')
-        group = servers[opts.group]
-        if opts.description:
-            group.setDescription(opts.description)
-        if opts.update_commands:
-            group.setUpdateCommands(opts.update_commands)
-        if added_servers:
-            for server in added_servers:
-                group.addServer(server)
-        if removed_servers:
-            for server in removed_servers:
-                group.removeServer(server)
-    else:
-        script.log.debug('Adding new server group')
-        group = OperatingSystemGroup(opts.group)
-        if opts.description:
-            group.setDescription(opts.description)
-        if opts.update_commands:
-            group.setUpdateCommands(opts.update_commands)
-        if added_servers:
-            for server in added_servers:
-                group.addServer(server)
-        servers[opts.group] = group
-    if group.modified:
-        servers.save()
-    groups = [opts.group]
+    opt_groups = []
+    for og in opts.group:
+        if og.count(',')>0:
+            opt_groups.extend(og.split(','))
+        else:
+            opt_groups.append(og)
+    opt_groups = set(opt_groups)
+    groups = []
+    for opt_group in opt_groups:
+        if opt_group in servers.keys():
+            group = servers[opt_group]
+            if opts.description:
+                group.setDescription(opts.description)
+            if opts.update_commands:
+                group.setUpdateCommands(opts.update_commands)
+            if added_servers:
+                for server in added_servers:
+                    group.addServer(server)
+            if removed_servers:
+                for server in removed_servers:
+                    group.removeServer(server)
+        else:
+            group = OperatingSystemGroup(opt_group)
+            if opts.description:
+                group.setDescription(opts.description)
+            if opts.update_commands:
+                group.setUpdateCommands(opts.update_commands)
+            if added_servers:
+                for server in added_servers:
+                    group.addServer(server)
+            servers[opt_group] = group
+        if group.modified:
+            servers.save()
+        groups.append(opt_group)
 else:
     groups = servers.keys()
 
 if opts.list:
     for name in groups:
         group = servers[name]
+        if len(group)==0:
+            print 'Empty server group: %s' % group
+            continue
         print "Server group: %s" % group
         print "Connect command: %s" % ' '.join(group.connect_command)
         print "Command separator: %s" % group.command_separator
