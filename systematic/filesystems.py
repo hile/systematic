@@ -8,6 +8,7 @@ import os,sys
 OS_FILESYSTEM_CLASSES = {
     'darwin':   'darwinist.filesystems',
     'linux2':   'penguinist.filesystems',
+    'freebsd9': 'ultimatum.filesystems',
 }
 
 class FileSystemError(Exception):

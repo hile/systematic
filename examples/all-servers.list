@@ -1,0 +1,35 @@
+
+[debian]
+commands = sudo apt-get -qq update, sudo apt-get -y upgrade, sudo apt-get clean
+servers = acan, chac, fese
+description = Debian Servers
+[acan]
+description = Desktop PC in Movenpick 9
+[chac]
+description = Bytemark VM in UK
+[fese]
+description = Debian stable VM in parallers on bitol
+
+[freebsd]
+commands = sudo freebsd-update fetch, sudo freebsd-update install, sudo portsnap fetch, sudo portsnap update, sudo portupgrade --all --batch
+command_separator = ;
+servers = frisbee
+description = FreeBSD servers with portsnap and portupgrade
+[frisbee]
+description = FreeBSD 9 VM in parallers on bitol
+
+[nxme]
+connect = vpnssh -qt SERVER
+commands = sudo apt-get -qq update, sudo apt-get -y upgrade, sudo apt-get clean
+servers = files.company.com, nms.company.com
+description = Company Debian Servers
+
+[osx]
+commands = sudo softwareupdate -ia
+servers = bitol, cizin
+description = OS/X computers
+[bitol]
+description = Macbook Pro 13" late 2011
+[cizin]
+description = Macbook Pro 13" 2009
+
