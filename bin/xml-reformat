@@ -6,21 +6,25 @@ from lxml.etree import XMLSyntaxError
 from systematic.shell import Script,ScriptError
 
 script = Script()
-script.add_option('-c','--remove-comments',action='store_true',help='Remove comments')
-script.add_option('-r','--replace',action='store_true',help='Replace original file')
-(opts,args) = script.parse_args()
+script.add_argument('-c','--remove-comments',action='store_true',help='Remove comments')
+script.add_argument('-r','--replace',action='store_true',help='Replace original file')
+script.add_argument('paths',nargs='*',help='Filenames to process')
+args = script.parse_args()
 
-if not len(args):
+if not len(args.paths):
     script.exit(1,script.get_usage())
 
-parser = ET.XMLParser(remove_blank_text=True,remove_comments=opts.remove_comments)
-for path in args:
+parser = ET.XMLParser(remove_blank_text=True,remove_comments=args.remove_comments)
+for path in args.paths:
     try:
         tree = ET.parse(path,parser=parser)
-    except XMLSyntaxError,emsg:
-        print emsg
+    except IOError,error:
+        script.message(str(error))
         continue
-    if opts.replace:
+    except XMLSyntaxError,emsg:
+        script.message(emsg)
+        continue
+    if args.replace:
         output = ET.tostring(tree,pretty_print=True)
         old = open(path,'r').read()
         if old!=output:

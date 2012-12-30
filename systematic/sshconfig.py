@@ -1,13 +1,12 @@
-#!/usr/bin/env python
 """
-Process loading and unloading of SSH keys from user defined locations
-automatically
+Parsing of SSH configuration files
 """
 
 import sys,os,stat,re,string,logging
-from subprocess import Popen,PIPE
+from subprocess import check_output
 
-# Configuration files we don't try to load as keys
+from systematic.log import Logger,LoggerError
+
 SSH_CONFIG_FILES = [ 'authorized_keys', 'config', 'known_hosts', 'sshkeys.conf' ]
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 DEFAULT_AUTHORIZED_KEYS = os.path.expanduser('~/.ssh/authorized_keys')
@@ -29,8 +28,7 @@ class UserSSHKeys(dict):
     List of user configured SSH keys to process
     """
     def __init__(self,authorized_keys=DEFAULT_AUTHORIZED_KEYS):
-        dict.__init__(self)
-        self.log = logging.getLogger('modules')
+        self.log = Logger('ssh').default_stream
         self.__parse_user_keyfiles()
         self.authorized_keys = AuthorizedKeys(authorized_keys)
 
@@ -154,9 +152,9 @@ class SSHKeyFile(object):
     also set, if key path is in ~/.ssh/sshkeys.conf.
     """
     def __init__(self,user_keys,path):
+        self.log = Logger('ssh').default_stream
         self.user_keys = user_keys
         self.path = os.path.realpath(path)
-        self.log = logging.getLogger('modules')
         self.available = os.access(path,os.R_OK) and True or False
         self.autoload = False
         self.parse_public_key()
@@ -231,8 +229,7 @@ class AuthorizedKeys(dict):
     Parser for OpenSSH authorized_keys file contents
     """
     def __init__(self,path=DEFAULT_AUTHORIZED_KEYS):
-        dict.__init__(self)
-        self.log = logging.getLogger('modules')
+        self.log = Logger('ssh').default_stream
         self.path = path
         self.load()
 

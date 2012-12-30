@@ -5,6 +5,8 @@ Parse filesystem mount information to Mountpoints class
 
 import os,sys
 
+from systematic.log import Logger,LoggerError
+
 OS_FILESYSTEM_CLASSES = {
     'darwin':   'darwinist.filesystems',
     'linux2':   'penguinist.filesystems',
@@ -20,24 +22,30 @@ class FileSystemError(Exception):
 
 class FileSystemFlags(dict):
     """
-    Dictionary class to represent mount point mount flags
+    Dictionary wrapper to represent mount point mount flags
     """
-    def __init__(self,flags=None):
-        dict.__init__(self)
-        if flags:
-            for k in flags:
-                self.__setitem__(k,None)
+    def __init__(self,flags=[]):
+        self.log = Logger('filesystems').default_stream
 
-    def __getattr__(self,flag):
-        if flag == 'owner':
-            if self.has_key('owner'):
-                return self['owner']
-            else:
-                return None
-        try:
-            return self[flag]
-        except KeyError:
+        if isinstance(flags,list):
+            for k in flags: self.__setitem__(k,None)
+        if isinstance(flags,dict):
+            self.update(**flags)
+
+    @property
+    def owner(self):
+        """
+        Returns filesystem owner flag or None
+        """
+        return self.has_key('owner') and self['owner'] or None
+
+    def get(self,flag):
+        """
+        Return False for nonexisting flags, otherwise return flag value
+        """
+        if not self.has_key(flag):
             return False
+        return self[flag]
 
     def set(self,flag,value=True):
         """
@@ -49,46 +57,40 @@ class FileSystemFlags(dict):
 
 class MountPoints(object):
     """
-    Thin wrapper to load OS specific module for mountpoints
+    Thin wrapper to load OS specific implementation for mountpoints
     """
     def __init__(self):
-        try:
-            model = OS_FILESYSTEM_CLASSES[sys.platform]
-            m = __import__(model,globals(),fromlist=[model.split('.')[-1]])
-            mp = getattr(m,'MountPoints')()
-            self.mp = mp
-            self.mp.update()
-        except KeyError:
-            raise ValueError('System type not supported: %s' % sys.platform)
+        self.log = Logger('filesystems').default_stream
+        self.__instance = None
         self.__next = None
         self.__iternames = None
 
-    def __getattr__(self,attr):
-        """
-        Delegate implementation to OS specific class
-        """
-        return getattr(self.mp,attr)
+        try:
+            model = OS_FILESYSTEM_CLASSES[sys.platform]
+        except KeyError:
+            raise ValueError('System type not supported: %s' % sys.platform)
 
-    def __setattr__(self,attr,value):
-        """
-        Delegate implementation to OS specific class
-        """
-        if attr in ['mp','__next','__iternames']:
-            object.__setattr__(self,attr,value)
-        else:
-            return setattr(self.mp,attr,value)
+        try:
+            m = __import__(model,globals(),fromlist=[model.split('.')[-1]])
+            self.__instance = getattr(m,'MountPoints')()
+            self.__instance.update()
+        except ImportError:
+            raise FileSystemError('Module for OS not available: %s' % model)
+
+    def __getattr__(self,attr):
+        return getattr(self.__instance,attr)
 
     def __getitem__(self,item):
         """
         Delegate implementation to OS specific class
         """
-        return self.mp[item]
+        return self.__instance[item]
 
     def __setitem__(self,item,value):
         """
         Delegate implementation to OS specific class
         """
-        self.mp[item] = value
+        self.__instance[item] = value
 
     def __iter__(self):
         return self
@@ -109,33 +111,34 @@ class MountPoints(object):
             self.__iternames = []
             raise StopIteration
 
+    def filter(self,callback=None):
+        """
+        Return mountpoints matching a callback function
+        """
+        return [x for x in self if callback(x)]
+
 class MountPoint(object):
     """
-    Parent class for device mountpoints created in OS specific code.
-    Do not call directly.
+    Abstract class for device mountpoints implemented in OS specific code.
     """
-    def __init__(self,device,mountpoint,filesystem):
+    def __init__(self,device,mountpoint,filesystem,flags={}):
+        self.log = Logger('filesystems').default_stream
         self.device = device
         self.mountpoint = mountpoint
         self.filesystem = filesystem
-        self.flags = FileSystemFlags()
-
-    def __getattr__(self,attr):
-        if attr == 'name':
-            return os.path.basename(self.mountpoint)
-        if attr == 'usage':
-            return self.checkusage()
-        if attr in ['mountpoint','path']:
-            return self.mountpoint
-        raise AttributeError('No such MountPoint attribute: %s' % attr)
+        self.flags = FileSystemFlags(flags=flags)
 
     def __repr__(self):
         return '%s mounted on %s' % (self.device,self.path)
 
-    def checkusage(self):
-        """
-        Parse and return filesystem usage info as dictionary.
-        Must be implemented in child classes
-        """
-        raise NotImplementedError('Implement checkusage() is child class')
+    @property
+    def name(self):
+        return os.path.basename(self.mountpoint)
 
+    @property
+    def path(self):
+        return self.mountpoint
+
+    @property
+    def usage(self):
+        raise NotImplementedError('Implement usage() is child class')

@@ -14,16 +14,17 @@ class ServiceError(Exception):
 
 class ServiceList(dict):
     """
-    Dictionary of all services found in services file. Dictionary key is 
+    Dictionary of all services found in services file. Dictionary key is
     the port number, and each entry is dictionary with protocol name in
     uppercase pointing to a ServiceListEntry object.
 
-    For example: ServiceList[22]['TCP'] 
+    For example: ServiceList[22]['TCP']
     """
     def __init__(self,path='/etc/services'):
         dict.__init__(self)
         if not os.path.isfile(path):
             raise ServiceError('No such file: %s' % path)
+
         try:
             lines = open(path,'r').readlines()
         except IOError,(ecode,emsg):
@@ -68,7 +69,7 @@ class ServiceList(dict):
         """
         Return (name,service) value pairs sorted by self.keys()
         """
-        return [(k,self[k]) for k in self.keys()] 
+        return [(k,self[k]) for k in self.keys()]
 
     def values(self):
         """
@@ -110,7 +111,7 @@ class ServiceList(dict):
             except ValueError:
                 raise ValueError('Invalid port: %s' % port)
             except KeyError:
-                return [] 
+                return []
             if protocol is None:
                 return protocols.values()
             try:
@@ -123,8 +124,8 @@ class ServiceList(dict):
                 try:
                     entries.append(protocols[protocol])
                 except KeyError:
-                    continue 
-            return entries 
+                    continue
+            return entries
         else:
             raise ValueError('No search terms given')
 
@@ -142,15 +143,3 @@ class ServiceListEntry(list):
 
     def __repr__(self):
         return '%s/%s %s' % (self.port,self.protocol,','.join(self))
-
-if __name__ == '__main__':
-    import sys
-    services = ServiceList()
-    if len(sys.argv)>1:
-        for srv in sys.argv[1:]:
-            for r in services.find(name=srv.lower()):
-                print r
-    else:
-        for port,s in services.items():
-            print port, s
-

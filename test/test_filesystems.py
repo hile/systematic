@@ -6,7 +6,7 @@ import sys,unittest
 
 from systematic.filesystems import MountPoints,MountPoint,FileSystemError
 
-class TestMountPoints(unittest.TestCase):
+class test_filesystems(unittest.TestCase):
     """
     Test the mount point parsing code
     """

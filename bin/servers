@@ -12,42 +12,38 @@ DEFAULT_CONFIG = '/etc/all-servers.list'
 USER_CONFIG = os.path.expanduser('~/.all-servers.list')
 
 script = Script()
-script.add_option('-g','--group',action='append',help='Server OS Group')
-script.add_option('-D','--description',help='Group description')
-script.add_option('-a','--add-servers',help='Add server to group')
-script.add_option('-r','--remove-servers',help='Add server to group')
-script.add_option('-U','--update-commands',action='append',help='Update command')
-script.add_option('-l','--list',action='store_true',help='List configured items')
-script.add_option('-u','--update',action='store_true',help='Update servers')
-script.add_option('-c','--config',help='Server list configuration file')
-script.set_defaults(**{'config':DEFAULT_CONFIG})
-(opts,args) = script.parse_args()
+script.add_argument('-g','--group',action='append',help='Server OS Group')
+script.add_argument('-D','--description',help='Group description')
+script.add_argument('-a','--add-servers',help='Add server to group')
+script.add_argument('-r','--remove-servers',help='Add server to group')
+script.add_argument('-U','--update-commands',action='append',help='Update command')
+script.add_argument('-l','--list',action='store_true',help='List configured items')
+script.add_argument('-u','--update',action='store_true',help='Update servers')
+script.add_argument('-c','--config',default=DEFAULT_CONFIG,help='Server list configuration file')
+args = script.parse_args()
 
-config = opts.config
-if not config or not os.path.isfile(config):
-    config = USER_CONFIG
-
+config = args.config is not None and os.path.isfile(args.config) and config or USER_CONFIG
 servers = None
 try:
     servers = OrganizationServers(config)
 except ValueError,emsg:
     script.exit(1,emsg)
 
-if opts.add_servers or opts.remove_servers:
-    if not opts.group:
+if args.add_servers or args.remove_servers:
+    if not args.group:
         script.exit(1,'Servers list modification requires group')
 
 added_servers = []
-if opts.add_servers:
-    added_servers = opts.add_servers.split(',')
+if args.add_servers:
+    added_servers = args.add_servers.split(',')
 
 removed_servers = []
-if opts.remove_servers:
-    removed_servers = opts.remove_servers.split(',')
+if args.remove_servers:
+    removed_servers = args.remove_servers.split(',')
 
-if opts.group:
+if args.group:
     opt_groups = []
-    for og in opts.group:
+    for og in args.group:
         if og.count(',')>0:
             opt_groups.extend(og.split(','))
         else:
@@ -57,10 +53,10 @@ if opts.group:
     for opt_group in opt_groups:
         if opt_group in servers.keys():
             group = servers[opt_group]
-            if opts.description:
-                group.setDescription(opts.description)
-            if opts.update_commands:
-                group.setUpdateCommands(opts.update_commands)
+            if args.description:
+                group.setDescription(args.description)
+            if args.update_commands:
+                group.setUpdateCommands(args.update_commands)
             if added_servers:
                 for server in added_servers:
                     group.addServer(server)
@@ -69,10 +65,10 @@ if opts.group:
                     group.removeServer(server)
         else:
             group = OperatingSystemGroup(opt_group)
-            if opts.description:
-                group.setDescription(opts.description)
-            if opts.update_commands:
-                group.setUpdateCommands(opts.update_commands)
+            if args.description:
+                group.setDescription(args.description)
+            if args.update_commands:
+                group.setUpdateCommands(args.update_commands)
             if added_servers:
                 for server in added_servers:
                     group.addServer(server)
@@ -83,7 +79,7 @@ if opts.group:
 else:
     groups = servers.keys()
 
-if opts.list:
+if args.list:
     for name in groups:
         group = servers[name]
         if len(group)==0:
@@ -93,17 +89,19 @@ if opts.list:
         print "Connect command: %s" % ' '.join(group.connect_command)
         print "Command separator: %s" % group.command_separator
         if group.update_commands:
-            print "Update commands:" 
+            print "Update commands:"
             for cmd in group.update_commands:
                 print '\t%s' % cmd
         print 'Servers in group:'
         for server in group:
             print '\t%s' % server
 
-if opts.update:
+if args.update:
     for name in groups:
         group = servers[name]
         for server in group:
+            if args and server not in args:
+                continue
             script.log.info('Updating server: %s' % server.name)
             server.update()
 

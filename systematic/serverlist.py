@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 """
-Configuration classes to enumerate servers in an organization, and to run
+Configuration classes to enumerate servers in an organization & to run
 basic update, non-interactive and interactive shell commands on the servers.
 
-Designed for usage over ssh, could work with other protocols I guess at 
+Designed for usage over ssh, could work with other protocols I guess at
 least for interactive sessions (start VNC etc).
 """
 
-import sys,os,logging
+import sys,os
 from subprocess import Popen,PIPE
 from configobj import ConfigObj
+
+from systematic.log import Logger,LoggerError
 
 DEFAULT_COMMAND_SEPARATOR = ' && '
 DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
@@ -22,8 +24,7 @@ class OrganizationServers(dict):
     their operating systems.
     """
     def __init__(self,path):
-        dict.__init__(self)
-        self.log = logging.getLogger('modules')
+        self.log = Logger('servers').default_stream
         self.path = path
 
         if not os.path.isfile(self.path):
@@ -68,6 +69,7 @@ class OrganizationServers(dict):
                 config[name]['connect'] = group.connect_command
             if group.command_separator!=DEFAULT_COMMAND_SEPARATOR:
                 config[name]['command_separator'] = group.command_separator
+
         self.log.debug('Saving configuration to %s' % self.path)
         config.write(outfile=open(self.path,'w'))
 
@@ -76,9 +78,8 @@ class OperatingSystemGroup(list):
     Group of operating systems in configuration file
     """
     def __init__(self,name,opts={}):
-        list.__init__(self)
+        self.log = Logger('servers').default_stream
         self.modified = False
-        self.log = logging.getLogger('modules')
         self.name = name
         self.description = name
         self.connect_command = DEFAULT_CONNECT_COMMAND
@@ -104,9 +105,7 @@ class OperatingSystemGroup(list):
             self.extend(ServerConfig(self,s) for s in servers)
 
     def __repr__(self):
-        return '%s: %s (%d servers)' % (
-            self.name,self.description,len(self)
-        )
+        return '%s: %s (%d servers)' % (self.name,self.description,len(self))
 
     def setCommandSeparator(self,separator):
         if self.command_separator != separator:
@@ -159,13 +158,11 @@ class ServerConfig(object):
     Configuration for one server
     """
     def __init__(self,os,name,description=None):
-        self.log = logging.getLogger('modules')
+        self.log = Logger('servers').default_stream
         self.os = os
         self.name = name
         self.description = description
-        self.connect_command = [
-            x=='SERVER' and name or x for x in os.connect_command
-        ]
+        self.connect_command = [x=='SERVER' and name or x for x in os.connect_command]
 
     def __repr__(self):
         if self.description is not None:
@@ -210,6 +207,6 @@ class ServerConfig(object):
             self.os.command_separator.join(self.os.update_commands)
         ]
         p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
-        p.wait()    
+        p.wait()
         return p.returncode
 

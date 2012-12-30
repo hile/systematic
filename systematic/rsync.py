@@ -3,10 +3,11 @@
 Wrapper for running rsync commands from python
 """
 
-import time,logging
+import time
 from subprocess import Popen,PIPE
 
 from systematic.shell import CommandPathCache
+from systematic.log import Logger,LoggerError
 
 DEFAULT_RSYNC_FLAGS = [
     '-av',
@@ -34,6 +35,7 @@ class RsyncCommand(object):
     Wrapper to execute rsync to target nicely from python
     """
     def __init__(self,src,dst,flags=DEFAULT_RSYNC_FLAGS,output_format=DEFAULT_OUTPUT_FORMAT):
+        self.log = Logger('rsync').default_stream
         self.src = src
         self.dst = dst
         self.flags = flags
@@ -42,9 +44,9 @@ class RsyncCommand(object):
         cmd = CommandPathCache().which('rsync')
         if cmd is None:
             raise RsyncError('No such command: rsync')
-        self.command = [cmd] + flags + [ 
+        self.command = [cmd] + flags + [
             self.output_format, '%s' % src,'%s' % dst
-        ] 
+        ]
 
     def __str__(self):
         return ' '.join(self.command)
@@ -53,11 +55,11 @@ class RsyncCommand(object):
         """
         Run the rsync command specific in __init__()
         """
-        if not verbose and logging.getLogger().level == logging.DEBUG:
+        if not verbose and self.log.level == logging.DEBUG:
             verbose = True
         try:
             p = Popen(self.command,stdin=PIPE,stdout=PIPE,stderr=PIPE)
-            logging.debug('Running: %s' % self)
+            self.log.debug('Running: %s' % self)
             rval = None
             while rval is None:
                 if verbose:
@@ -67,12 +69,9 @@ class RsyncCommand(object):
                         print l.rstrip()
                 time.sleep(0.2)
                 rval = p.poll()
-            logging.debug('Return code: %s' % rval)
-            #noinspection PySimplifyBooleanCheck
+            self.log.debug('Return code: %s' % rval)
             if rval != 0:
-                raise RsyncError('Error running command %s: %s' % (
-                    self,p.stderr.read()
-                ))
+                raise RsyncError('Error running command %s: %s' % (self,p.stderr.read()))
         except KeyboardInterrupt:
-            logging.debug('Rsync interrupted')
+            self.log.debug('Rsync interrupted')
             raise KeyboardInterrupt
