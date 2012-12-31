@@ -65,7 +65,7 @@ class SQLiteDatabase(object):
 
     @property
     def cursor(self):
-        c  self.conn.cursor()
+        c = self.conn.cursor()
         if c is None:
             raise SQLiteError('Could not get cursor to database')
         return c
