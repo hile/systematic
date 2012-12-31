@@ -9,7 +9,7 @@ import sys,os
 from setuptools import setup
 
 VERSION='3.0.0'
-README = open(os.path.join(os.path.dirname(__file__),'README.txt'),'r').read()
+README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
 
 setup(
     name = 'systematic',

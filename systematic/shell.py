@@ -125,6 +125,9 @@ class Script(object):
         if name is None:
             name = self.name
 
+        # Set to True to avoid any messages from self.message to be printed
+        self.silent = False
+
         self.logger = Logger(self.name)
         self.log = self.logger.default_stream
 
@@ -137,7 +140,6 @@ class Script(object):
         )
         if debug_flag:
             self.parser.add_argument('--debug',action='store_true',help='Show debug messages')
-
 
         if subcommands:
             self.commands = {}
@@ -181,6 +183,8 @@ class Script(object):
         sys.exit(value)
 
     def message(self,message):
+        if self.silent:
+            return
         sys.stdout.write('%s\n' % message)
 
     def error(self,message):
@@ -207,8 +211,15 @@ class Script(object):
         Call parse_args for parser and check for default logging flags
         """
         args = self.parser.parse_args()
+
+        if hasattr(args,'quiet') and getattr(args,'quiet'):
+            self.silent = True
+
         if hasattr(args,'debug') and getattr(args,'debug'):
             self.logger.set_level('DEBUG')
+        elif hasattr(args,'verbose') and getattr(args,'verbose'):
+            self.logger.set_level('INFO')
+
         return args
 
     def execute(self,args,dryrun=False):
