@@ -11,7 +11,11 @@ from setproctitle import setproctitle
 from systematic.log import Logger
 
 import argparse
-from optparse import OptionParser
+
+if sys.platform=='darwin':
+    CONFIG_PATH = os.path.expanduser('~/Library/Application Support/Systematic')
+else:
+    CONFIG_PATH = os.path.expanduser('~/.config/systematic')
 
 # Values for TERM environment variable which support setting title
 TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
@@ -105,6 +109,14 @@ class ScriptThread(threading.Thread):
         self.status = 'not running'
         self.setDaemon(True)
         self.setName(name)
+        self._stop_event = threading.Event()
+
+    def stop(self):
+        self._stop_event.set()
+
+    @property
+    def stopped(self):
+        return self._stop_event.isSet()
 
     def execute(self,command):
         p = subprocess.Popen(command,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
@@ -153,6 +165,8 @@ class Script(object):
         Parse SIGINT signal by quitting the program cleanly with exit code 1
         """
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+            t.stop()
+        for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
             t.join()
         self.exit(1)
 
@@ -175,6 +189,8 @@ class Script(object):
         """
         if message is not None:
             self.message(message)
+        for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+            t.stop()
         while True:
             active = filter(lambda t: t.name!='MainThread', threading.enumerate())
             if not len(active):
@@ -212,11 +228,10 @@ class Script(object):
         """
         args = self.parser.parse_args()
 
-        if hasattr(args,'quiet') and getattr(args,'quiet'):
-            self.silent = True
-
         if hasattr(args,'debug') and getattr(args,'debug'):
             self.logger.set_level('DEBUG')
+        elif hasattr(args,'quiet') and getattr(args,'quiet'):
+            self.silent = True
         elif hasattr(args,'verbose') and getattr(args,'verbose'):
             self.logger.set_level('INFO')
 
