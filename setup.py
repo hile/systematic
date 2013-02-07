@@ -13,7 +13,7 @@ README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
 
 setup(
     name = 'systematic',
-    keywords = 'System Management Utility Classes Scripts',
+    keywords = 'System Management Utility Scripts',
     description = 'Sysadmin utility classes and scripts',
     long_description = README, 
     author = 'Ilkka Tuohela', 
