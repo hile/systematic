@@ -2,7 +2,7 @@
 Parsing of SSH configuration files
 """
 
-import sys,os,stat,re,string,logging
+import sys,os,pwd,stat,re,string,logging
 from subprocess import check_output
 
 from systematic.log import Logger,LoggerError
@@ -281,8 +281,112 @@ class AuthorizedKeys(dict):
                     entry['modulus'] = parts[2]
                     entry['comment'] = parts[3]
 
-if __name__ == '__main__':
-    import logging
-    logging.basicConfig(level=logging.DEBUG)
-    usk = UserSSHKeys()
-    usk.fix_permissions()
+class SSHConfig(dict):
+    def __init__(self,path=None):
+        self.defaults = {}
+        self.log = Logger('ssh').default_stream
+        self.path = path is not None and path or os.path.expanduser('~/.ssh/config')
+        self.reload()
+
+    def reload(self):
+        self.clear()
+        if not os.path.isfile(self.path):
+            self.log.debug('No such file: %s' % self.path)
+            return
+        self.log.debug('Reading configuration: %s' % self.path)
+        with open(self.path,'r') as fd:
+            host = None
+            for l in [x.strip() for x in fd.readlines()]:
+                if l=='' or l.startswith('#'):
+                    continue
+                if l[:5]=='Host ':
+                    host = SSHConfigHost(self,l[5:])
+                    self[host.name] = host
+                else:
+                    host.parse(l)
+
+        if '*' in self.keys():
+            self.defaults.update(self.pop('*').items())
+
+    def keys(self):
+        return [k for k in sorted(dict.keys(self))]
+
+    def items(self):
+        return [(k,self[k]) for k in self.keys()]
+
+    def values(self):
+        return [self[k] for k in self.keys()]
+
+class SSHConfigHost(dict):
+    def __init__(self,config,name):
+        self.config = config
+        self.name = name
+
+    def __repr__(self):
+        return self.name
+
+    def parse(self,line):
+        try:
+            key,value = [x.strip() for x in line.split(None,1)]
+            self[key] = value
+        except ValueError:
+            raise ValueError('Invalid line: %s' % line)
+
+    def __getitem__(self,item):
+        if item in dict.keys(self):
+            return dict.__getitem__(self,item)
+        else:
+            return self.config.defaults[item]
+
+    @property
+    def hostname(self):
+        return 'HostName' in self.keys() and self['HostName'] or self.name
+
+    @property
+    def user(self):
+        return 'User' in self.keys() and self['User'] or pwd.getpwuid(os.geteuid()).pw_name
+
+    @property
+    def forward_agent_enabled(self):
+        if 'ForwardAgent' in self.keys():
+            return self['ForwardAgent'].lower()=='yes'
+        else:
+            # TODO - check default from system ssh_config
+            return False
+
+    @property
+    def forward_x11_enabled(self):
+        if 'ForwardX11' in self.keys():
+            return self['ForwardX11'].lower()=='yes'
+        else:
+            # TODO - check default from system ssh_config
+            return False
+
+    @property
+    def tcp_keepalive_enabled(self):
+        if 'TCPKeepAlive' in self.keys():
+            return self['TCPKeepAlive'].lower()=='yes'
+        else:
+            # TODO - check default from system ssh_config
+            return False
+
+    def keys(self):
+        return sorted(set(dict.keys(self) + self.config.defaults.keys()))
+
+    def items(self):
+        items = []
+        for k in self.keys():
+            if k in dict.keys(self):
+                items.append((k,self[k]))
+            else:
+                items.append((k,self.config.defaults[k]))
+        return items
+
+    def values(self):
+        items = []
+        for k in self.keys():
+            if k in dict.keys(self):
+                items.append(self[k])
+            else:
+                items.append(self.config.defaults[k])
+        return items
