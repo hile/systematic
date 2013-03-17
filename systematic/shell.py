@@ -241,6 +241,9 @@ class Script(object):
         """
         Default wrapper to execute given interactive shell command
         """
+        if isinstance(args,basestring):
+            args = args.split()
+
         if not isinstance(args,list):
             raise ValueError('Execute arguments must be a list')
 
