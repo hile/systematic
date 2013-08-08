@@ -3,14 +3,19 @@
 Utility functions for python in unix shell.
 """
 
-import sys,os,time,signal,socket
-import threading,unicodedata
-from subprocess import Popen,PIPE
+import sys
+import os
+import time
+import signal
+import socket
+import argparse
+import threading
+import unicodedata
+
+from subprocess import check_output,CalledProcessError,Popen,PIPE
 from setproctitle import setproctitle
 
 from systematic.log import Logger
-
-import argparse
 
 if sys.platform=='darwin':
     CONFIG_PATH = os.path.expanduser('~/Library/Application Support/Systematic')
@@ -31,6 +36,7 @@ def normalized(path,normalization='NFC'):
         path = unicode(path,'utf-8')
     return unicodedata.normalize(normalization,path)
 
+
 def xterm_title(value,max_length=74,bypass_term_check=False):
     """
     Set title in xterm titlebar to given value, clip the title text to
@@ -44,6 +50,15 @@ def xterm_title(value,max_length=74,bypass_term_check=False):
         return
     sys.stderr.write('\033]2;'+value[:max_length]+'',)
     sys.stderr.flush()
+
+
+class ScriptError(Exception):
+    """
+    Exceptions raised by running scripts
+    """
+    def __str__(self):
+        return self.args[0]
+
 
 class CommandPathCache(list):
     """
@@ -92,12 +107,6 @@ class CommandPathCache(list):
         except IndexError:
             return None
 
-class ScriptError(Exception):
-    """
-    Exceptions raised by running scripts
-    """
-    def __str__(self):
-        return self.args[0]
 
 class ScriptThread(threading.Thread):
     """
@@ -121,6 +130,7 @@ class ScriptThread(threading.Thread):
     def execute(self,command):
         p = subprocess.Popen(command,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
         return p.wait()
+
 
 class Script(object):
     """
@@ -254,3 +264,14 @@ class Script(object):
         p = Popen(args,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
         p.wait()
         return p.returncode
+
+    def check_output(self,args):
+        """
+        Wrapper for subprocess.check_output to be executed in script context
+        """
+        if isinstance(args,basestring):
+            args = [args]
+        try:
+            return check_output(args)
+        except CalledProcessError,emsg:
+            raise ScriptError(emsg)

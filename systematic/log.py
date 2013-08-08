@@ -1,12 +1,26 @@
+"""
+Logging from scripts and parser for syslog files
+"""
 
-import os,logging
+import os
+import re
+import logging
 import logging.handlers
+
+from datetime import datetime,timedelta
 
 DEFAULT_LOGFORMAT = '%(module)s %(levelname)s %(message)s'
 DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_LOGFILEFORMAT = '%(asctime)s %(module)s.%(funcName)s %(message)s'
 DEFAULT_LOGSIZE_LIMIT = 2**20
 DEFAULT_LOG_BACKUPS = 10
+
+# Default matchers for syslog entry 'host, program, pid' parts
+SOURCE_FORMATS = [
+    re.compile('^<(?P<version>[^>]+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
+    re.compile('^(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
+    re.compile('^(?P<host>[^\s]+)\s+(?P<program>)$'),
+]
 
 class LoggerError(Exception):
     """
@@ -131,3 +145,177 @@ class Logger(object):
     def __setitem__(self,item,value):
         self.__instances[self.name][item] = value
 
+class LogFileError(Exception):
+    """
+    Exceptions from logfile parsers
+    """
+    pass
+
+class LogFile(list):
+    """
+    Generic syslog file parser
+    """
+    def __init__(self,path,source_formats=SOURCE_FORMATS):
+        if isinstance(path,basestring):
+            # String, process it
+            self.path = os.path.expanduser(os.path.expandvars(path))
+        else:
+            # File object
+            self.path = path
+
+        self.source_formats = source_formats
+        self.lineloader = LogEntry
+        self.mtime = None
+
+        self.__iter_index = None
+        self.__loaded = False
+        self.fd = None
+
+    def __repr__(self):
+        return '%s %s entries' % (self.path,len(self))
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if not self.__loaded:
+            # Load file on the fly and cache entries
+            if self.fd == None:
+                if isinstance(self.path,file):
+                    self.fd = self.path
+                    self.mtime = datetime.now()
+                else:
+                    try:
+                        self.fd = open(self.path,'r')
+                        self.mtime = datetime.fromtimestamp(os.stat(self.path).st_mtime)
+                    except OSError,(ecode,emsg):
+                        raise LogFileError('Error opening %s: %s' % (self.path,emsg))
+            entry = self.readline()
+
+            if entry is None:
+                raise StopIteration
+            return entry
+
+        else:
+            # Iterate cached entries
+            if self.__iter_index is None:
+                self.__iter_index = 0
+
+            try:
+                entry = self[self.__iter_index]
+                self.__iter_index += 1
+                return entry
+            except IndexError:
+                self.__iter_index = None
+                raise StopIteration
+
+
+    def readline(self):
+        """
+        Load whole log file
+        """
+        if self.fd is None:
+            raise LogFileError('File was not loaded')
+        try:
+            l = self.fd.readline()
+            if l == '':
+                self.__loaded = True
+                return None
+
+            # Multiline log entry
+            if l[:1] in [' ','\t'] and entry:
+                entry.append(l)
+                return self.readline()
+
+            else:
+                entry = self.lineloader(l,year=self.mtime.year,source_formats=self.source_formats)
+                self.append(entry)
+                return entry
+
+        except OSError,(ecode,emsg):
+            raise LogFileError('Error reading file %s: %s' % (self.path,emsg))
+
+    def reload(self):
+        list.__delslice__(self,0,len(self))
+        self.__loaded = False
+        while True:
+            try:
+                entry = self.next()
+            except StopIteration:
+                break
+
+    def filter_program(self,program):
+        """
+        Return log entries matching given program name
+        """
+        return [x for x in self if x.program == program]
+
+    def filter_message(self,message_regexp):
+        """
+        Return log entries matching given regexp in message field
+        """
+        if isinstance(message_regexp,basestring):
+            message_regexp = re.compile(message_regexp)
+        return [x for x in self if message_regexp.match(x.message)]
+
+    def match_message(self,message_regexp):
+        """
+        Return dictionary of matching regexp keys for lines
+        matching given regexp in message field
+        """
+        if isinstance(message_regexp,basestring):
+            message_regexp = re.compile(message_regexp)
+        matches = []
+        for x in self:
+            m = message_regexp.match(x.message)
+            if not m:
+                continue
+            matches.append(m.groupdict())
+        return matches
+
+class LogEntry(object):
+    """
+    Generic syslog logfile entry
+    """
+    def __init__(self,line,year,source_formats):
+        line = line.rstrip()
+        self.line = line
+
+        self.version = None
+        self.host = None
+        self.program = None
+        self.pid = None
+
+        try:
+            mon,day,time,line = line.split(None,3)
+        except ValueError:
+            raise LogFileError('Error splitting log line: %s' % self.line)
+
+        try:
+            self.time = datetime.strptime('%s %s %s %s' % (year,mon,day,time), '%Y %b %d %H:%M:%S')
+        except ValueError:
+            raise LogFileError('Error parsing entry time from line: %s' % self.line)
+
+        try:
+            self.source,self.message = [x.strip() for x in line.split(':',1)]
+            for fmt in source_formats:
+                m = fmt.match(self.source)
+                if m:
+                    for k,v in m.groupdict().items():
+                        setattr(self,k,v)
+
+        except ValueError:
+            # Lines like '--- last message repeated 2 times ---'
+            self.source = None
+            self.message = line
+
+    def __repr__(self):
+        return '%s %s%s%s' % (
+            self.time.strftime('%Y-%m-%d %H:%M:%S'),
+            self.program is not None and '%s ' % self.program or '',
+            self.pid is not None and '(%s) ' % self.pid or '',
+            self.message
+        )
+
+    def append(self,message):
+        self.message = '%s\n%s' % (self.message,message.rstrip())
