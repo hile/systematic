@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
 Parse filesystem mount information to Mountpoints class
+
+Requires external modules from split OS specific modules
 """
 
 import os,sys

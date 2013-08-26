@@ -225,7 +225,6 @@ class Script(object):
     def usage_error(self,*args,**kwargs):
         return self.parser.error(*args,**kwargs)
 
-
     def add_argument(self,*args,**kwargs):
         """
         Shortcut to add argument to main argumentparser instance
@@ -250,6 +249,7 @@ class Script(object):
     def execute(self,args,dryrun=False):
         """
         Default wrapper to execute given interactive shell command
+        with standard stdin, stdout and stderr
         """
         if isinstance(args,basestring):
             args = args.split()
