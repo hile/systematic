@@ -156,6 +156,7 @@ class Script(object):
         self.parser = argparse.ArgumentParser(
             prog=name,
             description=description,
+            formatter_class=argparse.RawTextHelpFormatter,
             epilog=epilog,
             add_help=True,
             conflict_handler='resolve',
