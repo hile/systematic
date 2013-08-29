@@ -274,5 +274,12 @@ class Script(object):
             args = [args]
         try:
             return check_output(args)
+
+        except IOError, (ecode,emsg):
+            raise ScriptError(emsg)
+
+        except OSError, (ecode,emsg):
+            raise ScriptError(emsg)
+
         except CalledProcessError,emsg:
             raise ScriptError(emsg)
