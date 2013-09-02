@@ -49,6 +49,53 @@ class InitScript(object):
         self.parser.add_argument('--debug', action='store_true', help='Show debug messages')
         self.parser.add_argument('command', choices=valid_commands, help='Control option')
 
+    def error(self, message, code=1):
+        """Print error and exit
+
+        Print specified error message to stderr and exit with error code
+
+        """
+        try:
+            code = int(code)
+        except ValueError:
+            code = 1
+
+        sys.stderr.write('%s\n' % message)
+        sys.exit(code)
+
+    def fail(self, code=1, exit=True):
+        """Write ERROR and exit with specified code
+
+        Write ERROR message to screen and exit with specified exit code
+
+        """
+        try:
+            code = int(code)
+        except ValueError:
+            code = 1
+
+        self.message('ERROR\n')
+        if exit:
+            sys.exit(code)
+
+    def ok(self, exit=True):
+        """Write OK and exit with 0
+
+        Write OK message to screen and exit with 0 exit code
+
+        """
+        self.message('OK\n')
+        if exit:
+            sys.exit(0)
+
+    def message(self, message):
+        """Write message to stdout
+
+        Write specified message to stdout
+
+        """
+        sys.stdout.write('%s' % message)
+
     @property
     def pid(self):
         """Return PID from pidfile
@@ -93,31 +140,6 @@ class InitScript(object):
         p.wait()
         return p.returncode == 0
 
-    def error(self, message, code=1):
-        """Print error and exit
-
-        Print specified error message to stderr and exit with error code
-
-        """
-        try:
-            code = int(code)
-        except ValueError:
-            code = 1
-
-        sys.stderr.write('%s\n' % message)
-        sys.exit(code)
-
-    def fail(self, code):
-        self.message('ERROR\n')
-        sys.exit(code)
-
-    def ok(self, code):
-        self.message('OK\n')
-        sys.exit(0)
-
-    def message(self, message):
-        sys.stdout.write('%s' % message)
-
     def parse_args(self):
         """Parse arguments
         """
@@ -127,7 +149,6 @@ class InitScript(object):
 
         return args
 
-    @property
     def status(self):
         """
         """
@@ -136,8 +157,7 @@ class InitScript(object):
         else:
             self.message('Not running: %s\n' % (self.name))
 
-    @property
-    def stop(self):
+    def stop(self, exit=True):
         """Stop service
 
         Stop the service if PID file was not found
@@ -146,15 +166,15 @@ class InitScript(object):
         if not self.is_running:
             raise InitScriptError('%s: not running' % (self.name))
 
-        self.message('Stopping: %s (pid %s)' % (self.name, self.pid))
+        self.message('Stopping: %s (pid %s) ' % (self.name, self.pid))
         command = ['pkill', '-F', self.pidfile]
         p = Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
-        if p.returncode != 0:
-            self.fail(p.returncode)
-        self.ok()
 
-    @property
+        if p.returncode != 0:
+            self.fail(p.returncode, exit=exit)
+        self.ok(exit=exit)
+
     def start(self):
         """Start service
 
@@ -164,7 +184,10 @@ class InitScript(object):
         if self.is_running:
             self.error('%s: already running (pid %s)' % (self.name, self.pid))
 
-        self.message('Starting: %s' % (self.name))
+        if not os.access(self.daemon, os.X_OK):
+            self.error('Not executable: %s' % self.daemon)
+
+        self.message('Starting: %s ' % (self.name))
         command = [self.daemon] + self.daemon_args
         p = Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
@@ -172,15 +195,31 @@ class InitScript(object):
             self.fail(p.returncode)
         self.ok()
 
+    def restart(self):
+        """Attempt to restart the service
+
+        Attempt to stop and start the service
+
+        """
+        try:
+            self.stop(exit=False)
+        except InitScriptError, emsg:
+            pass
+
+        self.start()
+
     def run(self):
         """Run init script
 
         Parse command line arguments and execute given command
 
         """
+
         args = self.parse_args()
         try:
             callback = getattr(self, args.command)
+            if callback is None:
+                raise AttributeError
         except AttributeError:
             self.error(code=1, message='Function not implemented: %s' % args.command)
 
