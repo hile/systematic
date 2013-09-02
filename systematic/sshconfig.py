@@ -3,7 +3,7 @@ Parsing of SSH configuration files
 """
 
 import sys,os,pwd,stat,re,string,logging
-from subprocess import check_output
+from subprocess import check_output, Popen, PIPE
 
 from systematic.log import Logger,LoggerError
 
@@ -328,9 +328,20 @@ class SSHConfigHost(dict):
     def parse(self,line):
         try:
             key,value = [x.strip() for x in line.split(None,1)]
+            if key in ( 'Compression', 'ForwardAgent', 'ForwardX11', 'TCPKeepAlive', ):
+                value = value == 'yes' and True or False
+
+            if key in ('ServerAliveInterval', ):
+                value = int(value)
+
             self[key] = value
         except ValueError:
             raise ValueError('Invalid line: %s' % line)
+
+    def __getattr__(self, attr):
+        if attr in self.keys():
+            return self[attr]
+        raise AttributeError
 
     def __getitem__(self,item):
         if item in dict.keys(self):
@@ -349,7 +360,7 @@ class SSHConfigHost(dict):
     @property
     def forward_agent_enabled(self):
         if 'ForwardAgent' in self.keys():
-            return self['ForwardAgent'].lower()=='yes'
+            return self['ForwardAgent'].lower() in ['yes', True]
         else:
             # TODO - check default from system ssh_config
             return False
@@ -357,7 +368,7 @@ class SSHConfigHost(dict):
     @property
     def forward_x11_enabled(self):
         if 'ForwardX11' in self.keys():
-            return self['ForwardX11'].lower()=='yes'
+            return self['ForwardX11'].lower() in ['yes', True]
         else:
             # TODO - check default from system ssh_config
             return False
@@ -365,7 +376,7 @@ class SSHConfigHost(dict):
     @property
     def tcp_keepalive_enabled(self):
         if 'TCPKeepAlive' in self.keys():
-            return self['TCPKeepAlive'].lower()=='yes'
+            return self['TCPKeepAlive'].lower() in ['yes', True]
         else:
             # TODO - check default from system ssh_config
             return False

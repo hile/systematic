@@ -6,17 +6,18 @@ Script to load and view ssh keys found from user directories
 import os
 
 from systematic.shell import Script
-from systematic.sshconfig import UserSSHKeys
+from systematic.sshconfig import UserSSHKeys, SSHConfig
 
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 
 script = Script()
-script.add_argument('-l','--list',action='store_true',help='List loaded keys')
-script.add_argument('-k','--keys',action='store_true',help='List available keys')
-script.add_argument('-s','--status',action='store_true',help='List key load status')
-script.add_argument('-a','--load',action='store_true',help='Load all keys to agent')
-script.add_argument('-u','--unload',action='store_true',help='Unload all agent keys')
-script.add_argument('-c','--config',default=DEFAULT_CONFIG,help='Configuration file path')
+script.add_argument('-l', '--list', action='store_true', help='List loaded keys')
+script.add_argument('-L', '--hosts', action='store_true', help='List configured hosts')
+script.add_argument('-k', '--keys', action='store_true', help='List available keys')
+script.add_argument('-s', '--status', action='store_true', help='List key load status')
+script.add_argument('-a', '--load', action='store_true', help='Load all keys to agent')
+script.add_argument('-u', '--unload', action='store_true', help='Unload all agent keys')
+script.add_argument('-c', '--config', default=DEFAULT_CONFIG, help='Configuration file path')
 args = script.parse_args()
 
 usk = UserSSHKeys()
@@ -31,8 +32,16 @@ if args.list:
   Fingerprint: %(fingerprint)s
         """ % k
 
+if args.hosts:
+    config = SSHConfig()
+    for name in sorted(config.keys()):
+        print name
+        hostconfig = config[name]
+        for k,v in config[name].items():
+            print '%20s %s' % (k, getattr(hostconfig, k))
+
 if args.keys:
-    for k in filter(lambda x: x.available, usk.values()):
+    for k in filter(lambda x: x.available,  usk.values()):
         print """%(path)s
   Algorithm:   %(algorithm)s
   Key Bits:    %(bits)s
@@ -45,10 +54,10 @@ if args.status:
             status = k.is_loaded and 'LOADED' or 'UNLOADED'
         else:
             status = 'UNAVAILABLE'
-        print '%12s %s' % (status,k.path)
+        print '%12s %s' % (status, k.path)
 
 if args.load:
-    for k in filter(lambda k: k.available and k.autoload and not k.is_loaded, usk.values()):
+    for k in filter(lambda k: k.available and k.autoload and not k.is_loaded,  usk.values()):
         k.load()
 
 if args.unload:
