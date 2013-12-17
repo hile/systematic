@@ -12,7 +12,7 @@ import argparse
 import threading
 import unicodedata
 
-from subprocess import check_output,CalledProcessError,Popen,PIPE
+from subprocess import check_output, CalledProcessError, Popen, PIPE
 from setproctitle import setproctitle
 
 from systematic.log import Logger
@@ -23,21 +23,10 @@ else:
     CONFIG_PATH = os.path.expanduser('~/.config/systematic')
 
 # Values for TERM environment variable which support setting title
-TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
-
-def normalized(path,normalization='NFC'):
-    """
-    Return given path value as normalized unicode string on OS/X,
-    on other platform return the original string as unicode
-    """
-    if sys.platform != 'darwin':
-        return type(path)==unicode and path or unicode(path,'utf-8')
-    if not isinstance(path,unicode):
-        path = unicode(path,'utf-8')
-    return unicodedata.normalize(normalization,path)
+TERM_TITLE_SUPPORTED = ( 'xterm', 'xterm-debian' )
 
 
-def xterm_title(value,max_length=74,bypass_term_check=False):
+def xterm_title(value, max_length=74, bypass_term_check=False):
     """
     Set title in xterm titlebar to given value, clip the title text to
     max_length characters.
@@ -45,19 +34,26 @@ def xterm_title(value,max_length=74,bypass_term_check=False):
     #if not os.isatty(1): return
 
     TERM=os.getenv('TERM')
-    TERM_TITLE_SUPPORTED = [ 'xterm','xterm-debian']
     if not bypass_term_check and TERM not in TERM_TITLE_SUPPORTED:
         return
-    sys.stderr.write('\033]2;'+value[:max_length]+'',)
+    sys.stderr.write('\033]2;'+value[:max_length]+'', )
     sys.stderr.flush()
 
 
+def normalized(path, normalization='NFC'):
+    """
+    Return given path value as normalized unicode string on OS/X,
+    on other platform return the original string as unicode
+    """
+    if sys.platform != 'darwin':
+        return type(path)==unicode and path or unicode(path, 'utf-8')
+    if not isinstance(path, unicode):
+        path = unicode(path, 'utf-8')
+    return unicodedata.normalize(normalization, path)
+
+
 class ScriptError(Exception):
-    """
-    Exceptions raised by running scripts
-    """
-    def __str__(self):
-        return self.args[0]
+    pass
 
 
 class CommandPathCache(list):
@@ -72,7 +68,7 @@ class CommandPathCache(list):
         Updates the commands available on user's PATH
         """
         paths = []
-        self.__delslice__(0,len(self))
+        self.__delslice__(0, len(self))
 
         for path in os.getenv('PATH').split(os.pathsep):
             if not paths.count(path):
@@ -81,12 +77,12 @@ class CommandPathCache(list):
         for path in paths:
             if not os.path.isdir(path):
                 continue
-            for cmd in [os.path.join(path,f) for f in os.listdir(path)]:
-                if os.path.isdir(cmd) or not os.access(cmd,os.X_OK):
+            for cmd in [os.path.join(path, f) for f in os.listdir(path)]:
+                if os.path.isdir(cmd) or not os.access(cmd, os.X_OK):
                     continue
                 self.append(cmd)
 
-    def versions(self,name):
+    def versions(self, name):
         """
         Returns all commands with given name on path, ordered by PATH search
         order.
@@ -95,7 +91,7 @@ class CommandPathCache(list):
             self.update()
         return filter(lambda x: os.path.basename(x) == name, self)
 
-    def which(self,name):
+    def which(self, name):
         """
         Return first matching path to command given with name, or None if
         command is not on path
@@ -112,7 +108,7 @@ class ScriptThread(threading.Thread):
     """
     Common script thread base class
     """
-    def __init__(self,name):
+    def __init__(self, name):
         threading.Thread.__init__(self)
         self.log = Logger(name).default_stream
         self.status = 'not running'
@@ -127,8 +123,8 @@ class ScriptThread(threading.Thread):
     def stopped(self):
         return self._stop_event.isSet()
 
-    def execute(self,command):
-        p = subprocess.Popen(command,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+    def execute(self, command):
+        p = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         return p.wait()
 
 
@@ -136,9 +132,9 @@ class Script(object):
     """
     Class for common CLI tool script
     """
-    def __init__(self,name=None,description=None,epilog=None,debug_flag=True,subcommands=False):
+    def __init__(self, name=None, description=None, epilog=None, debug_flag=True, subcommands=False):
         self.name = os.path.basename(sys.argv[0])
-        setproctitle('%s %s' % (self.name,' '.join(sys.argv[1:])))
+        setproctitle('%s %s' % (self.name, ' '.join(sys.argv[1:])))
         signal.signal(signal.SIGINT, self.SIGINT)
 
         reload(sys)
@@ -162,7 +158,7 @@ class Script(object):
             conflict_handler='resolve',
         )
         if debug_flag:
-            self.parser.add_argument('--debug',action='store_true',help='Show debug messages')
+            self.parser.add_argument('--debug', action='store_true', help='Show debug messages')
 
         if subcommands:
             self.commands = {}
@@ -171,7 +167,7 @@ class Script(object):
                 title='Command modes'
             )
 
-    def SIGINT(self,signum,frame):
+    def SIGINT(self, signum, frame):
         """
         Parse SIGINT signal by quitting the program cleanly with exit code 1
         """
@@ -181,7 +177,7 @@ class Script(object):
             t.join()
         self.exit(1)
 
-    def wait(self,poll_interval=1):
+    def wait(self, poll_interval=1):
         """
         Wait for running threads to finish.
         Poll interval is time to wait between checks for threads
@@ -193,7 +189,7 @@ class Script(object):
             self.log.debug('Waiting for %d threads' % len(active))
             time.sleep(poll_interval)
 
-    def exit(self,value=0,message=None):
+    def exit(self, value=0, message=None):
         """
         Exit the script with given exit value.
         If message is not None, it is printed on screen.
@@ -209,28 +205,34 @@ class Script(object):
             time.sleep(1)
         sys.exit(value)
 
-    def message(self,message):
+    def message(self, message):
         if self.silent:
             return
         sys.stdout.write('%s\n' % message)
 
-    def error(self,message):
+    def error(self, message):
         sys.stderr.write('%s\n' % message)
 
-    def register_subcommand(self,command,name,description,epilog=None):
+    def register_subcommand(self, command, name, description, epilog=None):
         if name in self.commands:
             raise MusaScriptError('Duplicate sub command name: %s' % name)
         self.commands[name] = command
-        return self.command_parsers.add_parser(name,help=description,description=description,epilog=epilog)
 
-    def usage_error(self,*args,**kwargs):
-        return self.parser.error(*args,**kwargs)
+        return self.command_parsers.add_parser(
+            name,
+            help=description,
+            description=description,
+            epilog=epilog
+        )
 
-    def add_argument(self,*args,**kwargs):
+    def usage_error(self, *args, **kwargs):
+        return self.parser.error(*args, **kwargs)
+
+    def add_argument(self, *args, **kwargs):
         """
         Shortcut to add argument to main argumentparser instance
         """
-        self.parser.add_argument(*args,**kwargs)
+        self.parser.add_argument(*args, **kwargs)
 
     def parse_args(self):
         """
@@ -238,48 +240,53 @@ class Script(object):
         """
         args = self.parser.parse_args()
 
-        if hasattr(args,'debug') and getattr(args,'debug'):
+        if hasattr(args, 'debug') and getattr(args, 'debug'):
             self.logger.set_level('DEBUG')
-        elif hasattr(args,'quiet') and getattr(args,'quiet'):
+        elif hasattr(args, 'quiet') and getattr(args, 'quiet'):
             self.silent = True
-        elif hasattr(args,'verbose') and getattr(args,'verbose'):
+        elif hasattr(args, 'verbose') and getattr(args, 'verbose'):
             self.logger.set_level('INFO')
 
         return args
 
-    def execute(self,args,dryrun=False):
+    def execute(self, args, dryrun=False):
         """
         Default wrapper to execute given interactive shell command
         with standard stdin, stdout and stderr
         """
-        if isinstance(args,basestring):
+        if isinstance(args, basestring):
             args = args.split()
 
-        if not isinstance(args,list):
+        if not isinstance(args, list):
             raise ValueError('Execute arguments must be a list')
 
         if dryrun:
             self.log.debug('would execute: %s' % ' '.join(args))
             return 0
 
-        p = Popen(args,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+        p = Popen(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
         return p.returncode
 
-    def check_output(self,args):
+    def check_output(self, args):
         """
         Wrapper for subprocess.check_output to be executed in script context
         """
-        if isinstance(args,basestring):
+        if isinstance(args, basestring):
             args = [args]
         try:
             return check_output(args)
 
-        except IOError, (ecode,emsg):
+        except IOError, (ecode, emsg):
             raise ScriptError(emsg)
 
-        except OSError, (ecode,emsg):
+        except OSError, (ecode, emsg):
             raise ScriptError(emsg)
 
-        except CalledProcessError,emsg:
+        except CalledProcessError, emsg:
             raise ScriptError(emsg)
+
+
+class ScriptCommand(argparse.ArgumentParser):
+    pass
+
