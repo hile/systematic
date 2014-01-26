@@ -5,7 +5,7 @@ Python implementation of 'tail' type file reader class
 import os
 import time
 
-INTERVAL = 0.1
+INTERVAL = 0.01
 
 class TailReaderError(Exception): pass
 
