@@ -5,35 +5,33 @@ Script to update all linux and freebsd servers
 
 import os
 
-from systematic.shell import Script,CONFIG_PATH
-from systematic.serverlist import OrganizationServers,OperatingSystemGroup,ServerConfig
+from systematic.shell import Script, CONFIG_PATH
+from systematic.serverlist import OrganizationServers, OperatingSystemGroup, ServerConfig
 
 DEFAULT_CONFIG = '/etc/systematic/servers.conf'
-USER_CONFIG = os.path.join(CONFIG_PATH,'servers.conf')
+USER_CONFIG = os.path.join(CONFIG_PATH, 'servers.conf')
 
 script = Script()
-script.add_argument('-g','--group',action='append',help='Server OS Group')
-script.add_argument('-D','--description',help='Group description')
-script.add_argument('-a','--add-servers',help='Add server to group')
-script.add_argument('-r','--remove-servers',help='Add server to group')
-script.add_argument('-U','--update-commands',action='append',help='Update command')
-script.add_argument('-l','--list',action='store_true',help='List configured items')
-script.add_argument('-u','--update',action='store_true',help='Update servers')
-script.add_argument('-c','--config',default=DEFAULT_CONFIG,help='Server list configuration file')
-script.add_argument('servers',nargs='*',help='Servers to update')
+script.add_argument('-l', '--list', action='store_true', help='List configured items')
+script.add_argument('-u', '--update', action='store_true', help='Update servers')
+script.add_argument('-g', '--group', action='append', help='Server OS Group')
+script.add_argument('-a', '--add-servers', help='Add server to group')
+script.add_argument('-r', '--remove-servers', help='Add server to group')
+script.add_argument('-D', '--description', help='Group description')
+script.add_argument('-U', '--update-commands', action='append', help='Update command')
+script.add_argument('-c', '--config', default=DEFAULT_CONFIG, help='Server list configuration file')
+script.add_argument('servers', nargs='*', help='Servers to update')
 args = script.parse_args()
 
 config = args.config is not None and os.path.isfile(args.config) and config or USER_CONFIG
 
-servers = None
 try:
     servers = OrganizationServers(config)
-except ValueError,emsg:
-    script.exit(1,emsg)
+except ValueError, emsg:
+    script.exit(1, emsg)
 
-if args.add_servers or args.remove_servers:
-    if not args.group:
-        script.exit(1,'Servers list modification requires group')
+if (args.add_servers or args.remove_servers) and not args.group:
+    script.exit(1, 'Servers list modification requires group')
 
 added_servers = []
 if args.add_servers:
@@ -50,34 +48,47 @@ if args.group:
             opt_groups.extend(og.split(','))
         else:
             opt_groups.append(og)
+
     opt_groups = set(opt_groups)
     groups = []
+
     for opt_group in opt_groups:
         if opt_group in servers.keys():
             group = servers[opt_group]
+
             if args.description:
                 group.setDescription(args.description)
+
             if args.update_commands:
                 group.setUpdateCommands(args.update_commands)
+
             if added_servers:
                 for server in added_servers:
                     group.addServer(server)
+
             if removed_servers:
                 for server in removed_servers:
                     group.removeServer(server)
+
         else:
             group = OperatingSystemGroup(opt_group)
+
             if args.description:
                 group.setDescription(args.description)
+
             if args.update_commands:
                 group.setUpdateCommands(args.update_commands)
+
             if added_servers:
                 for server in added_servers:
                     group.addServer(server)
+
             servers[opt_group] = group
+
         if group.modified:
             servers.save()
         groups.append(opt_group)
+
 else:
     groups = servers.keys()
 
@@ -87,13 +98,16 @@ if args.list:
         if len(group)==0:
             script.meesage('Empty server group: %s' % group)
             continue
+
         script.message("Server group: %s" % group)
         script.message("Connect command: %s" % ' '.join(group.connect_command))
         script.message("Command separator: %s" % group.command_separator)
+
         if group.update_commands:
             script.message("Update commands:")
             for cmd in group.update_commands:
                 script.message('\t%s' % cmd)
+
         script.message('Servers in group:')
         for server in group:
             if args.servers and server.name not in args.servers:
@@ -103,9 +117,10 @@ if args.list:
 if args.update:
     for name in groups:
         group = servers[name]
+
         for server in group:
             if args.servers and server.name not in args.servers:
                 continue
+
             script.message('Updating server: %s' % server.name)
             server.update()
-
