@@ -54,6 +54,16 @@ class TailReader(object):
         except OSError, (ecode, emsg):
             raise TailReaderError('Error opening %s: %s' % (self.path, emsg))
 
+    def seek_to_end(self):
+        """Jump to end of file
+
+        Instead of reading lines in file before tailing, use this to jump to end
+        of file after initializing and you'll get the new entries on the fly.
+
+        """
+        if self.fd is None:
+            self.load()
+        self.fd.seek(os.stat(self.path).st_size)
 
     def readline(self):
         """Read a line from the file
