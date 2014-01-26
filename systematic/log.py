@@ -329,18 +329,31 @@ class LogFile(list):
             except StopIteration:
                 break
 
-    def filter_program(self, program):
-        """
-        Return log entries matching given program name
+    def filter_host(self, host):
+        """Filter by host name
+
+        Return log entries matching given host name
+
         """
         if len(self) == 0:
             self.reload()
-        print 'filtering from %d entries' % len(self)
+        return [x for x in self if x.host == host]
+
+    def filter_program(self, program):
+        """Filter by program name
+
+        Return log entries matching given program name
+
+        """
+        if len(self) == 0:
+            self.reload()
         return [x for x in self if x.program == program]
 
     def filter_message(self, message_regexp):
-        """
-        Return log entries matching given regexp in message field
+        """Filter by message regexp
+
+        Filter log entries matching given regexp in message field
+
         """
         if len(self) == 0:
             self.reload()
@@ -352,8 +365,10 @@ class LogFile(list):
 
     def match_message(self, message_regexp):
         """
-        Return dictionary of matching regexp keys for lines
-        matching given regexp in message field
+
+        Return dictionary of matching regexp keys for lines matching given regexp
+         in message field
+
         """
         if len(self) == 0:
             self.reload()
@@ -371,6 +386,15 @@ class LogFile(list):
 
 
 class LogFileCollection(object):
+    """Process multiple logfiles
+
+    Load, iterate and process multiple log files. Typical usage would be like:
+
+        lc = LogFileCollection(glob.glob('/var/log/auth.log*'))
+
+    Files are sorted by modification timestamp and name.
+
+    """
     def __init__(self, logfiles, source_formats=SOURCE_FORMATS):
         self.source_formats = source_formats
         self.logfiles = []
@@ -433,13 +457,34 @@ class LogFileCollection(object):
 
         return logentry
 
+    def filter_host(self, host):
+        """Filter by host
+
+        Filter all loaded logfiles by matching host with LogFile.filter_host
+
+        """
+        matches = []
+        for parser in self.logfiles:
+            matches.extend(parser.filter_host(host))
+        return matches
+
     def filter_program(self, program):
+        """Filter by program
+
+        Filter all loaded logfiles by matching program with LogFile.filter_program
+
+        """
         matches = []
         for parser in self.logfiles:
             matches.extend(parser.filter_program(program))
         return matches
 
     def filter_message(self, message_regexp):
+        """Filter messages by regexp
+
+        Match all loaded logfiles by matching program with LogFile.filter_message
+
+        """
         if isinstance(message_regexp, basestring):
             message_regexp = re.compile(message_regexp)
 
@@ -449,6 +494,11 @@ class LogFileCollection(object):
         return matches
 
     def match_message(self, message_regexp):
+        """Match messages by regexp
+
+        Match all loaded logfiles by matching program with LogFile.match_message
+
+        """
         if isinstance(message_regexp, basestring):
             message_regexp = re.compile(message_regexp)
 
