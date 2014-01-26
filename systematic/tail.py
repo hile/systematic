@@ -7,7 +7,8 @@ import time
 
 INTERVAL = 0.01
 
-class TailReaderError(Exception): pass
+class TailReaderError(Exception):
+    pass
 
 class TailReader(object):
     def __init__(self, path=None, fd=None):
@@ -18,6 +19,15 @@ class TailReader(object):
 
     def __iter__(self):
         return self
+
+    def __format_line__(self, line):
+        """Format line
+
+        Format entry returned by readline. Override in subclass to parse
+        entries automatically: default version just returns provided value
+
+        """
+        return line
 
     def next(self):
         return self.readline()
@@ -37,17 +47,21 @@ class TailReader(object):
         if self.fd is not None:
             self.close()
 
+        if not os.path.isfile(self.path):
+            raise TailReaderError('No such file: %s' % self.path)
+
         if not os.access(self.path, os.R_OK):
             self.stat = None
             self.fd = None
             self.pos = 0
-            return
+            raise TailReaderError('Permission denied: %s' % self.path)
 
         try:
             self.fd = open(self.path, 'r')
             self.stat = os.stat(self.path)
             self.fd.seek(0)
             self.pos = 0
+            self.year = time.localtime(self.stat.st_mtime).tm_year
 
         except IOError, (ecode, emsg):
             raise TailReaderError('Error opening %s: %s' % (self.path, emsg))
@@ -97,7 +111,7 @@ class TailReader(object):
                     line = self.fd.readline()
 
                     if line != '':
-                        return line[:-1]
+                        return self.__format_line__(line[:-1])
 
                 except IOError, (ecode, emsg):
                     raise TailReaderError('Error opening %s: %s' % (self.path, emsg))
