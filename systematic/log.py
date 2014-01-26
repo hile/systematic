@@ -11,6 +11,8 @@ import logging.handlers
 
 from datetime import datetime, timedelta
 
+from systematic.tail import TailReader, TailReaderError
+
 DEFAULT_LOGFORMAT = '%(module)s %(levelname)s %(message)s'
 DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 DEFAULT_LOGFILEFORMAT = '%(asctime)s %(module)s.%(funcName)s %(message)s'
@@ -506,3 +508,17 @@ class LogFileCollection(object):
         for parser in self.logfiles:
             matches.extend(parser.match_message(message_regexp))
         return matches
+
+
+class LogfileTailReader(TailReader):
+    """Logfile tail reader
+
+    Tail reader returning LogFile entries
+
+    """
+    def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS):
+        TailReader.__init__(self, path, fd)
+        self.source_formats = source_formats
+
+    def __format_line__(self, line):
+         return LogEntry(line[:-1], self.year, source_formats=self.source_formats)
