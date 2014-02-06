@@ -9,7 +9,7 @@ import sys
 import os
 from setuptools import setup
 
-VERSION='3.3'
+VERSION='4.0'
 README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
 
 setup(
