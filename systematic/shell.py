@@ -132,7 +132,7 @@ class Script(object):
     """
     Class for common CLI tool script
     """
-    def __init__(self, name=None, description=None, epilog=None, debug_flag=True, subcommands=False):
+    def __init__(self, name=None, description=None, epilog=None, debug_flag=True):
         self.name = os.path.basename(sys.argv[0])
         setproctitle('%s %s' % (self.name, ' '.join(sys.argv[1:])))
         signal.signal(signal.SIGINT, self.SIGINT)
@@ -149,6 +149,7 @@ class Script(object):
         self.logger = Logger(self.name)
         self.log = self.logger.default_stream
 
+        self.subcommand_parser = None
         self.parser = argparse.ArgumentParser(
             prog=name,
             description=description,
@@ -159,13 +160,6 @@ class Script(object):
         )
         if debug_flag:
             self.parser.add_argument('--debug', action='store_true', help='Show debug messages')
-
-        if subcommands:
-            self.commands = {}
-            self.command_parsers = self.parser.add_subparsers(
-                dest='command', help='Please select one command mode below',
-                title='Command modes'
-            )
 
     def SIGINT(self, signum, frame):
         """
@@ -213,17 +207,36 @@ class Script(object):
     def error(self, message):
         sys.stderr.write('%s\n' % message)
 
-    def register_subcommand(self, command, name, description, epilog=None):
-        if name in self.commands:
-            raise MusaScriptError('Duplicate sub command name: %s' % name)
-        self.commands[name] = command
+    def register_subcommand(self, command):
+        """Register command parser
 
-        return self.command_parsers.add_parser(
-            name,
-            help=description,
-            description=description,
-            epilog=epilog
+        Register named subcommand parser to argument parser.
+
+        Subcommand parser must be an instance of ScriptCommand class.
+        Example usage:
+          parser.register_subcommand()
+
+        """
+
+        if self.subcommand_parser is None:
+            self.subcommand_parser = self.parser.add_subparsers(
+                dest='command', help='Please select one command mode below',
+                title='Command modes'
+            )
+            self.subcommands = {}
+
+        if not isinstance(command, ScriptCommand):
+            raise ScriptError('Subcommand must be a ScriptCommand instance')
+
+        parser = self.subcommand_parser.add_parser(
+            command.name,
+            help=command.description,
+            description=command.description,
+            epilog=command.epilog
         )
+        self.subcommands[command.name] = command
+
+        return parser
 
     def usage_error(self, *args, **kwargs):
         return self.parser.error(*args, **kwargs)
@@ -242,10 +255,15 @@ class Script(object):
 
         if hasattr(args, 'debug') and getattr(args, 'debug'):
             self.logger.set_level('DEBUG')
+
         elif hasattr(args, 'quiet') and getattr(args, 'quiet'):
             self.silent = True
+
         elif hasattr(args, 'verbose') and getattr(args, 'verbose'):
             self.logger.set_level('INFO')
+
+        if self.subcommand_parser is not None:
+            self.subcommands[args.command].run(self, args)
 
         return args
 
@@ -288,5 +306,26 @@ class Script(object):
 
 
 class ScriptCommand(argparse.ArgumentParser):
-    pass
+    """Script subcommand parser class
 
+    Parser for Script subcommands.
+
+    Implement custom logic to this class and provide a custom
+    parse_args to call these methods as required
+
+    """
+    def __init__(self, name, description='', epilog=''):
+        self.name = name
+        self.description=description
+        self.epilog = epilog
+
+    def run(self, script, args):
+        """Run subcommands
+
+        This method is called from parent script parse_args with
+        processed arguments, when a subcommand has been registered
+
+        Implement your subcommand logic here.
+
+        """
+        sys.stderr.write('Subcommand %s has no run method implemented\n' % self.name)
