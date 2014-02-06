@@ -241,6 +241,7 @@ class Script(object):
             epilog=command.epilog
         )
         self.subcommands[command.name] = command
+        command.script = self
 
         return parser
 
@@ -321,6 +322,7 @@ class ScriptCommand(argparse.ArgumentParser):
 
     """
     def __init__(self, name, description='', epilog=''):
+        self.script = None
         self.name = name
         self.description=description
         self.epilog = epilog
