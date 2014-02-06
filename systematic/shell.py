@@ -217,7 +217,7 @@ class Script(object):
         Example usage:
 
         class ListCommand(ScriptCommand):
-            def run(self, script, args):
+            def run(self, args):
                 print 'Listing stuff'
 
         parser.add_subcommand(ListCommand('list', 'List stuff from script'))
@@ -270,7 +270,7 @@ class Script(object):
             self.logger.set_level('INFO')
 
         if self.subcommand_parser is not None:
-            self.subcommands[args.command].run(self, args)
+            self.subcommands[args.command].run(args)
 
         return args
 
@@ -327,7 +327,7 @@ class ScriptCommand(argparse.ArgumentParser):
         self.description=description
         self.epilog = epilog
 
-    def run(self, script, args):
+    def run(self, args):
         """Run subcommands
 
         This method is called from parent script parse_args with
