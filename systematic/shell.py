@@ -207,14 +207,20 @@ class Script(object):
     def error(self, message):
         sys.stderr.write('%s\n' % message)
 
-    def register_subcommand(self, command):
-        """Register command parser
+    def add_subcommand(self, command):
+        """Add a subcommand parser instance
 
-        Register named subcommand parser to argument parser.
+        Register named subcommand parser to argument parser
 
         Subcommand parser must be an instance of ScriptCommand class.
+
         Example usage:
-          parser.register_subcommand()
+
+        class ListCommand(ScriptCommand):
+            def run(self, script, args):
+                print 'Listing stuff'
+
+        parser.add_subcommand(ListCommand('list', 'List stuff from script'))
 
         """
 
