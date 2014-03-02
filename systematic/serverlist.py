@@ -7,188 +7,97 @@ Designed for usage over ssh, could work with other protocols I guess at
 least for interactive sessions (start VNC etc).
 """
 
-import sys,os
-from subprocess import Popen,PIPE
+import sys
+import os
+from subprocess import Popen, PIPE
 from configobj import ConfigObj
 
-from systematic.log import Logger,LoggerError
+from systematic.log import Logger, LoggerError
 
 DEFAULT_COMMAND_SEPARATOR = ' && '
-DEFAULT_CONNECT_COMMAND = ['ssh','-qt','SERVER']
+DEFAULT_CONNECT_COMMAND = [ 'ssh', '-qt', 'SERVER' ]
 
-SERVERINFO_FIELDS = ['hostname','description']
+SERVERINFO_FIELDS = (
+    'hostname',
+    'description',
+)
 
-class OrganizationServers(dict):
-    """
-    Parser for configuration file describing organization's servers and
-    their operating systems.
-    """
-    def __init__(self,path):
-        self.log = Logger('servers').default_stream
-        self.path = path
 
-        if not os.path.isfile(self.path):
-            return
-        try:
-            config  = ConfigObj(self.path)
-        except ValueError,emsg:
-            raise ValueError('Error parsing %s: %s' % (self.path,emsg))
-
-        self.serverinfo = {}
-        for k in config.keys():
-            if config[k].has_key('servers'):
-                self[k] = OperatingSystemGroup(k,config[k])
-            else:
-                self.serverinfo[k] = config[k]
-
-        for group in self.values():
-            for server in group:
-                if not server.name in self.serverinfo.keys():
-                    continue
-                info = self.serverinfo[server.name]
-                for k in SERVERINFO_FIELDS:
-                    if k not in info.keys():
-                        continue
-                    v = info[k]
-                    if isinstance(v,list):
-                        v = ', '.join(v)
-                    setattr(server,k,v)
-
-    def save(self):
-        config = ConfigObj()
-        for name,group in self.items():
-            if len(group)==0:
-                continue
-            config[name] = {
-                'commands': group.update_commands,
-                'servers': [s.name for s in group],
-            }
-            if group.description != group.name:
-                config[name]['description'] = group.description
-            if group.connect_command!=DEFAULT_CONNECT_COMMAND:
-                config[name]['connect'] = group.connect_command
-            if group.command_separator!=DEFAULT_COMMAND_SEPARATOR:
-                config[name]['command_separator'] = group.command_separator
-
-        self.log.debug('Saving configuration to %s' % self.path)
-        config.write(outfile=open(self.path,'w'))
-
-class OperatingSystemGroup(list):
-    """
-    Group of operating systems in configuration file
-    """
-    def __init__(self,name,opts={}):
-        self.log = Logger('servers').default_stream
-        self.modified = False
-        self.name = name
-        self.description = name
-        self.connect_command = DEFAULT_CONNECT_COMMAND
-        self.command_separator = DEFAULT_COMMAND_SEPARATOR
-        self.update_commands = None
-
-        if opts.has_key('description'):
-            self.description = opts['description']
-        if opts.has_key('connect'):
-            self.connect_command = opts['connect']
-            if isinstance(self.connect_command,basestring):
-                self.connect_command = self.connect_command.split()
-        if opts.has_key('command_separator'):
-            self.command_separator = opts['command_separator']
-        if opts.has_key('commands'):
-            self.update_commands = opts['commands']
-            if isinstance(self.update_commands,basestring):
-                self.update_commands = [self.update_commands]
-        if opts.has_key('servers'):
-            servers = opts['servers']
-            if not isinstance(servers,list):
-                servers = [servers]
-            self.extend(ServerConfig(self,s) for s in servers)
-
-    def __repr__(self):
-        return '%s: %s (%d servers)' % (self.name,self.description,len(self))
-
-    def setCommandSeparator(self,separator):
-        if self.command_separator != separator:
-            self.log.debug('Modified command separator for %s' % self.name)
-            self.command_separator = separator
-            self.modified = True
-
-    def setConnectCommand(self,command):
-        if not isinstance(command,list):
-            raise ValueError('Connect command must be a list')
-        if self.connect_command != command:
-            self.log.debug('Modified connect commands for %s' % self.name)
-            self.connect_command = command
-            self.modified = True
-
-    def setDescription(self,description):
-        if self.description != description:
-            self.log.debug('Modified description for %s' % self.name)
-            self.description = description
-            self.modified = True
-
-    def setUpdateCommands(self,update_commands):
-        if not isinstance(update_commands,list):
-            raise ValueError('Update commands value not a list')
-        if self.update_commands!=update_commands:
-            self.log.debug('Modified update commands for %s' % self.name)
-            self.update_commands = update_commands
-            self.modified = True
-
-    def addServer(self,name):
-        try:
-            filter(lambda s: s.name==name, self)[0]
-            self.log.debug('Error adding: server already in group: %s' % name)
-        except IndexError:
-            self.log.debug('Added server to %s' % self.name)
-            self.append(ServerConfig(self,name))
-            self.modified = True
-
-    def removeServer(self,name):
-        try:
-            server = filter(lambda s: s.name==name, self)[0]
-            self.log.debug('Removed server from %s' % self.name)
-            self.remove(server)
-            self.modified = True
-        except IndexError:
-            self.log.debug('Error removing: server not in group: %s' % name)
-
-class ServerConfig(object):
+class Server(object):
     """
     Configuration for one server
     """
-    def __init__(self,os,name,description=None):
-        self.log = Logger('servers').default_stream
-        self.os = os
+    def __init__(self, osgroup, name, description=None):
+        self.log = Logger().default_stream
+        self.osgroup = osgroup
         self.name = name
         self.description = description
-        self.connect_command = [x=='SERVER' and name or x for x in os.connect_command]
 
     def __repr__(self):
         if self.description is not None:
-            return '%s (%s)' % (self.name,self.description)
+            return '%s (%s)' % (self.name, self.description)
         else:
             return '%s' % self.name
 
-    def check_output(self,command):
-        """
-        Wrapper to check output of a command
-        """
-        if type(command) != list:
-            command = [command]
-        cmd = self.connect_command + command
-        p = Popen(cmd,stdout=PIPE,stderr=PIPE)
-        (stdout,stderr) = p.communicate()
-        return p.returncode,stdout.rstrip('\n'),stderr.rstrip('\n')
+    def __cmp__(self, other):
+        if isinstance(other, basestring):
+            return cmp(self.name, other)
 
-    def shell(self,command):
+        return cmp(self, other)
+
+    def __eq__(self, other):
+        return self.__cmp__(other) == 0
+
+    def __ne__(self, other):
+        return self.__cmp__(other) != 0
+
+    def __gt__(self, other):
+        return self.__cmp__(other) > 0
+
+    def __gte__(self, other):
+        return self.__cmp__(other) >= 0
+
+    def __lt__(self, other):
+        return self.__cmp__(other) < 0
+
+    def __lte__(self, other):
+        return self.__cmp__(other) <= 0
+
+    @property
+    def connect_command(self):
+        return [x=='SERVER' and self.name or x for x in self.osgroup.connect_command]
+
+    def check_output(self, command):
         """
-        Wrapper to run interactive shell on the host
+        Wrapper to execute and check output of a command without
+        interactive console actions
+
+        Splits string automatically to words so pass a list if you
+        need to escape stuff properly.
         """
-        if type(command) != list:
+        if not isinstance(command, list):
             command = [command]
+
         cmd = self.connect_command + command
-        p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        (stdout,stderr) = p.communicate()
+        return p.returncode, stdout.rstrip('\n'), stderr.rstrip('\n')
+
+    def shell(self, command):
+        """
+        Wrapper to run interactive shell command on the host, using
+        current terminal for stdin, stdout and stderr
+
+        Splits string automatically to words so pass a list if you
+        need to escape stuff properly.
+
+        Returns command return code
+        """
+        if not isinstance(command, list):
+            command = [command]
+
+        cmd = self.connect_command + command
+        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
         return p.returncode
 
@@ -196,17 +105,196 @@ class ServerConfig(object):
         """
         Wrapper to call correct update commands for this host
         """
-        if self.os.update_commands is None:
-            self.log.debug('No update commands for OS %s' % self.os.name)
+        if not self.osgroup.update_commands:
+            self.log.debug('No update commands for OS %s' % self.osgroup.name)
             return
+
         self.log.debug("Running: %s '%s'" % (
             ' '.join(self.connect_command),
-            self.os.command_separator.join(self.os.update_commands)
+            self.osgroup.command_separator.join(self.osgroup.update_commands)
         ))
+
         cmd = self.connect_command + [
-            self.os.command_separator.join(self.os.update_commands)
+            self.osgroup.command_separator.join(self.osgroup.update_commands)
         ]
-        p = Popen(cmd,stdin=sys.stdin,stdout=sys.stdout,stderr=sys.stderr)
+        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
         return p.returncode
 
+    def remove(self):
+        """Remove from configuration
+
+        Remove this server from configuration
+
+        """
+        return self.osgroup.remove_server(self)
+
+class OperatingSystemGroup(object):
+    """
+    Group of operating systems in configuration file
+    """
+
+    def __init__(self, config, name, **kwargs):
+        self.log = Logger().default_stream
+        self.name = name
+        self.description = name
+        self.connect_command = DEFAULT_CONNECT_COMMAND
+        self.command_separator = DEFAULT_COMMAND_SEPARATOR
+        self.update_commands = []
+        self.servers = []
+
+        for k in ( 'description', 'command_separator', ):
+            if k in kwargs:
+                setattr(self, k, kwargs[k])
+
+        if 'connect' in kwargs:
+            self.connect_command = kwargs['connect']
+
+        if 'commands' in kwargs:
+            self.update_commands = kwargs['commands']
+
+        if 'servers' in kwargs:
+            names = kwargs['servers']
+            if not isinstance(names, list):
+                names = [names]
+
+            for name in names:
+                self.servers.append(Server(self, name))
+
+        self.modified = False
+
+    def __repr__(self):
+        return '%s: %s (%d servers)' % (self.name,self.description,len(self.servers))
+
+    @property
+    def command_separator(self):
+        return self._command_separator
+    @command_separator.setter
+    def command_separator(self, value):
+        self._command_separator = value
+        self.modified = True
+
+    @property
+    def connect_command(self):
+        return self._connect_command
+    @connect_command.setter
+    def connect_command(self, value):
+        if isinstance(value, basestring):
+            value = value.split()
+        self._connect_command = value
+        self.modified = True
+
+    @property
+    def update_command(self):
+        return self._update_commands
+    @update_command.setter
+    def update_commands(self, value):
+        if isinstance(value, basestring):
+            value = [value]
+        self._update_commands = value
+        self.modified = True
+
+    @property
+    def descripion(self):
+        return self._descripion
+    @descripion.setter
+    def descripion(self, value):
+        self._descripion = value
+        self.modified = True
+
+    def add_server(self, name):
+        if name in [s.name for s in self.servers]:
+            self.log.debug('Error adding: server already in group: %s' % name)
+            return
+
+        self.servers.append(Server(self, name))
+        self.modified = True
+
+    def remove_server(self,name):
+        try:
+            server = [s for s in self.servers if s.name==name][0]
+            self.servers.remove(server)
+            self.modified = True
+        except IndexError:
+            self.log.debug('Error removing: server not in group: %s' % name)
+            return
+
+
+class ServerConfigFile(object):
+    """
+    Parser for configuration file describing servers and their
+    operating systems.
+    """
+    def __init__(self,path):
+        self.operating_systems = []
+        self.servers = []
+        self.path = path
+        self.log = Logger().default_stream
+
+        if os.path.isfile(self.path):
+            self.load()
+
+    @property
+    def osnames(self):
+        return [x.name for x in self.operating_systems]
+
+    def load(self):
+        self.operating_systems = []
+        self.servers = []
+
+        try:
+            config  = ConfigObj(self.path)
+        except ValueError,emsg:
+            raise ValueError('Error parsing %s: %s' % (self.path, emsg))
+
+        osgroup = None
+        for key, section in config.items():
+            if section.has_key('commands'):
+                if key in self.servers:
+                    raise ValueError('Duplicate OS group name: %s' % key)
+                osgroup = OperatingSystemGroup(self, key, **section)
+                self.operating_systems.append(osgroup)
+                self.servers.extend(osgroup.servers)
+            else:
+                if osgroup is None:
+                    raise ValueError('Server in configuration file but no OS group defined yet')
+                self.servers.append(Server(osgroup, section))
+
+        return
+
+    def save(self):
+        config = ConfigObj()
+
+        for osgroup in self.operating_systems:
+            section = {
+                'commands': osgroup.update_commands,
+            }
+
+            if osgroup.description is not None and osgroup.description != '':
+                section['description'] = osgroup.description
+
+            if osgroup.servers:
+                section['servers'] = osgroup.servers
+
+            if osgroup.connect_command != DEFAULT_CONNECT_COMMAND:
+                section['connect'] = osgroup.connect_command
+
+            if osgroup.command_separator != DEFAULT_COMMAND_SEPARATOR:
+                section['command_separator'] = osgroup.command_separator
+
+            config[osgroup.name] = section
+            for server in osgroup.servers:
+                if server.description:
+                    config[server.name] = {
+                        'description': server.description
+                    }
+
+        self.log.debug('Saving configuration to %s' % self.path)
+        config.write(outfile=open(self.path, 'w'))
+
+    def match_os(self, name):
+        for os in self.operating_systems:
+            if os.name == name:
+                return os
+
+        raise ValueError('Unknown OS: %s' % name)

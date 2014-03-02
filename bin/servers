@@ -5,122 +5,179 @@ Script to update all linux and freebsd servers
 
 import os
 
-from systematic.shell import Script, CONFIG_PATH
-from systematic.serverlist import OrganizationServers, OperatingSystemGroup, ServerConfig
+from systematic.shell import Script, ScriptCommand, CONFIG_PATH
+from systematic.serverlist import ServerConfigFile, OperatingSystemGroup, Server
 
 DEFAULT_CONFIG = '/etc/systematic/servers.conf'
 USER_CONFIG = os.path.join(CONFIG_PATH, 'servers.conf')
 
+class ServersCommand(ScriptCommand):
+    def load(self, args, mode=None):
+        self.groups = []
+
+        if args.config is not None and os.path.isfile(args.config):
+            config = config
+        else:
+            config = USER_CONFIG
+        try:
+            self.config = ServerConfigFile(config)
+        except ValueError, emsg:
+            self.script.exit(1, emsg)
+
+        if 'groups' in args:
+            if args.groups:
+                for og in args.groups:
+                    if og.count(',') > 0:
+                        self.groups.extend(og.split(','))
+                    else:
+                        self.groups.append(og)
+                self.groups = sorted(set(self.groups))
+
+            else:
+                self.groups = sorted([x.name for x in self.config.operating_systems])
+
+        if 'group' in args:
+            try:
+                self.group = self.config.match_os(args.group)
+            except ValueError, emsg:
+                self.script.exit(1, emsg)
+
+        all_servers = []
+        for group in self.config.operating_systems:
+            for server in group.servers:
+                all_servers.append(server)
+
+        self.servers = []
+        if 'servers' in args:
+            if args.servers:
+                for name in args.servers:
+                    if mode is None:
+                        found = False
+                        for server in all_servers:
+                            if name == server.name:
+                                self.servers.append(server)
+                                found = True
+                        if not found:
+                            self.script.exit(1, 'Unknown server: %s' % name)
+
+                    elif mode == 'add_servers':
+                        for server in all_servers:
+                            if name == server.name:
+                                self.script.exit(1, 'Server already configured: %s' % name)
+                        # Not found - add to list
+                        self.servers.append(name)
+
+            elif mode == 'add_servers':
+                self.script.exit(1, 'List of servers to add is required')
+            else:
+                self.servers = all_servers
+        else:
+            self.servers = []
+
+class AddGroupCommand(ServersCommand):
+    def run(self, args):
+        self.load(args, mode='add_group')
+
+        try:
+            existing = self.config.match_os(args.name)
+            self.script.exit(1, 'Server group already defined: %s' % args.name)
+        except ValueError:
+            pass
+
+        if not args.commands:
+            self.script.exit(1, 'Missing update commands for server group')
+
+        kwargs = {}
+        for k in ('description', 'command_separator', 'connect', 'commands', 'servers'):
+            if hasattr(args, k):
+                kwargs[k] = getattr(args, k)
+
+        group = OperatingSystemGroup(self.config, args.name, **kwargs)
+        self.config.operating_systems.append(group)
+        self.config.save()
+
+class RemoveGroupCommand(ServersCommand):
+    def run(self, args):
+        self.load(args, mode='add_group')
+
+        try:
+            existing = self.config.match_os(args.name)
+        except ValueError:
+            self.script.exit(1, 'Server group not defined: %s' % args.name)
+
+        self.config.operating_systems.remove(existing)
+        self.config.save()
+
+class AddCommand(ServersCommand):
+    def run(self, args):
+        self.load(args, mode='add_servers')
+
+        for server in self.servers:
+            self.group.add_server(server)
+        self.config.save()
+
+class RemoveCommand(ServersCommand):
+    def run(self, args):
+        self.load(args)
+
+        for server in self.servers:
+            server.remove()
+        self.config.save()
+
+class ListOrUpdateCommand(ServersCommand):
+    def run(self, args):
+        self.load(args)
+
+        if args.command == 'update':
+            for server in self.servers:
+                script.message('Updating server: %s' % server.name)
+                server.update()
+
+        elif args.command == 'list':
+            for name in self.groups:
+                try:
+                    group = self.config.match_os(name)
+                except ValueError, emsg:
+                    script.exit(1, emsg)
+
+                script.message("Server group: %s" % group)
+                script.message("Connect command: %s" % ' '.join(group.connect_command))
+                script.message("Command separator: %s" % group.command_separator)
+                script.message("Update commands:")
+                for cmd in group.update_commands:
+                    script.message('\t%s' % cmd)
+
+                if group.servers:
+                    script.message('Servers in group:')
+                    for server in group.servers:
+                        script.message('\t%s' % server)
+
+                else:
+                    script.message('No servers configured')
+
 script = Script()
-script.add_argument('-l', '--list', action='store_true', help='List configured items')
-script.add_argument('-u', '--update', action='store_true', help='Update servers')
-script.add_argument('-g', '--group', action='append', help='Server OS Group')
-script.add_argument('-a', '--add-servers', help='Add server to group')
-script.add_argument('-r', '--remove-servers', help='Add server to group')
-script.add_argument('-D', '--description', help='Group description')
-script.add_argument('-U', '--update-commands', action='append', help='Update command')
 script.add_argument('-c', '--config', default=DEFAULT_CONFIG, help='Server list configuration file')
-script.add_argument('servers', nargs='*', help='Servers to update')
+
+c = script.add_subcommand(ListOrUpdateCommand('list', 'List configured servers'))
+c.add_argument('--groups', action='append', help='List servers in given groups')
+
+c = script.add_subcommand(ListOrUpdateCommand('update', 'Update specified or all servers'))
+c.add_argument('--groups', help='Update servers in given groups')
+c.add_argument('servers', nargs='*', help='Servers to update')
+
+c = script.add_subcommand(AddGroupCommand('add-group', 'Add server group'))
+c.add_argument('name', help='Server group name')
+c.add_argument('description', help='Group description')
+c.add_argument('commands', nargs='*', help='List of update commands to execute')
+
+c = script.add_subcommand(RemoveGroupCommand('remove-group', 'Remove server group'))
+c.add_argument('name', help='Server group name')
+
+c = script.add_subcommand(AddCommand('add', 'Add servers to a group'))
+c.add_argument('group', help='Group to add into')
+c.add_argument('servers', nargs='*', help='Servers to add')
+
+c = script.add_subcommand(RemoveCommand('remove', 'Remove servers'))
+c.add_argument('servers', nargs='*', help='Servers to remove')
+
 args = script.parse_args()
-
-config = args.config is not None and os.path.isfile(args.config) and config or USER_CONFIG
-
-try:
-    servers = OrganizationServers(config)
-except ValueError, emsg:
-    script.exit(1, emsg)
-
-if (args.add_servers or args.remove_servers) and not args.group:
-    script.exit(1, 'Servers list modification requires group')
-
-added_servers = []
-if args.add_servers:
-    added_servers = args.add_servers.split(',')
-
-removed_servers = []
-if args.remove_servers:
-    removed_servers = args.remove_servers.split(',')
-
-if args.group:
-    opt_groups = []
-    for og in args.group:
-        if og.count(',')>0:
-            opt_groups.extend(og.split(','))
-        else:
-            opt_groups.append(og)
-
-    opt_groups = set(opt_groups)
-    groups = []
-
-    for opt_group in opt_groups:
-        if opt_group in servers.keys():
-            group = servers[opt_group]
-
-            if args.description:
-                group.setDescription(args.description)
-
-            if args.update_commands:
-                group.setUpdateCommands(args.update_commands)
-
-            if added_servers:
-                for server in added_servers:
-                    group.addServer(server)
-
-            if removed_servers:
-                for server in removed_servers:
-                    group.removeServer(server)
-
-        else:
-            group = OperatingSystemGroup(opt_group)
-
-            if args.description:
-                group.setDescription(args.description)
-
-            if args.update_commands:
-                group.setUpdateCommands(args.update_commands)
-
-            if added_servers:
-                for server in added_servers:
-                    group.addServer(server)
-
-            servers[opt_group] = group
-
-        if group.modified:
-            servers.save()
-        groups.append(opt_group)
-
-else:
-    groups = servers.keys()
-
-if args.list:
-    for name in groups:
-        group = servers[name]
-        if len(group)==0:
-            script.meesage('Empty server group: %s' % group)
-            continue
-
-        script.message("Server group: %s" % group)
-        script.message("Connect command: %s" % ' '.join(group.connect_command))
-        script.message("Command separator: %s" % group.command_separator)
-
-        if group.update_commands:
-            script.message("Update commands:")
-            for cmd in group.update_commands:
-                script.message('\t%s' % cmd)
-
-        script.message('Servers in group:')
-        for server in group:
-            if args.servers and server.name not in args.servers:
-                continue
-            script.message('\t%s' % server)
-
-if args.update:
-    for name in groups:
-        group = servers[name]
-
-        for server in group:
-            if args.servers and server.name not in args.servers:
-                continue
-
-            script.message('Updating server: %s' % server.name)
-            server.update()

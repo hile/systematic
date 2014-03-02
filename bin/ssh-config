@@ -5,61 +5,76 @@ Script to load and view ssh keys found from user directories
 
 import os
 
-from systematic.shell import Script
+from systematic.shell import Script, ScriptCommand, ScriptError
 from systematic.sshconfig import UserSSHKeys, SSHConfig
 
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 
+KEY_DETAILS = """%(path)s
+  Algorithm:   %(algorithm)s
+  Key Bits:    %(bits)s
+  Fingerprint: %(fingerprint)s
+"""
+
+class SSHConfigCommand(ScriptCommand):
+    def load(self, args):
+        self.keys = UserSSHKeys()
+        self.config = SSHConfig()
+        if os.path.isfile(args.config):
+            self.keys.read_config(path=args.config)
+
+
+class ListCommand(SSHConfigCommand):
+    def run(self, args):
+        SSHConfigCommand.load(self, args)
+        if args.command == 'available':
+            for k in filter(lambda x: x.available,  self.keys.values()):
+                print KEY_DETAILS % k
+
+        elif args.command == 'list':
+            for k in self.keys.sshagent_loaded_keys().values():
+                print KEY_DETAILS % k
+
+        elif args.command == 'status':
+            for k in self.keys.values():
+                if k.available:
+                    status = k.is_loaded and 'LOADED' or 'UNLOADED'
+                else:
+                    status = 'UNAVAILABLE'
+                print '%12s %s' % (status, k.path)
+
+
+class HostsCommand(SSHConfigCommand):
+    def run(self, args):
+        SSHConfigCommand.load(self, args)
+        for name in sorted(self.config.keys()):
+            print name
+            hostconfig = self.config[name]
+            for k,v in hostconfig.items():
+                print '%20s %s' % (k, v)
+
+
+class LoaderCommand(SSHConfigCommand):
+    def run(self, args):
+        SSHConfigCommand.load(self, args)
+
+        if args.command == 'load':
+            for k in self.keys.values():
+                if k.available and k.autoload and not k.is_loaded:
+                    k.load()
+
+        if args.command == 'unload':
+            for k in self.keys.values():
+                if k.is_loaded:
+                    k.unload()
+
+
 script = Script()
-script.add_argument('-l', '--list', action='store_true', help='List loaded keys')
-script.add_argument('-L', '--hosts', action='store_true', help='List configured hosts')
-script.add_argument('-k', '--keys', action='store_true', help='List available keys')
-script.add_argument('-s', '--status', action='store_true', help='List key load status')
-script.add_argument('-a', '--load', action='store_true', help='Load all keys to agent')
-script.add_argument('-u', '--unload', action='store_true', help='Unload all agent keys')
 script.add_argument('-c', '--config', default=DEFAULT_CONFIG, help='Configuration file path')
+script.add_subcommand(ListCommand('list', 'List loaded SSH leys'))
+script.add_subcommand(ListCommand('available', 'List available SSH leys'))
+script.add_subcommand(ListCommand('status', 'Show load status of known leys'))
+script.add_subcommand(HostsCommand('hosts', 'List configured hosts'))
+script.add_subcommand(LoaderCommand('load', 'Load all available and known hosts'))
+script.add_subcommand(LoaderCommand('unload', 'Unload all known hosts'))
 args = script.parse_args()
-
-usk = UserSSHKeys()
-if os.path.isfile(args.config):
-    usk.read_config(path=args.config)
-
-if args.list:
-    for k in usk.sshagent_loaded_keys().values():
-        print """%(path)s
-  Algorithm:   %(algorithm)s
-  Key Bits:    %(bits)s
-  Fingerprint: %(fingerprint)s
-        """ % k
-
-if args.hosts:
-    config = SSHConfig()
-    for name in sorted(config.keys()):
-        print name
-        hostconfig = config[name]
-        for k,v in config[name].items():
-            print '%20s %s' % (k, getattr(hostconfig, k))
-
-if args.keys:
-    for k in filter(lambda x: x.available,  usk.values()):
-        print """%(path)s
-  Algorithm:   %(algorithm)s
-  Key Bits:    %(bits)s
-  Fingerprint: %(fingerprint)s
-""" % k
-
-if args.status:
-    for k in usk.values():
-        if k.available:
-            status = k.is_loaded and 'LOADED' or 'UNLOADED'
-        else:
-            status = 'UNAVAILABLE'
-        print '%12s %s' % (status, k.path)
-
-if args.load:
-    for k in filter(lambda k: k.available and k.autoload and not k.is_loaded,  usk.values()):
-        k.load()
-
-if args.unload:
-    for k in filter(lambda k: k.is_loaded, usk.values()):
-        k.unload()
