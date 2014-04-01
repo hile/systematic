@@ -11,6 +11,36 @@ from systematic.serverlist import ServerConfigFile, OperatingSystemGroup, Server
 DEFAULT_CONFIG = '/etc/systematic/servers.conf'
 USER_CONFIG = os.path.join(CONFIG_PATH, 'servers.conf')
 
+USAGE = """
+Manage list of servers which can be updated automatically over SSH
+"""
+
+LIST_HELP = """
+Show servers configured in the servers configuration files
+"""
+
+UPDATE_HELP = """
+Update servers based on provided arguments
+
+Servers list to update is split by , letter.
+"""
+
+ADDGROUP_HELP = """
+Add a server group to configuration
+"""
+
+REMOVEGROUP_HELP = """
+Remove a server group and all servers in it from configuration
+"""
+
+ADDSERVER_HELP = """
+Add a server to a server group
+"""
+
+REMOVESERVER_HELP = """
+Add a server to a server group
+"""
+
 class ServersCommand(ScriptCommand):
     def load(self, args, mode=None):
         self.groups = []
@@ -155,29 +185,29 @@ class ListOrUpdateCommand(ServersCommand):
                 else:
                     script.message('No servers configured')
 
-script = Script()
+script = Script(description=USAGE)
 script.add_argument('-c', '--config', default=DEFAULT_CONFIG, help='Server list configuration file')
 
-c = script.add_subcommand(ListOrUpdateCommand('list', 'List configured servers'))
+c = script.add_subcommand(ListOrUpdateCommand('list', 'List configured servers', LIST_HELP))
 c.add_argument('--groups', action='append', help='List servers in given groups')
 
-c = script.add_subcommand(ListOrUpdateCommand('update', 'Update specified or all servers'))
+c = script.add_subcommand(ListOrUpdateCommand('update', 'Update specified or all servers', UPDATE_HELP))
 c.add_argument('--groups', help='Update servers in given groups')
 c.add_argument('servers', nargs='*', help='Servers to update')
 
-c = script.add_subcommand(AddGroupCommand('add-group', 'Add server group'))
+c = script.add_subcommand(AddGroupCommand('add-group', 'Add server group', ADDGROUP_HELP))
 c.add_argument('name', help='Server group name')
 c.add_argument('description', help='Group description')
 c.add_argument('commands', nargs='*', help='List of update commands to execute')
 
-c = script.add_subcommand(RemoveGroupCommand('remove-group', 'Remove server group'))
+c = script.add_subcommand(RemoveGroupCommand('remove-group', 'Remove server group', REMOVEGROUP_HELP))
 c.add_argument('name', help='Server group name')
 
-c = script.add_subcommand(AddCommand('add', 'Add servers to a group'))
+c = script.add_subcommand(AddCommand('add', 'Add servers to a group', ADDSERVER_HELP))
 c.add_argument('group', help='Group to add into')
 c.add_argument('servers', nargs='*', help='Servers to add')
 
-c = script.add_subcommand(RemoveCommand('remove', 'Remove servers'))
+c = script.add_subcommand(RemoveCommand('remove', 'Remove servers', REMOVESERVER_HELP))
 c.add_argument('servers', nargs='*', help='Servers to remove')
 
 args = script.parse_args()

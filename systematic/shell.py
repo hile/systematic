@@ -236,9 +236,10 @@ class Script(object):
 
         parser = self.subcommand_parser.add_parser(
             command.name,
-            help=command.description,
+            help=command.short_description,
             description=command.description,
-            epilog=command.epilog
+            epilog=command.epilog,
+            formatter_class=argparse.RawTextHelpFormatter,
         )
         self.subcommands[command.name] = command
         command.script = self
@@ -321,10 +322,11 @@ class ScriptCommand(argparse.ArgumentParser):
     parse_args to call these methods as required
 
     """
-    def __init__(self, name, description='', epilog=''):
+    def __init__(self, name, short_description='', description='', epilog=''):
         self.script = None
         self.name = name
-        self.description=description
+        self.short_description = short_description
+        self.description = description
         self.epilog = epilog
 
     def run(self, args):
