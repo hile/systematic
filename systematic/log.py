@@ -143,10 +143,6 @@ class Logger(object):
             return False
 
         def register_stream_handler(self, name, logformat=None, timeformat=None):
-            """
-            Register a common log stream handler
-            """
-
             if logformat is None:
                 logformat = DEFAULT_LOGFORMAT
             if timeformat is None:
@@ -160,6 +156,8 @@ class Logger(object):
             if not self.__match_handlers__(logger.handlers, handler):
                 handler.setFormatter(logging.Formatter(logformat, timeformat))
                 logger.addHandler(handler)
+
+            return handler
 
         def register_syslog_handler(self, name,
                 address=DEFAULT_SYSLOG_ADDRESS,
@@ -183,6 +181,8 @@ class Logger(object):
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
 
+            return handler
+
         def register_http_handler(self, name, url, method='POST'):
             logger = self.__get_or_create_logger__(name)
             try:
@@ -195,14 +195,13 @@ class Logger(object):
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
 
+            return handler
+
         def register_file_handler(self, name, directory,
                          logformat=None,
                          timeformat=None,
                          maxBytes=DEFAULT_LOGSIZE_LIMIT,
                          backupCount=DEFAULT_LOG_BACKUPS):
-            """
-            Register a common log file handler for rotating file based logs
-            """
 
             if logformat is None:
                 logformat = DEFAULT_LOGFILEFORMAT
@@ -227,6 +226,8 @@ class Logger(object):
                 handler.setFormatter(logging.Formatter(logformat, timeformat))
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
+
+            return handler
 
         @property
         def level(self):
@@ -271,6 +272,54 @@ class Logger(object):
 
     def __setitem__(self, item, value):
         self.__instances[self.name][item] = value
+
+    def register_stream_handler(self, name, logformat=None, timeformat=None):
+        """
+        Register a common log stream handler
+        """
+        return self.__instances[self.name].register_stream_handler(
+            name, logformat, timeformat
+        )
+
+    def register_syslog_handler(self, name,
+            address=DEFAULT_SYSLOG_ADDRESS,
+            facility=DEFAULT_SYSLOG_FACILITY,
+            default_level=DEFAULT_SYSLOG_LEVEL,
+            socktype=None,
+            logformat=None,
+        ):
+        """Register syslog handler
+
+        Register handler for syslog messages
+
+        """
+        return self.__instances[self.name].register_syslog_handler(
+            name, address, facility, default_level, socktype, logformat
+        )
+
+    def register_http_handler(self, name, url, method='POST'):
+        """Register HTTP handler
+
+        Register a HTTP POST logging handler
+
+        """
+        return self.__instances[self.name].register_http_handler(
+            name, url, method
+        )
+
+    def register_file_handler(self, name, directory,
+                     logformat=None,
+                     timeformat=None,
+                     maxBytes=DEFAULT_LOGSIZE_LIMIT,
+                     backupCount=DEFAULT_LOG_BACKUPS):
+        """Register log file handler
+
+        Register a common log file handler for rotating file based logs
+
+        """
+        return self.__instances[self.name].register_file_handler(
+            name, directory, logformat, timeformat, maxBytes, backupCount
+        )
 
 
 class LogFileError(Exception):
