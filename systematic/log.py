@@ -157,7 +157,7 @@ class Logger(object):
                 handler.setFormatter(logging.Formatter(logformat, timeformat))
                 logger.addHandler(handler)
 
-            return handler
+            return logger
 
         def register_syslog_handler(self, name,
                 address=DEFAULT_SYSLOG_ADDRESS,
@@ -181,7 +181,7 @@ class Logger(object):
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
 
-            return handler
+            return logger
 
         def register_http_handler(self, name, url, method='POST'):
             logger = self.__get_or_create_logger__(name)
@@ -195,7 +195,7 @@ class Logger(object):
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
 
-            return handler
+            return logger
 
         def register_file_handler(self, name, directory,
                          logformat=None,
@@ -227,7 +227,7 @@ class Logger(object):
                 logger.addHandler(handler)
                 logger.setLevel(self.loglevel)
 
-            return handler
+            return logger
 
         @property
         def level(self):
