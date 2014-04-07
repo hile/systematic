@@ -9,7 +9,6 @@ class SortableContainer(object):
             for field in self.compare_fields:
                 a = getattr(self, field)
                 b = getattr(other, field)
-                print 'compare', a,b
                 if a != b:
                     return cmp(a, b)
 
