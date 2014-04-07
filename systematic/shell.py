@@ -188,15 +188,31 @@ class Script(object):
         Exit the script with given exit value.
         If message is not None, it is printed on screen.
         """
+        if isinstance(value, bool):
+            if value:
+                value = 0
+            else:
+                value = 1
+        else:
+            try:
+                value = int(value)
+                if value < 0 or value > 255:
+                    raise ValueError
+            except ValueError:
+                value = 1
+
         if message is not None:
             self.message(message)
+
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
             t.stop()
+
         while True:
             active = filter(lambda t: t.name!='MainThread', threading.enumerate())
             if not len(active):
                 break
             time.sleep(1)
+
         sys.exit(value)
 
     def message(self, message):
