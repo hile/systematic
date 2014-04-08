@@ -382,6 +382,7 @@ class LogFile(list):
     """
     Generic syslog file parser
     """
+    lineloader = LogEntry
     def __init__(self, path, source_formats=SOURCE_FORMATS):
         if isinstance(path, basestring):
             self.path = os.path.expanduser(os.path.expandvars(path))
@@ -389,7 +390,6 @@ class LogFile(list):
             self.path = path
 
         self.source_formats = source_formats
-        self.lineloader = LogEntry
         self.mtime = None
 
         self.__iter_index = None
@@ -685,9 +685,11 @@ class LogfileTailReader(TailReader):
     Tail reader returning LogFile entries
 
     """
-    def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS):
+    def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS, lineparser=LogEntry):
         TailReader.__init__(self, path, fd)
         self.source_formats = source_formats
+        self.lineparser = lineparser
 
     def __format_line__(self, line):
-         return LogEntry(line[:-1], self.year, source_formats=self.source_formats)
+         return self.lineparser(line[:-1], self.year, source_formats=self.source_formats)
+
