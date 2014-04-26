@@ -566,6 +566,7 @@ class LogFileCollection(object):
     Files are sorted by modification timestamp and name.
 
     """
+    loader = LogFile
     def __init__(self, logfiles, source_formats=SOURCE_FORMATS):
         self.source_formats = source_formats
         self.logfiles = []
@@ -577,6 +578,7 @@ class LogFileCollection(object):
             try:
                 st = os.stat(path)
                 ts = long(st.st_mtime)
+
                 if ts not in stats.keys():
                     stats[ts] = []
                 stats[ts].append(path)
@@ -590,7 +592,9 @@ class LogFileCollection(object):
             stats[ts].sort()
 
         for ts in sorted(stats.keys()):
-            self.logfiles.extend(LogFile(path, source_formats=self.source_formats) for path in stats[ts])
+            self.logfiles.extend(
+                self.loader(path, source_formats=self.source_formats) for path in stats[ts]
+            )
 
     def __repr__(self):
         return 'collection of %d logfiles' % len(self.logfiles)

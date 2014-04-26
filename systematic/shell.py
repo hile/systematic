@@ -345,6 +345,10 @@ class ScriptCommand(argparse.ArgumentParser):
         self.description = description
         self.epilog = epilog
 
+    @property
+    def log(self):
+        return self.script.log
+
     def run(self, args):
         """Run subcommands
 
