@@ -336,6 +336,7 @@ class LogEntry(object):
     def __init__(self, line, year, source_formats):
         line = line.rstrip()
         self.line = line
+        self.message_fields = {}
 
         self.version = None
         self.host = None
@@ -377,6 +378,9 @@ class LogEntry(object):
     def append(self, message):
         self.message = '%s\n%s' % (self.message, message.rstrip())
 
+    def update_message_fields(self, data):
+        self.message_fields.update(data)
+
 
 class LogFile(list):
     """
@@ -392,7 +396,9 @@ class LogFile(list):
         self.source_formats = source_formats
         self.mtime = None
 
-        self.__iter_index = None
+        self.iterators = {}
+        self.register_iterator('default')
+
         self.__loaded = False
         self.fd = None
 
@@ -401,6 +407,39 @@ class LogFile(list):
 
     def __iter__(self):
         return self
+
+    def register_iterator(self, name):
+        if name in self.iterators:
+            raise LogFileError('Iterator name already registered: %s' % name)
+        self.iterators[name] = None
+
+    def get_iterator(self, name):
+        if name not in self.iterators:
+            raise LogFileError('Iterator name not registered: %s' % name)
+
+        if self.iterators[name] is None:
+            self.iterators[name] = 0
+
+        return self.iterators[name]
+
+    def reset_iterator(self, name):
+        if name not in self.iterators:
+            raise LogFileError('Iterator name not registered: %s' % name)
+
+        self.iterators[name] = None
+
+    def update_iterator(self, name, value=None):
+        if name not in self.iterators:
+            raise LogFileError('Iterator name not registered: %s' % name)
+
+        if value is not None:
+            self.iterators[name] = value
+
+        else:
+            if self.iterators[name] is not None:
+                self.iterators[name] += 1
+            else:
+                self.iterators[name] = 0
 
     def __open_logfile__(self, path):
         """Try opening log file
@@ -434,9 +473,11 @@ class LogFile(list):
 
         raise LogFileError('Error opening logfile %s' % self.path)
 
-    def next(self):
+    def next_iterator_match(self, iterator, callback=None):
+        if iterator not in self.iterators:
+            raise LogFileError('Unknown iterator: %s' % iterator)
+
         if not self.__loaded:
-            # Load file on the fly and cache entries
             if self.fd == None:
                 if isinstance(self.path, file):
                     self.fd = self.path
@@ -447,24 +488,53 @@ class LogFile(list):
                         self.mtime = datetime.fromtimestamp(os.stat(self.path).st_mtime)
                     except OSError, (ecode, emsg):
                         raise LogFileError('Error opening %s: %s' % (self.path, emsg))
-            entry = self.readline()
+
+            if self.get_iterator(iterator) < len(self)-1:
+                try:
+                    entry = self[self.get_iterator(iterator)]
+                except IndexError:
+                    self.reset_iterator(iterator)
+                    raise StopIteration
+
+            else:
+                entry = self.readline()
 
             if entry is None:
+                self.reset_iterator(iterator)
                 raise StopIteration
-            return entry
+
+            self.update_iterator(iterator, len(self)-1)
+            if callback is not None:
+                if callback(entry):
+                    return entry
+                else:
+                    return self.next_iterator_match(iterator, callback)
+            else:
+                return entry
 
         else:
             # Iterate cached entries
-            if self.__iter_index is None:
-                self.__iter_index = 0
+            if self.iterators[iterator] is None:
+                self.update_iterator(iterator)
 
             try:
-                entry = self[self.__iter_index]
-                self.__iter_index += 1
-                return entry
+                entry = self[self.get_iterator(iterator)]
+                self.update_iterator(iterator)
+
+                if callback is not None:
+                    if callback(entry):
+                        return entry
+                    else:
+                        return self.next_iterator_match(iterator, callack)
+                else:
+                    return entry
+
             except IndexError:
-                self.__iter_index = None
+                self.reset_iterator(iterator)
                 raise StopIteration
+
+    def next(self):
+        return self.next_iterator_match(iterator='default')
 
     def readline(self):
         """
