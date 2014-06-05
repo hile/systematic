@@ -8,11 +8,8 @@ import sqlite3
 from systematic.log import Logger, LoggerError
 
 class SQLiteError(Exception):
-    """
-    Exception raised by SQLiteDatabase errors.
-    """
-    def __str__(self):
-        return self.args[0]
+    pass
+
 
 class SQLiteDatabase(object):
     """

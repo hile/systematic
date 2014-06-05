@@ -5,12 +5,29 @@ Parser for /etc/services file
 
 import os
 
+
 class ServiceError(Exception):
     """
     Exceptions raised while parsing /etc/services file
     """
-    def __str__(self):
-        return self.args[0]
+    pass
+
+
+class ServiceListEntry(list):
+    """
+    Class representing exactly one port,protocol pair from /etc/services
+    """
+    def __init__(self, port, protocol, names):
+        list.__init__(self)
+        self.port = int(port)
+        self.protocol = protocol.upper()
+        if isinstance(names, basestring):
+            self['names'] = [names]
+        self.extend(names)
+
+    def __repr__(self):
+        return '%s/%s %s' % (self.port, self.protocol, ','.join(self))
+
 
 class ServiceList(dict):
     """
@@ -20,8 +37,7 @@ class ServiceList(dict):
 
     For example: ServiceList[22]['TCP']
     """
-    def __init__(self,path='/etc/services'):
-        dict.__init__(self)
+    def __init__(self, path='/etc/services'):
         if not os.path.isfile(path):
             raise ServiceError('No such file: %s' % path)
 
@@ -39,17 +55,17 @@ class ServiceList(dict):
                 pass
 
             try:
-                (name,target,aliases) =  map(lambda x: x.strip(), l.split(None,2))
+                name, target, aliases =  map(lambda x: x.strip(), l.split(None,2))
                 names = [name] + aliases.split()
             except ValueError:
                 try:
-                    (name,target) = map(lambda x: x.strip(), l.split(None,1))
+                    name, target = map(lambda x: x.strip(), l.split(None,1))
                 except ValueError:
                     continue
                 names = [name]
 
             try:
-                (port,protocol) = target.split('/')
+                port,protocol = target.split('/')
                 port = int(port)
                 protocol = protocol.upper()
             except ValueError:
@@ -129,17 +145,3 @@ class ServiceList(dict):
         else:
             raise ValueError('No search terms given')
 
-class ServiceListEntry(list):
-    """
-    Class representing exactly one port,protocol pair from /etc/services
-    """
-    def __init__(self,port,protocol,names):
-        list.__init__(self)
-        self.port = int(port)
-        self.protocol = protocol.upper()
-        if isinstance(names,basestring):
-            self['names'] = [names]
-        self.extend(names)
-
-    def __repr__(self):
-        return '%s/%s %s' % (self.port,self.protocol,','.join(self))

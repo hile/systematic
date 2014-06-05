@@ -3,7 +3,18 @@ Common wrapper classes
 """
 
 class SortableContainer(object):
+    """Sortable containers 
+
+    Sort objects by comparing attributes specified in 
+    tuple self.compare_fields
+
+    List of attributes must match for compared objects or
+    comparison will fail.
+
+    """
+
     compare_fields = ()
+    
     def __cmp__(self, other):
         if self.compare_fields:
             for field in self.compare_fields:
@@ -14,8 +25,7 @@ class SortableContainer(object):
 
             return 0
 
-        else:
-            return cmp(self, other)
+        return cmp(self, other)
 
     def __eq__(self, other):
         return self.__cmp__(other) == 0
@@ -26,11 +36,11 @@ class SortableContainer(object):
     def __lt__(self, other):
         return self.__cmp__(other) < 0
 
-    def __lte__(self, other):
+    def __le__(self, other):
         return self.__cmp__(other) <= 0
 
     def __gt__(self, other):
         return self.__cmp__(other) > 0
 
-    def __gte__(self, other):
+    def __ge__(self, other):
         return self.__cmp__(other) >= 0

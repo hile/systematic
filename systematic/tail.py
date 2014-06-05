@@ -10,6 +10,7 @@ INTERVAL = 0.01
 class TailReaderError(Exception):
     pass
 
+
 class TailReader(object):
     def __init__(self, path=None, fd=None):
         self.path = path
