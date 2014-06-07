@@ -2,9 +2,7 @@
 Common wrapper classes
 """
 
-
 from systematic.log import Logger, LoggerError
-
 
 class SortableContainer(object):
     """Sortable containers 
@@ -144,3 +142,4 @@ class MountPoints(list):
         Return mountpoints matching a callback function
         """
         return [x for x in self if callback(x)]
+

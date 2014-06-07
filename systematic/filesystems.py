@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Parse filesystem mount information to MountPoints class
 
