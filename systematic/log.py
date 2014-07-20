@@ -447,12 +447,15 @@ class LogFile(list):
         Try opening logfile in gz, bz2 and raw text formats
 
         """
+        if not os.path.isfile(path):
+            raise LogFileError('No such file: %s' % path) 
+
         try:
             fd = gzip.GzipFile(path)
             fd.readline()
             fd.seek(0)
             return fd
-        except IOError:
+        except IOError, emsg:
             pass
 
         try:
@@ -471,7 +474,7 @@ class LogFile(list):
         except IOError:
             pass
 
-        raise LogFileError('Error opening logfile %s' % self.path)
+        raise LogFileError('Error opening logfile %s' % path)
 
     def next_iterator_match(self, iterator, callback=None):
         if iterator not in self.iterators:
