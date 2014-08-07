@@ -448,7 +448,7 @@ class LogFile(list):
 
         """
         if not os.path.isfile(path):
-            raise LogFileError('No such file: %s' % path) 
+            raise LogFileError('No such file: %s' % path)
 
         try:
             fd = gzip.GzipFile(path)
@@ -492,49 +492,47 @@ class LogFile(list):
                     except OSError, (ecode, emsg):
                         raise LogFileError('Error opening %s: %s' % (self.path, emsg))
 
-            if self.get_iterator(iterator) < len(self)-1:
-                try:
-                    entry = self[self.get_iterator(iterator)]
-                except IndexError:
+            while True:
+                if self.get_iterator(iterator) < len(self)-1:
+                    try:
+                        entry = self[self.get_iterator(iterator)]
+                    except IndexError:
+                        self.reset_iterator(iterator)
+                        raise StopIteration
+
+                else:
+                    entry = self.readline()
+
+                if entry is None:
                     self.reset_iterator(iterator)
                     raise StopIteration
 
-            else:
-                entry = self.readline()
-
-            if entry is None:
-                self.reset_iterator(iterator)
-                raise StopIteration
-
-            self.update_iterator(iterator, len(self)-1)
-            if callback is not None:
-                if callback(entry):
-                    return entry
+                self.update_iterator(iterator, len(self)-1)
+                if callback is not None:
+                    if callback(entry):
+                        return entry
                 else:
-                    return self.next_iterator_match(iterator, callback)
-            else:
-                return entry
+                    return entry
 
         else:
             # Iterate cached entries
             if self.iterators[iterator] is None:
                 self.update_iterator(iterator)
 
-            try:
-                entry = self[self.get_iterator(iterator)]
-                self.update_iterator(iterator)
+            while True:
+                try:
+                    entry = self[self.get_iterator(iterator)]
+                    self.update_iterator(iterator)
 
-                if callback is not None:
-                    if callback(entry):
-                        return entry
+                    if callback is not None:
+                        if callback(entry):
+                            return entry
                     else:
-                        return self.next_iterator_match(iterator, callack)
-                else:
-                    return entry
+                        return entry
 
-            except IndexError:
-                self.reset_iterator(iterator)
-                raise StopIteration
+                except IndexError:
+                    self.reset_iterator(iterator)
+                    raise StopIteration
 
     def next(self):
         return self.next_iterator_match(iterator='default')
