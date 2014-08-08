@@ -349,6 +349,9 @@ class ScriptCommand(argparse.ArgumentParser):
     def log(self):
         return self.script.log
 
+    def exit(self, value=0, message=None):
+        self.script.exit(value, message)
+
     def run(self, args):
         """Run subcommands
 
