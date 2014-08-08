@@ -125,7 +125,8 @@ class ScriptThread(threading.Thread):
 
     def execute(self, command):
         p = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-        return p.wait()
+        p.wait()
+        return p.returncode
 
 
 class Script(object):
@@ -353,7 +354,7 @@ class ScriptCommand(argparse.ArgumentParser):
         self.script.exit(value, message)
 
     def execute(self, *args, **kwargs):
-        self.script.execute(*args, **kwargs)
+        return self.script.execute(*args, **kwargs)
 
     def run(self, args):
         """Run subcommands
