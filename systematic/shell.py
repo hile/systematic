@@ -352,6 +352,9 @@ class ScriptCommand(argparse.ArgumentParser):
     def exit(self, value=0, message=None):
         self.script.exit(value, message)
 
+    def execute(self, *args, **kwargs):
+        self.script.execute(*args, **kwargs)
+
     def run(self, args):
         """Run subcommands
 
