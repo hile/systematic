@@ -535,11 +535,16 @@ class LogFile(list):
                     raise StopIteration
 
     def next(self):
+        """Next iterator
+
+        Standard iterator next() call
+
+        """
         return self.next_iterator_match(iterator='default')
 
     def readline(self):
         """
-        Load whole log file
+        Parse entry from logfile
         """
         if self.fd is None:
             raise LogFileError('File was not loaded')
@@ -550,8 +555,8 @@ class LogFile(list):
                 return None
 
             # Multiline log entry
-            if l[:1] in [' ', '\t'] and entry:
-                entry.append(l)
+            if l[:1] in [' ', '\t'] and len(self):
+                self[-1].append(l)
                 return self.readline()
 
             else:
@@ -563,6 +568,11 @@ class LogFile(list):
             raise LogFileError('Error reading file %s: %s' % (self.path, emsg))
 
     def reload(self):
+        """Reload file
+
+        Reload file, clearing existing entries
+
+        """
         list.__delslice__(self, 0, len(self))
         self.__loaded = False
         while True:
