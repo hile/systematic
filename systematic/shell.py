@@ -167,9 +167,12 @@ class Script(object):
         Parse SIGINT signal by quitting the program cleanly with exit code 1
         """
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
-            t.stop()
+            if hasattr(t, 'stop') and callable(t.stop):
+                t.stop()
+
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
             t.join()
+
         self.exit(1)
 
     def wait(self, poll_interval=1):
@@ -206,7 +209,8 @@ class Script(object):
             self.message(message)
 
         for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
-            t.stop()
+            if hasattr(t, 'stop') and callable(t.stop):
+                t.stop()
 
         while True:
             active = filter(lambda t: t.name!='MainThread', threading.enumerate())
@@ -272,12 +276,10 @@ class Script(object):
         """
         self.parser.add_argument(*args, **kwargs)
 
-    def parse_args(self):
+    def __process_args__(self, args):
+        """Process args
+        Process args from parse_*args CalledProcessError
         """
-        Call parse_args for parser and check for default logging flags
-        """
-        args = self.parser.parse_args()
-
         if hasattr(args, 'debug') and getattr(args, 'debug'):
             self.logger.set_level('DEBUG')
 
@@ -291,6 +293,20 @@ class Script(object):
             self.subcommands[args.command].run(args)
 
         return args
+
+    def parse_args(self):
+        """
+        Call parse_args for parser and check for default logging flags
+        """
+        return self.__process_args__(self.parser.parse_args())
+
+    def parse_known_args(self):
+        """
+        Call parse_args for parser and check for default logging flags
+        """
+        args, other_args = self.parser.parse_known_args()
+        args = self.__process_args__(args)
+        return args, other_args
 
     def execute(self, args, dryrun=False):
         """
