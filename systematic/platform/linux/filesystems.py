@@ -3,7 +3,9 @@
 Implementation of linux filesystem mount point parsing
 """
 
-import os,re,logging
+import os
+import re
+import logging
 from subprocess import check_output, CalledProcessError
 
 from systematic.classes import MountPoint, MountPoints, FileSystemFlags, FileSystemError
@@ -130,5 +132,5 @@ class LinuxMountPoints(MountPoints):
             entry = LinuxMountPoint(device,mountpoint,filesystem)
             for f in flags:
                 entry.flags.set(f,True)
-            
+
             self.append(entry)

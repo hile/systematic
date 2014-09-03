@@ -7,7 +7,7 @@ Platform dependent modules are now split to their own packages.
 
 import sys
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 VERSION='4.0.7'
 README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
@@ -23,9 +23,7 @@ setup(
     version = VERSION,
     license = 'PSF',
     zip_safe = False,
-    packages = (
-        'systematic',
-    ),
+    packages = find_packages(),
     install_requires = (
         'setproctitle',
         'configobj',
