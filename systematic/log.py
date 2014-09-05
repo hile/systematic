@@ -70,7 +70,7 @@ class Logger(object):
     Singleton class for common logging tasks.
     """
     __instances = {}
-    def __init__(self, name=None, logformat=DEFAULT_LOGFORMAT, timeformat=DEFALUT_TIME_FORMAT):
+    def __init__(self, name=None, logformat=DEFAULT_LOGFORMAT, timeformat=DEFAULT_TIME_FORMAT):
         name = name is not None and name or self.__class__.__name__
 
         if not Logger.__instances.has_key(name):
