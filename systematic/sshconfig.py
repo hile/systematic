@@ -280,12 +280,15 @@ class AuthorizedKeys(dict):
                 entry['keyformat'] = 2
                 entry['keytype'] = parts[0]
                 entry['key_base64'] = parts[1]
-                entry['comment'] = parts[2]
+                entry['comment'] = len(parts) > 2 and parts[2] or ''
                 entry['options'] = None
 
             else:
                 entry['options'] = parts[0]
                 parts = parts[1:]
+
+                if not parts:
+                    continue
 
                 if parts[0] in ( 'ssh-dsa', 'ssh-rsa', ) and len(parts) ==  3:
                     entry['keyformat'] = 2
