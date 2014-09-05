@@ -10,6 +10,7 @@ import re
 import urllib
 import bz2
 import gzip
+import threading
 import logging
 import logging.handlers
 
@@ -72,6 +73,9 @@ class Logger(object):
     __instances = {}
     def __init__(self, name=None):
         name = name is not None and name or self.__class__.__name__
+        thread_id = threading.current_thread().ident
+        if thread_id is not None:
+            name = '%d-%s' % (thread_id, name)
 
         if not Logger.__instances.has_key(name):
             Logger.__instances[name] = Logger.LoggerInstance(name)
@@ -198,11 +202,14 @@ class Logger(object):
             return logger
 
         def register_file_handler(self, name, directory,
+                         filename=None,
                          logformat=None,
                          timeformat=None,
                          maxBytes=DEFAULT_LOGSIZE_LIMIT,
                          backupCount=DEFAULT_LOG_BACKUPS):
 
+            if filename is None:
+                filename = '%s.log' % name
             if logformat is None:
                 logformat = DEFAULT_LOGFILEFORMAT
             if timeformat is None:
@@ -213,7 +220,7 @@ class Logger(object):
                     os.makedirs(directory)
                 except OSError:
                     raise LoggerError('Error creating directory: %s' % directory)
-            logfile = os.path.join(directory, '%s.log' % name)
+            logfile = os.path.join(directory, filename)
 
             logger = self.__get_or_create_logger__(name)
             handler = logging.handlers.RotatingFileHandler(
@@ -308,6 +315,7 @@ class Logger(object):
         )
 
     def register_file_handler(self, name, directory,
+                     filename=None,
                      logformat=None,
                      timeformat=None,
                      maxBytes=DEFAULT_LOGSIZE_LIMIT,
@@ -318,7 +326,7 @@ class Logger(object):
 
         """
         return self.__instances[self.name].register_file_handler(
-            name, directory, logformat, timeformat, maxBytes, backupCount
+            name, directory, filename, logformat, timeformat, maxBytes, backupCount
         )
 
 
