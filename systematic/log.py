@@ -71,14 +71,14 @@ class Logger(object):
     Singleton class for common logging tasks.
     """
     __instances = {}
-    def __init__(self, name=None):
+    def __init__(self, name=None, logformat=DEFAULT_LOGFORMAT, timeformat=DEFAULT_TIME_FORMAT):
         name = name is not None and name or self.__class__.__name__
         thread_id = threading.current_thread().ident
         if thread_id is not None:
             name = '%d-%s' % (thread_id, name)
 
         if not Logger.__instances.has_key(name):
-            Logger.__instances[name] = Logger.LoggerInstance(name)
+            Logger.__instances[name] = Logger.LoggerInstance(name, logformat, timeformat)
 
         self.__dict__['_Logger__instances'] = Logger.__instances
         self.__dict__['name'] = name
@@ -87,10 +87,10 @@ class Logger(object):
         """
         Singleton implementation of logging configuration for one program
         """
-        def __init__(self, name):
+        def __init__(self, name, logformat, timeformat):
             self.name = name
             self.level = logging.Logger.root.level
-            self.register_stream_handler('default_stream')
+            self.register_stream_handler('default_stream', logformat, timeformat)
 
         def __getattr__(self, attr):
             if attr in self.keys():
