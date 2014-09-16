@@ -257,7 +257,7 @@ class Script(object):
             active = filter(lambda t: t.name!='MainThread', threading.enumerate())
             if not len(active):
                 break
-            time.sleep(1)
+            time.sleep(0.1)
 
         sys.exit(value)
 
