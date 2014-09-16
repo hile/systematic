@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Utility functions for python in unix shell.
 """
@@ -11,6 +10,8 @@ import socket
 import argparse
 import threading
 import unicodedata
+
+from Queue import Queue, Empty
 
 from subprocess import check_output, CalledProcessError, Popen, PIPE
 from setproctitle import setproctitle
@@ -127,6 +128,46 @@ class ScriptThread(threading.Thread):
         p = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
         return p.returncode
+
+
+class ScriptThreadManager(list):
+    """Script Thread Manager
+
+    Run script threads with maximum concurrency of
+
+    """
+    def __init__(self, threads=1):
+        self.threads = threads
+        self.messages = Queue()
+
+    def process_messages(self):
+        while True:
+            try:
+                line = self.messages.get(timeout=1)
+            except Empty:
+                return
+            else:
+                print line
+
+    def run(self):
+        total = len(self)
+
+        while len(self) > 0:
+            self.process_messages()
+
+            active = threading.active_count()
+            if active > self.threads:
+                time.sleep(0.1)
+
+            else:
+                t = self.pop(0)
+                t.start()
+
+        while threading.active_count() > 1:
+            self.process_messages()
+            time.sleep(0.1)
+
+        self.process_messages()
 
 
 class Script(object):
