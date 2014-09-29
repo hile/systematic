@@ -9,7 +9,7 @@ import sys
 import os
 from setuptools import setup, find_packages
 
-VERSION='4.1.1'
+VERSION='4.2.0'
 README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
 
 setup(

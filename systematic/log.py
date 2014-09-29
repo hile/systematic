@@ -341,8 +341,9 @@ class LogEntry(object):
     """
     Generic syslog logfile entry
     """
-    def __init__(self, line, year, source_formats):
+    def __init__(self, logfile, line, year, source_formats):
         line = line.rstrip()
+        self.logfile = logfile
         self.line = line
         self.message_fields = {}
 
@@ -568,7 +569,10 @@ class LogFile(list):
                 return self.readline()
 
             else:
-                entry = self.lineloader(l, year=self.mtime.year, source_formats=self.source_formats)
+                entry = self.lineloader(self, l,
+                    year=self.mtime.year,
+                    source_formats=self.source_formats
+                )
                 self.append(entry)
                 return entry
 
