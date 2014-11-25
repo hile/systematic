@@ -9,14 +9,12 @@ import sys
 import os
 from setuptools import setup, find_packages
 
-VERSION='4.2.0'
-README = open(os.path.join(os.path.dirname(__file__),'README.md'),'r').read()
+VERSION='4.2.2'
 
 setup(
     name = 'systematic',
     keywords = 'system management utility scripts',
     description = 'Sysadmin utility classes and scripts',
-    long_description = README,
     author = 'Ilkka Tuohela',
     author_email = 'hile@iki.fi',
     url = 'http://tuohela.net/packages/systematic',
