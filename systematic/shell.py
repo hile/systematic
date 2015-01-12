@@ -410,11 +410,17 @@ class ScriptCommand(argparse.ArgumentParser):
     def exit(self, value=0, message=None):
         self.script.exit(value, message)
 
+    def wait(self, poll_interval=1):
+        self.script.wait(poll_interval=1)
+
     def execute(self, *args, **kwargs):
         return self.script.execute(*args, **kwargs)
 
     def check_output(self, *args, **kwargs):
         return self.script.check_output(*args, **kwargs)
+
+    def message(self, message):
+        return self.script.message(message)
 
     def run(self, args):
         """Run subcommands
