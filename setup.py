@@ -9,7 +9,7 @@ import sys
 import os
 from setuptools import setup, find_packages
 
-VERSION='4.2.2'
+VERSION='4.2.3'
 
 setup(
     name = 'systematic',
