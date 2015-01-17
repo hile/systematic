@@ -25,6 +25,84 @@ RE_KEYINFO = re.compile('^(?P<bits>[0-9]+) (?P<fingerprint>[0-9a-f:]+) ' +
 class SSHKeyError(Exception):
     pass
 
+
+class SSHKeyFile(dict):
+    """
+    Class for one SSH key. To be usable, the key's .pub public key file must be
+    also available.
+
+    Attribute autoload can be set to mark this key loaded with ssh-keys -a. It is
+    also set, if key path is in ~/.ssh/sshkeys.conf.
+    """
+    def __init__(self, user_keys, path):
+        self.log = Logger().default_stream
+        self.user_keys = user_keys
+
+        self.path = os.path.realpath(path)
+        self.available = os.access(path, os.R_OK) and True or False
+
+        self.autoload = False
+        self.update({ 'bits': None, 'fingerprint': None, 'path': None, 'algorithm': None, })
+
+        public_key = '%s.pub' % self.path
+        if not os.path.isfile(public_key):
+            self.available = False
+            return
+
+        cmd = ( 'ssh-keygen', '-l', '-f',  public_key )
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        (stdout, stderr) = p.communicate()
+        l = stdout.split('\n')[0].rstrip()
+
+        if p.returncode != 0:
+            raise SSHKeyError('ERROR parsing public key: %s' % public_key)
+
+        m = RE_KEYINFO.match(l)
+        if not m:
+            raise SSHKeyError('Unsupported public key output: %s' % l)
+
+        for k, v in m.groupdict().items():
+            if k == 'path':
+                k = 'public_key_path'
+            self[k] = v
+
+    def __repr__(self):
+        return 'SSH key: %s' % self.path
+
+    def __cmp__(self, other):
+        if isinstance(other, basestring):
+            return cmp(self['fingerprint'], other)
+
+        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+            a = getattr(self, key)
+            b = getattr(other, key)
+            if a != b:
+                return cmp(a, b)
+
+        return 0
+
+    @property
+    def is_loaded(self):
+        return self in self.user_keys.loaded_keys.values() and True or False
+
+    def unload(self):
+        """
+        Unload this key from ssh-agent
+        """
+        cmd = ( 'ssh-add', '-d', self.path )
+        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+        p.wait()
+
+    def load(self):
+        """
+        Load this key to ssh-agent. If passwords are requested, they are read
+        from sys.stdin. Output is redirected to sys.stdout and sys.stderr.
+        """
+        cmd = ( 'ssh-add', self.path )
+        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+        p.wait()
+
+
 class UserSSHKeys(dict):
     """
     List of user configured SSH keys to process
@@ -41,6 +119,7 @@ class UserSSHKeys(dict):
         These keys are marked by default not to be automatically loaded:
         to enable, add key path to ~/.ssh/sshkeys.conf
         """
+
         user_sshdir = os.path.expanduser('~/.ssh')
         if not os.path.isdir(user_sshdir):
             return
@@ -58,6 +137,7 @@ class UserSSHKeys(dict):
             except SSHKeyError, emsg:
                 self.log.debug(emsg)
                 continue
+
             self[sshkey.path] = sshkey
 
     def read_config(self, path):
@@ -67,6 +147,7 @@ class UserSSHKeys(dict):
         """
         if not os.path.isfile(path):
             raise SSHKeyError('No such file: %s' % path)
+
         try:
             for l in [l.rstrip() for l in open(path, 'r').readlines()]:
                 sshkey = SSHKeyFile(self, os.path.expandvars(os.path.expanduser(l)))
@@ -81,10 +162,12 @@ class UserSSHKeys(dict):
         except OSError, (ecode, emsg):
             raise SSHKeyError('Error loading %s: %s' % (path, emsg))
 
-    def sshagent_loaded_keys(self):
+    @property
+    def loaded_keys(self):
         """
-        Return list of fingerprints loaded to ssh-agent
+        Return fingerprint, key mapping of keys loaded to ssh-agent
         """
+
         keys = {}
 
         cmd = ['ssh-add', '-l']
@@ -108,6 +191,10 @@ class UserSSHKeys(dict):
             keys[data['fingerprint']] = data
 
         return keys
+
+    @property
+    def available(self):
+        return [k for k in self.values() if k.available]
 
     def keys(self):
         """
@@ -154,89 +241,6 @@ class UserSSHKeys(dict):
                     self.log.debug('Fixing permissions for file %s' % f)
                     os.chmod(f, fperm)
 
-
-class SSHKeyFile(object):
-    """
-    Class for one SSH key. To be usable, the key's .pub public key file must be
-    also available.
-
-    Attribute autoload can be set to mark this key loaded with ssh-keys -a. It is
-    also set, if key path is in ~/.ssh/sshkeys.conf.
-    """
-    def __init__(self, user_keys, path):
-        self.log = Logger().default_stream
-        self.user_keys = user_keys
-        self.path = os.path.realpath(path)
-        self.available = os.access(path, os.R_OK) and True or False
-        self.autoload = False
-        self.parse_public_key()
-
-    def __repr__(self):
-        return 'SSH key: %s' % self.path
-
-    def __getitem__(self, item):
-        if item in ['path', 'bits', 'fingerprint', 'algorithm']:
-            return getattr(self, item)
-        raise KeyError('No such SSHKeyFile item: %s' % item)
-
-    def __getattr__(self, attr):
-        if attr in ['bits', 'fingerprint', 'algorithm']:
-            if not hasattr(self, attr):
-                self.parse_public_key()
-            try:
-                return self.__dict__[attr]
-            except KeyError:
-                return None
-
-        if attr == 'is_loaded':
-            agent_keys = self.user_keys.sshagent_loaded_keys()
-            matches = filter(lambda x: x['fingerprint']==self.fingerprint, agent_keys.values())
-            return len(matches) and True or False
-
-        raise AttributeError('No such SSHKeyFile attribute: %s' % attr)
-
-    def parse_public_key(self):
-        """
-        Parse the public key file for this SSH key
-        """
-        public_key = '%s.pub' % self.path
-        if not os.path.isfile(public_key):
-            self.available = False
-            return
-
-        cmd = ['ssh-keygen', '-l', '-f',  public_key]
-        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = p.communicate()
-        l = stdout.split('\n')[0].rstrip()
-
-        if p.returncode != 0:
-            raise SSHKeyError('ERROR parsing public key: %s' % public_key)
-
-        m = RE_KEYINFO.match(l)
-        if not m:
-            raise SSHKeyError('Unsupported public key output: %s' % l)
-
-        for k, v in m.groupdict().items():
-            if k=='path':
-                k='public_key_path'
-            setattr(self, k, v)
-
-    def unload(self):
-        """
-        Unload this key from ssh-agent
-        """
-        cmd = ['ssh-add', '-d', self.path]
-        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-        p.wait()
-
-    def load(self):
-        """
-        Load this key to ssh-agent. If passwords are requested, they are read
-        from sys.stdin. Output is redirected to sys.stdout and sys.stderr.
-        """
-        cmd = ['ssh-add', self.path]
-        p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
-        p.wait()
 
 class AuthorizedKeys(dict):
     """
@@ -303,45 +307,6 @@ class AuthorizedKeys(dict):
                     entry['exponent'] = parts[1]
                     entry['modulus'] = parts[2]
                     entry['comment'] = parts[3]
-
-class SSHConfig(dict):
-    def __init__(self, path=None):
-        self.defaults = {}
-        self.log = Logger().default_stream
-        self.path = path is not None and path or os.path.expanduser('~/.ssh/config')
-        self.reload()
-
-    def reload(self):
-        self.clear()
-        if not os.path.isfile(self.path):
-            self.log.debug('No such file: %s' % self.path)
-            return
-        self.log.debug('Reading configuration: %s' % self.path)
-
-        with open(self.path, 'r') as fd:
-            host = None
-            for l in [x.strip() for x in fd.readlines()]:
-                if l=='' or l.startswith('#'):
-                    continue
-
-                if l[:5]=='Host ':
-                    host = SSHConfigHost(self, l[5:])
-                    self[host.name] = host
-
-                else:
-                    host.parse(l)
-
-        if '*' in self.keys():
-            self.defaults.update(self.pop('*').items())
-
-    def keys(self):
-        return [k for k in sorted(dict.keys(self))]
-
-    def items(self):
-        return [(k, self[k]) for k in self.keys()]
-
-    def values(self):
-        return [self[k] for k in self.keys()]
 
 
 class SSHConfigHost(dict):
@@ -432,3 +397,42 @@ class SSHConfigHost(dict):
                 items.append(self.config.defaults[k])
 
         return items
+
+
+class SSHConfig(dict):
+    def __init__(self, path=None):
+        self.defaults = {}
+        self.log = Logger().default_stream
+        self.path = path is not None and path or os.path.expanduser('~/.ssh/config')
+        self.reload()
+
+    def reload(self):
+        self.clear()
+        if not os.path.isfile(self.path):
+            self.log.debug('No such file: %s' % self.path)
+            return
+
+        with open(self.path, 'r') as fd:
+            host = None
+            for l in [x.strip() for x in fd.readlines()]:
+                if l=='' or l.startswith('#'):
+                    continue
+
+                if l[:5]=='Host ':
+                    host = SSHConfigHost(self, l[5:])
+                    self[host.name] = host
+
+                else:
+                    host.parse(l)
+
+        if '*' in self.keys():
+            self.defaults.update(self.pop('*').items())
+
+    def keys(self):
+        return [k for k in sorted(dict.keys(self))]
+
+    def items(self):
+        return [(k, self[k]) for k in self.keys()]
+
+    def values(self):
+        return [self[k] for k in self.keys()]
