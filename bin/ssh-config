@@ -64,20 +64,11 @@ class LoaderCommand(SSHConfigCommand):
         args = SSHConfigCommand.parse_args(self, args)
 
         if args.command == 'load':
-            for k in self.keys.available:
-                if not k.autoload:
-                    self.log.debug('skip %s: not autoloaded' % k)
-                    continue
-
-                if not k.is_loaded:
-                    k.load()
-                else:
-                    self.log.debug('already loaded: %s' % k)
+            self.keys.load_keys([key for key in self.keys.available if key.autoload])
 
         if args.command == 'unload':
-            for k in self.keys.available:
-                if k.is_loaded:
-                    k.unload()
+            for key in [key for key in self.keys.available if key.is_loaded]:
+                key.unload()
 
 
 script = Script()

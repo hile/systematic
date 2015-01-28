@@ -83,7 +83,8 @@ class SSHKeyFile(dict):
 
     @property
     def is_loaded(self):
-        return self in self.user_keys.loaded_keys.values() and True or False
+        loaded_keys = [x['path'] for x in self.user_keys.loaded_keys.values()]
+        return self.path in loaded_keys and True or False
 
     def unload(self):
         """
@@ -241,6 +242,27 @@ class UserSSHKeys(dict):
                     self.log.debug('Fixing permissions for file %s' % f)
                     os.chmod(f, fperm)
 
+    def load_keys(self, keys):
+        """Load given keys
+
+        Load given keys to SSH agent. Checks if key was already loaded and skips
+        if it was. Keys can be either paths or SSHKeyFile instances.
+        """
+        paths = []
+        for key in keys:
+            if isinstance(key, SSHKeyFile):
+                if not key.is_loaded:
+                    paths.append(key.path)
+            elif isinstance(key, basestring):
+                paths.append(key)
+
+        if paths:
+            self.log.debug('Loading %d keys to SSH agent' % len(paths))
+            cmd = [ 'ssh-add'] + paths
+            p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+            p.wait()
+        else:
+            self.log.debug('All SSH keys were already loaded to SSH agent')
 
 class AuthorizedKeys(dict):
     """
