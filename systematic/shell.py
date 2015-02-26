@@ -124,8 +124,8 @@ class ScriptThread(threading.Thread):
     def stopped(self):
         return self._stop_event.isSet()
 
-    def execute(self, command):
-        p = subprocess.Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+    def execute(self, command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr):
+        p = subprocess.Popen(command, stdin=stdin, stdout=stdout, stderr=stderr)
         p.wait()
         return p.returncode
 
@@ -349,7 +349,7 @@ class Script(object):
         args = self.__process_args__(args)
         return args, other_args
 
-    def execute(self, args, dryrun=False):
+    def execute(self, args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, dryrun=False):
         """
         Default wrapper to execute given interactive shell command
         with standard stdin, stdout and stderr
@@ -364,7 +364,7 @@ class Script(object):
             self.log.debug('would execute: %s' % ' '.join(args))
             return 0
 
-        p = Popen(args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
+        p = Popen(args, stdin=stdin, stdout=stdout, stderr=stderr)
         p.wait()
         return p.returncode
 
