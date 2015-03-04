@@ -9,7 +9,7 @@ import sys
 import os
 from setuptools import setup, find_packages
 
-VERSION='4.2.5'
+VERSION='4.2.6'
 
 setup(
     name = 'systematic',
@@ -17,7 +17,7 @@ setup(
     description = 'Sysadmin utility classes and scripts',
     author = 'Ilkka Tuohela',
     author_email = 'hile@iki.fi',
-    url = 'http://tuohela.net/packages/systematic',
+    url = 'https://github.com/hile/systematic/',
     version = VERSION,
     license = 'PSF',
     zip_safe = False,
