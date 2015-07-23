@@ -87,7 +87,7 @@ def execute(command):
     try:
         output = check_output(command)
     except CalledProcessError,emsg:
-        raise SmartError('Error executing %s: %s' % (' '.join(command),emsg))
+        raise SmartError('Error executing {0}: {1}'.format(' '.join(command), emsg))
 
     headers = {}
     lines = []
@@ -106,7 +106,7 @@ def execute(command):
 class SmartDevices(list):
     def __init__(self):
         if not commands.which(CMD):
-            raise SmartError('No such command: %s' % CMD)
+            raise SmartError('No such command: {0}'.format(CMD))
         self.scan()
 
     def is_ignored(self,device):
@@ -127,7 +127,7 @@ class SmartDevices(list):
                 if not self.is_ignored(device):
                     self.append(SmartDrive(device,flags))
             except ValueError:
-                raise SmartError('Error parsing line from output: %s' % l)
+                raise SmartError('Error parsing line from output: {0}'.format(l))
 
 class SmartDrive(object):
     def __init__(self,device,flags=[]):
@@ -147,7 +147,7 @@ class SmartDrive(object):
 
     @property
     def attributes(self):
-        re_string = '^%s$' % '\s+'.join([
+        re_string = '^{0}$'.format('\s+'.join([
             '(?P<id>0x[0-9a-f]+)',
             '(?P<attribute_name>[^\s]+)',
             '(?P<flag>0x[0-9a-f]+)',
@@ -158,7 +158,7 @@ class SmartDrive(object):
             '(?P<updated>[^\s]+)',
             '(?P<failed>[^\s]+)',
             '(?P<raw_value>[0-9a-f]+)',
-        ])
+        ]))
         re_result = re.compile(re_string)
         matches = self.__re_line_matches__(re_result,execute([CMD,'--format=hex','--attributes',self.device]))
         fields = []
@@ -215,7 +215,7 @@ class SmartDrive(object):
                 try:
                     attribute_id = int(attribute_id,16)
                 except ValueError:
-                    raise SmartError('Invalid attribute_id value: %s' % attribute_id)
+                    raise SmartError('Invalid attribute_id value: {0}'.format(attribute_id))
 
         for attr in self.attributes:
             if attr['id'] == attribute_id:
@@ -224,34 +224,12 @@ class SmartDrive(object):
 
     def set_smart_status(self,status):
         status = status and 'on' or 'off'
-        execute([CMD,'--smart=%s' % status, self.device])
+        execute([CMD,'--smart={0}'.format(status, self.device)])
 
     def set_offline_testing(self,status):
         status = status and 'on' or 'off'
-        execute([CMD,'--offlineauto=%s' % status, self.device])
+        execute([CMD,'--offlineauto={0}'.format(status, self.device)])
 
     def set_attribute_autosave(self,status):
         status = status and 'on' or 'off'
-        execute([CMD,'--saveauto=%s' % status, self.device])
-
-if __name__ == '__main__':
-    import sys
-    devices = sys.argv[1:]
-    sc = SmartDevices()
-    for disk in sc:
-        if devices and disk.device not in devices:
-            continue
-
-        hours = disk.get_attribute_by_id('9')
-        if hours is not None:
-            print '%10s %s' % (
-                disk.device,
-                '%(attribute_name)s %(raw_value)s' % disk.get_attribute_by_id('9')
-            )
-
-        #info = disk.info
-        #print '\n'.join('%16s %s' % (k,info[k]) for k in sorted(info.keys()))
-
-        #for attribute in disk.attributes:
-        #    print '%(id)4d %(attribute_name)28s %(raw_value)s' % attribute
-
+        execute([CMD,'--saveauto={0}'.format(status, self.device)])

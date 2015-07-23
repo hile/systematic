@@ -26,19 +26,14 @@ class IcingaLogEntry(LogEntry):
                 break
 
         if self.time is None:
-            raise LogFileError('Error parsing entry %s' % line)
+            raise LogFileError('Error parsing entry {0}'.format(line))
 
     def __repr__(self):
         if self.category:
-            return '%s %s %s' % (self.time, self.category, self.message)
+            return '{0} {1} {2}'.format(self.time, self.category, self.message)
         else:
-            return '%s %s' % (self.time, self.message)
+            return '{0} {1}'.format(self.time, self.message)
 
 class IcingaLog(LogFile):
     lineloader = IcingaLogEntry
 
-
-log = IcingaLog('~/icinga.log')
-
-for l in log:
-    print l

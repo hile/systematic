@@ -80,7 +80,7 @@ class LinuxMountPoint(MountPoint):
         try:
             output = check_output(['df','-k',self.mountpoint])
         except CalledProcessError:
-            raise FileSystemError('Error getting usage for %s' % self.mountpoint)
+            raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
         (header,usage) = output.split('\n',1)
 
         try:

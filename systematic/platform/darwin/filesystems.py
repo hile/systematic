@@ -120,13 +120,13 @@ class OSXMountPoint(MountPoint):
         try:
             output = check_output(['df', '-k', self.mountpoint])
         except CalledProcessError,e:
-            raise FileSystemError('Error checking filesystem usage: %s' % e)
-        
+            raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
+
         header, usage = output.split('\n', 1)
         m = re_df.match(usage)
         if not m:
-            raise FileSystemError('Error matching df output line: %s' % usage)
-        
+            raise FileSystemError('Error matching df output line: {0}'.format(usage))
+
         return {
             'mountpoint': self.mountpoint,
             'size': long(m.group(2)),
@@ -142,7 +142,7 @@ class OSXMountPoint(MountPoint):
 
         """
         self.diskinfo = DiskInfo(self.device)
-        
+
 
 
 class OSXMountPoints(MountPoints):
@@ -159,7 +159,7 @@ class OSXMountPoints(MountPoints):
         try:
             output = check_output(['/sbin/mount'])
         except CalledProcessError, e:
-            raise FileSystemError('Error getting mountpoints: %s' % e)
+            raise FileSystemError('Error getting mountpoints: {0}'.format(e))
 
         for l in [l for l in output.split('\n') if l.strip() != '']:
             if l[:4] == 'map ':

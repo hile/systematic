@@ -15,7 +15,7 @@ class ServiceError(Exception):
 
 class ServiceListEntry(list):
     """
-    Class representing exactly one port,protocol pair from /etc/services
+    Class representing exactly one port, protocol pair from /etc/services
     """
     def __init__(self, port, protocol, names):
         list.__init__(self)
@@ -26,7 +26,7 @@ class ServiceListEntry(list):
         self.extend(names)
 
     def __repr__(self):
-        return '%s/%s %s' % (self.port, self.protocol, ','.join(self))
+        return '{0}/{1} {2}'.format(self.port, self.protocol, ','.join(self))
 
 
 class ServiceList(dict):
@@ -39,14 +39,14 @@ class ServiceList(dict):
     """
     def __init__(self, path='/etc/services'):
         if not os.path.isfile(path):
-            raise ServiceError('No such file: %s' % path)
+            raise ServiceError('No such file: {0}'.format(path))
 
         try:
-            lines = open(path,'r').readlines()
-        except IOError,(ecode,emsg):
-            raise ServiceError('Error reading %s: %s' % (path,emsg))
-        except OSError,(ecode,emsg):
-            raise ServiceError('Error reading %s: %s' % (path,emsg))
+            lines = open(path, 'r').readlines()
+        except IOError, (ecode, emsg):
+            raise ServiceError('Error reading {0}: {1}'.format(path, emsg))
+        except OSError, (ecode, emsg):
+            raise ServiceError('Error reading {0}: {1}'.format(path, emsg))
 
         for l in filter(lambda l: not l.startswith('#'), lines):
             try:
@@ -55,17 +55,17 @@ class ServiceList(dict):
                 pass
 
             try:
-                name, target, aliases =  map(lambda x: x.strip(), l.split(None,2))
+                name, target, aliases =  map(lambda x: x.strip(), l.split(None, 2))
                 names = [name] + aliases.split()
             except ValueError:
                 try:
-                    name, target = map(lambda x: x.strip(), l.split(None,1))
+                    name, target = map(lambda x: x.strip(), l.split(None, 1))
                 except ValueError:
                     continue
                 names = [name]
 
             try:
-                port,protocol = target.split('/')
+                port, protocol = target.split('/')
                 port = int(port)
                 protocol = protocol.upper()
             except ValueError:
@@ -73,7 +73,7 @@ class ServiceList(dict):
 
             if not self.has_key(port):
                 self[port] = {}
-            self[port][protocol] = ServiceListEntry(port,protocol,names)
+            self[port][protocol] = ServiceListEntry(port, protocol, names)
 
     def keys(self):
         """
@@ -83,9 +83,9 @@ class ServiceList(dict):
 
     def items(self):
         """
-        Return (name,service) value pairs sorted by self.keys()
+        Return (name, service) value pairs sorted by self.keys()
         """
-        return [(k,self[k]) for k in self.keys()]
+        return [(k, self[k]) for k in self.keys()]
 
     def values(self):
         """
@@ -93,7 +93,7 @@ class ServiceList(dict):
         """
         return [self[k] for k in self.keys()]
 
-    def find(self,name=None,port=None,protocol=None):
+    def find(self, name=None, port=None, protocol=None):
         """
         Find service matching name, port or protocol
         """
@@ -106,7 +106,7 @@ class ServiceList(dict):
 
         if name is not None:
             if port is not None and protocol is not None:
-                matches = self.find(port=port,protocol=protocol)
+                matches = self.find(port=port, protocol=protocol)
             elif port is not None:
                 matches = self.find(port=port)
             elif protocol is not None:
@@ -125,7 +125,7 @@ class ServiceList(dict):
             try:
                 protocols = self[port]
             except ValueError:
-                raise ValueError('Invalid port: %s' % port)
+                raise ValueError('Invalid port: {0}'.format(port))
             except KeyError:
                 return []
             if protocol is None:
@@ -136,7 +136,7 @@ class ServiceList(dict):
                 return []
 
         elif protocol is not None:
-            for port,protocols in self.items():
+            for port, protocols in self.items():
                 try:
                     entries.append(protocols[protocol])
                 except KeyError:

@@ -35,9 +35,9 @@ class Server(object):
 
     def __repr__(self):
         if self.description is not None:
-            return '%s (%s)' % (self.name, self.description)
+            return '{0} ({1})'.format(self.name, self.description)
         else:
-            return '%s' % self.name
+            return '{0}'.format(self.name)
 
     def __cmp__(self, other):
         if isinstance(other, basestring):
@@ -80,7 +80,7 @@ class Server(object):
 
         cmd = self.connect_command + command
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout,stderr) = p.communicate()
+        (stdout, stderr) = p.communicate()
         return p.returncode, stdout.rstrip('\n'), stderr.rstrip('\n')
 
     def shell(self, command):
@@ -106,10 +106,10 @@ class Server(object):
         Wrapper to call correct update commands for this host
         """
         if not self.osgroup.update_commands:
-            self.log.debug('No update commands for OS %s' % self.osgroup.name)
+            self.log.debug('No update commands for OS {0}'.format(self.osgroup.name))
             return
 
-        self.log.debug("Running: %s '%s'" % (
+        self.log.debug("Running: {0} '{1}'".format(
             ' '.join(self.connect_command),
             self.osgroup.command_separator.join(self.osgroup.update_commands)
         ))
@@ -164,7 +164,7 @@ class OperatingSystemGroup(object):
         self.modified = False
 
     def __repr__(self):
-        return '%s: %s (%d servers)' % (self.name,self.description,len(self.servers))
+        return '{0}: {1} ({2:d} servers)'.format(self.name, self.description, len(self.servers))
 
     @property
     def command_separator(self):
@@ -204,19 +204,19 @@ class OperatingSystemGroup(object):
 
     def add_server(self, name):
         if name in [s.name for s in self.servers]:
-            self.log.debug('Error adding: server already in group: %s' % name)
+            self.log.debug('Error adding: server already in group: {0}'.format(name))
             return
 
         self.servers.append(Server(self, name))
         self.modified = True
 
-    def remove_server(self,name):
+    def remove_server(self, name):
         try:
             server = [s for s in self.servers if s.name==name][0]
             self.servers.remove(server)
             self.modified = True
         except IndexError:
-            self.log.debug('Error removing: server not in group: %s' % name)
+            self.log.debug('Error removing: server not in group: {0}'.format(name))
             return
 
 
@@ -225,7 +225,7 @@ class ServerConfigFile(object):
     Parser for configuration file describing servers and their
     operating systems.
     """
-    def __init__(self,path):
+    def __init__(self, path):
         self.operating_systems = []
         self.servers = []
         self.path = path
@@ -244,14 +244,14 @@ class ServerConfigFile(object):
 
         try:
             config  = ConfigObj(self.path)
-        except ValueError,emsg:
-            raise ValueError('Error parsing %s: %s' % (self.path, emsg))
+        except ValueError, emsg:
+            raise ValueError('Error parsing {0}: {1}'.format(self.path, emsg))
 
         osgroup = None
         for key, section in config.items():
             if section.has_key('commands'):
                 if key in self.servers:
-                    raise ValueError('Duplicate OS group name: %s' % key)
+                    raise ValueError('Duplicate OS group name: {0}'.format(key))
                 osgroup = OperatingSystemGroup(self, key, **section)
                 self.operating_systems.append(osgroup)
                 self.servers.extend(osgroup.servers)
@@ -289,7 +289,7 @@ class ServerConfigFile(object):
                         'description': server.description
                     }
 
-        self.log.debug('Saving configuration to %s' % self.path)
+        self.log.debug('Saving configuration to {0}'.format(self.path))
         config.write(outfile=open(self.path, 'w'))
 
     def match_os(self, name):
@@ -297,4 +297,4 @@ class ServerConfigFile(object):
             if os.name == name:
                 return os
 
-        raise ValueError('Unknown OS: %s' % name)
+        raise ValueError('Unknown OS: {0}'.format(name))

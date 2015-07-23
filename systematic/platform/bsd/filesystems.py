@@ -42,7 +42,7 @@ class BSDMountPoint(MountPoint):
         try:
             output = check_output(['df','-k',self.mountpoint])
         except CalledProcessError:
-            raise FileSystemError('Error getting usage for %s' % self.mountpoint)
+            raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
         header, usage = output.split('\n', 1)
         try:
@@ -79,7 +79,7 @@ class BSDMountPoints(MountPoints):
         for l in [l for l in output.split('\n') if l.strip()!='']:
             if l[:4] == 'map ':
                 continue
-                
+
             m = RE_MOUNT.match(l)
             if not m:
                 continue
@@ -93,5 +93,5 @@ class BSDMountPoints(MountPoints):
             entry = BSDMountPoint(device, mountpoint, filesystem)
             for f in flags:
                 entry.flags.set(f,True)
-            
+
             self.append(entry)

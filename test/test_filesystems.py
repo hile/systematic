@@ -2,9 +2,10 @@
 Unit tests for filesystem mount parsing code
 """
 
-import sys,unittest
+import sys
+import unittest
 
-from systematic.filesystems import MountPoints,MountPoint,FileSystemError
+from systematic.filesystems import MountPoints, MountPoint, FileSystemError
 
 class test_filesystems(unittest.TestCase):
     """
@@ -18,8 +19,8 @@ class test_filesystems(unittest.TestCase):
         """
         try:
             mp = MountPoints()
-            self.assertIsInstance(mp.keys(),list)
-        except FileSystemError,emsg:
+            self.assertIsInstance(mp.keys(), list)
+        except FileSystemError, emsg:
             print emsg
             return
 
@@ -29,7 +30,7 @@ class test_filesystems(unittest.TestCase):
         """
         try:
             mp = MountPoints()
-        except FileSystemError,emsg:
+        except FileSystemError, emsg:
             print emsg
             return
 
@@ -37,7 +38,6 @@ class test_filesystems(unittest.TestCase):
             # TODO - implement windows tests
             pass
         else:
-            #noinspection PyUnresolvedReferences
             rootfs = mp['/']
-            self.assertIsInstance(rootfs,MountPoint)
+            self.assertIsInstance(rootfs, MountPoint)
 

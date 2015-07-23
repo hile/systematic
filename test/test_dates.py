@@ -16,55 +16,55 @@ VALID_DATE_FORMATS = (
     (time.localtime(), None),
     (datetime.now(), None),
     (date(*time.localtime()[:3]), None),
-    ('',None),
+    ('', None),
 )
 
 INVALID_DATE_FORMATS = (
-    ('1024-13-13',None),
+    ('1024-13-13', None),
     ('2013-02-29', None),
     ('abcd', None),
-    ('','')
+    ('', '')
 )
 
 class test_dates(unittest.TestCase):
 
     def test_day_arguments(self):
-        for value,date_format in VALID_DATE_FORMATS:
+        for value, date_format in VALID_DATE_FORMATS:
             try:
-                Day(value=value,input_format=date_format)
-            except DatesError,emsg:
-                raise AssertionError('format %s: %s' % (date_format,emsg))
+                Day(value=value, input_format=date_format)
+            except DatesError, emsg:
+                raise AssertionError('format {0}: {1}'.format(date_format, emsg))
 
-        for value,date_format in INVALID_DATE_FORMATS:
-            with self.assertRaisesRegexp(DatesError,'Error parsing date: %s' % value):
-                Day(value=value,input_format=date_format)
+        for value, date_format in INVALID_DATE_FORMATS:
+            with self.assertRaisesRegexp(DatesError, 'Error parsing date: {0}'.format(value)):
+                Day(value=value, input_format=date_format)
 
     def test_week_operators(self):
-        self.assertEquals(len(list(Week())),7)
+        self.assertEquals(len(list(Week())), 7)
 
         previous = Week('2012-01-05')-1
-        self.assertEquals(previous.first.year,2011)
-        self.assertEquals(previous.first.weekday,1)
-        self.assertEquals(previous.last.year,2012)
-        self.assertEquals(previous.last.weekday,7)
+        self.assertEquals(previous.first.year, 2011)
+        self.assertEquals(previous.first.weekday, 1)
+        self.assertEquals(previous.last.year, 2012)
+        self.assertEquals(previous.last.weekday, 7)
 
         next = Week('2011-02-25')+1
-        self.assertEquals(next.last.month,3)
-        self.assertEquals(next.last.weekday,7)
+        self.assertEquals(next.last.month, 3)
+        self.assertEquals(next.last.weekday, 7)
 
     def test_month_operations(self):
-        self.assertEquals(len(list(Month('2012-12-12'))),31)
-        self.assertEquals(len(list(Month('2012-12-12').weeks)),6)
+        self.assertEquals(len(list(Month('2012-12-12'))), 31)
+        self.assertEquals(len(list(Month('2012-12-12').weeks)), 6)
 
         previous = Month('2012-01-05')-1
-        self.assertEquals(previous.first.year,2011)
-        self.assertEquals(previous.first.weekday,4)
-        self.assertEquals(previous.last.year,2011)
-        self.assertEquals(previous.last.weekday,6)
+        self.assertEquals(previous.first.year, 2011)
+        self.assertEquals(previous.first.weekday, 4)
+        self.assertEquals(previous.last.year, 2011)
+        self.assertEquals(previous.last.weekday, 6)
 
         next = Month('2011-02-25')+1
-        self.assertEquals(next.last.month,3)
-        self.assertEquals(next.last.weekday,4)
+        self.assertEquals(next.last.month, 3)
+        self.assertEquals(next.last.weekday, 4)
 
 
 

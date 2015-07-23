@@ -110,7 +110,7 @@ class ScriptThread(threading.Thread):
     Common script thread base class
     """
     def __init__(self, name):
-        threading.Thread.__init__(self)
+        super(threading.Thread, self).__init__()
         self.log = Logger(name).default_stream
         self.status = 'not running'
         self.setDaemon(True)
@@ -147,7 +147,7 @@ class ScriptThreadManager(list):
             except Empty:
                 return
             else:
-                print line
+                sys.stdout.write('{0}\n'.format(line))
 
     def run(self):
         total = len(self)
@@ -176,7 +176,7 @@ class Script(object):
     """
     def __init__(self, name=None, description=None, epilog=None, debug_flag=True):
         self.name = os.path.basename(sys.argv[0])
-        setproctitle('%s %s' % (self.name, ' '.join(sys.argv[1:])))
+        setproctitle('{0} {1}'.format(self.name, ' '.join(sys.argv[1:])))
         signal.signal(signal.SIGINT, self.SIGINT)
 
         reload(sys)
@@ -185,13 +185,12 @@ class Script(object):
         if name is None:
             name = self.name
 
-        # Set to True to avoid any messages from self.message to be printed
+        # Set to True to avoid any messages from self.message to be output
         self.silent = False
 
         self.logger = Logger(self.name)
         self.log = self.logger.default_stream
 
-        self.subcommand_parser = None
         self.parser = argparse.ArgumentParser(
             prog=name,
             description=description,
@@ -200,8 +199,11 @@ class Script(object):
             add_help=True,
             conflict_handler='resolve',
         )
+
         if debug_flag:
             self.parser.add_argument('--debug', action='store_true', help='Show debug messages')
+
+        self.subcommand_parser = None
 
     def SIGINT(self, signum, frame):
         """
@@ -225,13 +227,13 @@ class Script(object):
             active = filter(lambda t: t.name!='MainThread', threading.enumerate())
             if not len(active):
                 break
-            self.log.debug('Waiting for %d threads' % len(active))
+            self.log.debug('Waiting for {0:d} threads'.format(len(active)))
             time.sleep(poll_interval)
 
     def exit(self, value=0, message=None):
         """
         Exit the script with given exit value.
-        If message is not None, it is printed on screen.
+        If message is not None, it is output to stdout
         """
         if isinstance(value, bool):
             if value:
@@ -264,10 +266,10 @@ class Script(object):
     def message(self, message):
         if self.silent:
             return
-        sys.stdout.write('%s\n' % message)
+        sys.stdout.write('{0}\n'.format(message))
 
     def error(self, message):
-        sys.stderr.write('%s\n' % message)
+        sys.stderr.write('{0}\n'.format(message))
 
     def add_subcommand(self, command):
         """Add a subcommand parser instance
@@ -280,7 +282,7 @@ class Script(object):
 
         class ListCommand(ScriptCommand):
             def run(self, args):
-                print 'Listing stuff'
+                self.message('Listing stuff')
 
         parser.add_subcommand(ListCommand('list', 'List stuff from script'))
 
@@ -361,7 +363,7 @@ class Script(object):
             raise ValueError('Execute arguments must be a list')
 
         if dryrun:
-            self.log.debug('would execute: %s' % ' '.join(args))
+            self.log.debug('would execute: {0}'.format(' '.join(args)))
             return 0
 
         p = Popen(args, stdin=stdin, stdout=stdout, stderr=stderr)
@@ -431,4 +433,4 @@ class ScriptCommand(argparse.ArgumentParser):
         Implement your subcommand logic here.
 
         """
-        sys.stderr.write('Subcommand %s has no run method implemented\n' % self.name)
+        sys.stderr.write('Subcommand {0} has no run method implemented\n'.format(self.name))

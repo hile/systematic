@@ -8,8 +8,7 @@ Platform dependent modules are now split to their own packages.
 import sys
 import os
 from setuptools import setup, find_packages
-
-VERSION='4.2.6'
+from systematic import __version__
 
 setup(
     name = 'systematic',
@@ -18,9 +17,8 @@ setup(
     author = 'Ilkka Tuohela',
     author_email = 'hile@iki.fi',
     url = 'https://github.com/hile/systematic/',
-    version = VERSION,
+    version = __version__,
     license = 'PSF',
-    zip_safe = False,
     packages = find_packages(),
     install_requires = (
         'setproctitle',

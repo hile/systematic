@@ -34,7 +34,7 @@ class DiskUtilError(Exception):
 class DiskInfo(dict):
     def __init__(self, device):
         if not os.access(device, os.R_OK):
-            raise DiskUtilError('Device not readable: %s' % device)
+            raise DiskUtilError('Device not readable: {0}'.format(device))
 
         cmd = ['diskutil', 'info', '-plist', device]
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -43,7 +43,7 @@ class DiskInfo(dict):
             plist = StringIO.StringIO(stdout)
             self.update(plistlib.readPlist(plist))
         except ExpatError, emsg:
-            raise DiskUtilError('Error parsing plist: %s' % stdout)
+            raise DiskUtilError('Error parsing plist: {0}'.format(stdout))
 
         if self.has_key('TotalSize') and self.has_key('FreeSpace'):
             self['UsedSpace'] = self.TotalSize - self.FreeSpace

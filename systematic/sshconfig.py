@@ -44,7 +44,7 @@ class SSHKeyFile(dict):
         self.autoload = False
         self.update({ 'bits': None, 'fingerprint': None, 'path': None, 'algorithm': None, })
 
-        public_key = '%s.pub' % self.path
+        public_key = '{0}.pub'.format(self.path)
         if not os.path.isfile(public_key):
             self.available = False
             return
@@ -55,11 +55,11 @@ class SSHKeyFile(dict):
         l = stdout.split('\n')[0].rstrip()
 
         if p.returncode != 0:
-            raise SSHKeyError('ERROR parsing public key: %s' % public_key)
+            raise SSHKeyError('ERROR parsing public key: {0}'.format(public_key))
 
         m = RE_KEYINFO.match(l)
         if not m:
-            raise SSHKeyError('Unsupported public key output: %s' % l)
+            raise SSHKeyError('Unsupported public key output: {0}'.format(l))
 
         for k, v in m.groupdict().items():
             if k == 'path':
@@ -67,7 +67,7 @@ class SSHKeyFile(dict):
             self[k] = v
 
     def __repr__(self):
-        return 'SSH key: %s' % self.path
+        return 'SSH key: {0}'.format(self.path)
 
     def __cmp__(self, other):
         if isinstance(other, basestring):
@@ -147,7 +147,7 @@ class UserSSHKeys(dict):
         ~/.ssh directory to process.
         """
         if not os.path.isfile(path):
-            raise SSHKeyError('No such file: %s' % path)
+            raise SSHKeyError('No such file: {0}'.format(path))
 
         try:
             for l in [l.rstrip() for l in open(path, 'r').readlines()]:
@@ -159,9 +159,9 @@ class UserSSHKeys(dict):
                 self[sshkey.path].autoload = True
 
         except IOError, (ecode, emsg):
-            raise SSHKeyError('Error loading %s: %s' % (path, emsg))
+            raise SSHKeyError('Error loading {0}: {1}'.format(path, emsg))
         except OSError, (ecode, emsg):
-            raise SSHKeyError('Error loading %s: %s' % (path, emsg))
+            raise SSHKeyError('Error loading {0}: {1}'.format(path, emsg))
 
     @property
     def loaded_keys(self):
@@ -186,7 +186,7 @@ class UserSSHKeys(dict):
         for l in [l.rstrip() for l in stdout.split('\n')[:-1]]:
             m = RE_KEYINFO.match(l)
             if not m:
-                raise SSHKeyError('Error parsing agent key list line %s' % l)
+                raise SSHKeyError('Error parsing agent key list line {0}'.format(l))
 
             data = m.groupdict()
             keys[data['fingerprint']] = data
@@ -229,17 +229,17 @@ class UserSSHKeys(dict):
         fperm = int(file_permissions, 8)
 
         if not os.path.isdir(ssh_dir):
-            self.log.debug('No such directory: %s' % ssh_dir)
+            self.log.debug('No such directory: {0}'.format(ssh_dir))
             return
 
         for (root, dirs, files) in os.walk(ssh_dir):
             if stat.S_IMODE(os.stat(root).st_mode) != dperm:
-                self.log.debug('Fixing permissions for directory %s' % root)
+                self.log.debug('Fixing permissions for directory {0}'.format(root))
                 os.chmod(root, dperm)
 
             for f in [os.path.join(root, f) for f in files]:
                 if stat.S_IMODE(os.stat(f).st_mode) != fperm:
-                    self.log.debug('Fixing permissions for file %s' % f)
+                    self.log.debug('Fixing permissions for file {0}'.format(f))
                     os.chmod(f, fperm)
 
     def load_keys(self, keys):
@@ -257,7 +257,7 @@ class UserSSHKeys(dict):
                 paths.append(key)
 
         if paths:
-            self.log.debug('Loading %d keys to SSH agent' % len(paths))
+            self.log.debug('Loading {0:d} keys to SSH agent'.format(len(paths)))
             cmd = [ 'ssh-add'] + paths
             p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
             p.wait()
@@ -284,7 +284,7 @@ class AuthorizedKeys(dict):
         """
         self.clear()
         if not os.path.isfile(self.path):
-            self.log.debug('No such file: %s' % self.path)
+            self.log.debug('No such file: {0}'.format(self.path))
             return
 
         for l in [l.rstrip() for l in open(self.path, 'r').readlines()]:
@@ -351,7 +351,7 @@ class SSHConfigHost(dict):
             self[key] = value
 
         except ValueError:
-            raise ValueError('Invalid line: %s' % line)
+            raise ValueError('Invalid line: {0}'.format(line))
 
     def __getattr__(self, attr):
         if attr in self.keys():
@@ -431,7 +431,7 @@ class SSHConfig(dict):
     def reload(self):
         self.clear()
         if not os.path.isfile(self.path):
-            self.log.debug('No such file: %s' % self.path)
+            self.log.debug('No such file: {0}'.format(self.path))
             return
 
         with open(self.path, 'r') as fd:

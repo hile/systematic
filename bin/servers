@@ -88,12 +88,12 @@ class ServersCommand(ScriptCommand):
                                 self.servers.append(server)
                                 found = True
                         if not found:
-                            self.script.exit(1, 'Unknown server: %s' % name)
+                            self.script.exit(1, 'Unknown server: {0}'.format(name))
 
                     elif mode == 'add_servers':
                         for server in all_servers:
                             if name == server.name:
-                                self.script.exit(1, 'Server already configured: %s' % name)
+                                self.script.exit(1, 'Server already configured: {0}'.format(name))
                         # Not found - add to list
                         self.servers.append(name)
 
@@ -110,7 +110,7 @@ class AddGroupCommand(ServersCommand):
 
         try:
             existing = self.config.match_os(args.name)
-            self.script.exit(1, 'Server group already defined: %s' % args.name)
+            self.script.exit(1, 'Server group already defined: {0}'.format(args.name))
         except ValueError:
             pass
 
@@ -133,7 +133,7 @@ class RemoveGroupCommand(ServersCommand):
         try:
             existing = self.config.match_os(args.name)
         except ValueError:
-            self.script.exit(1, 'Server group not defined: %s' % args.name)
+            self.script.exit(1, 'Server group not defined: {0}'.format(args.name))
 
         self.config.operating_systems.remove(existing)
         self.config.save()
@@ -160,7 +160,7 @@ class ListOrUpdateCommand(ServersCommand):
 
         if args.command == 'update':
             for server in self.servers:
-                script.message('Updating server: %s' % server.name)
+                script.message('Updating server: {0}'.format(server.name))
                 server.update()
 
         elif args.command == 'list':
@@ -170,17 +170,17 @@ class ListOrUpdateCommand(ServersCommand):
                 except ValueError, emsg:
                     script.exit(1, emsg)
 
-                script.message("Server group: %s" % group)
-                script.message("Connect command: %s" % ' '.join(group.connect_command))
-                script.message("Command separator: %s" % group.command_separator)
+                script.message("Server group: {0}".format(group))
+                script.message("Connect command: {0}".format(' '.join(group.connect_command)))
+                script.message("Command separator: {0}".format(group.command_separator))
                 script.message("Update commands:")
                 for cmd in group.update_commands:
-                    script.message('\t%s' % cmd)
+                    script.message('\t{0}'.format(cmd))
 
                 if group.servers:
                     script.message('Servers in group:')
                     for server in group.servers:
-                        script.message('\t%s' % server)
+                        script.message('\t{0}'.format(server))
 
                 else:
                     script.message('No servers configured')

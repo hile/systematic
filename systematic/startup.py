@@ -60,7 +60,7 @@ class InitScript(object):
         except ValueError:
             code = 1
 
-        sys.stderr.write('%s\n' % message)
+        sys.stderr.write('{0}\n'.format(message))
         sys.exit(code)
 
     def fail(self, code=1, exit=True):
@@ -94,7 +94,7 @@ class InitScript(object):
         Write specified message to stdout
 
         """
-        sys.stdout.write('%s' % message)
+        sys.stdout.write('{0}'.format(message))
 
     @property
     def pid(self):
@@ -104,11 +104,11 @@ class InitScript(object):
 
         """
         if not os.path.isfile(self.pidfile):
-            logger.debug('No such file: %s' % self.pidfile)
+            logger.debug('No such file: {0̋'.format(self.pidfile))
             return False
 
         if not os.access(self.pidfile, os.R_OK):
-            logger.debug('Not readable: %s' % self.pidfile)
+            logger.debug('Not readable: {0}'.format(self.pidfile))
             return False
 
         p = Popen(['pgrep', '-F', self.pidfile], stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -119,7 +119,7 @@ class InitScript(object):
         try:
             return int(stdout.strip())
         except ValueError:
-            raise InitScriptError('invalid pidfile contents: %s' % pidfile)
+            raise InitScriptError('invalid pidfile contents: {0}'.format(pidfile))
 
     @property
     def is_running(self):
@@ -129,11 +129,11 @@ class InitScript(object):
 
         """
         if not os.path.isfile(self.pidfile):
-            logger.debug('No such file: %s' % self.pidfile)
+            logger.debug('No such file: {0}'.format(self.pidfile))
             return False
 
         if not os.access(self.pidfile, os.R_OK):
-            logger.debug('Not readable: %s' % self.pidfile)
+            logger.debug('Not readable: {0}'.format(self.pidfile))
             return False
 
         p = Popen(['pgrep', '-F', self.pidfile], stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -153,9 +153,9 @@ class InitScript(object):
         """
         """
         if self.is_running:
-            self.message('Running: %s (pid %s)\n' % (self.name, self.pid))
+            self.message('Running: {0} (pid {1})\n'.format((self.name, self.pid)))
         else:
-            self.message('Not running: %s\n' % (self.name))
+            self.message('Not running: {0}\n'.format(self.name))
 
     def stop(self, exit=True):
         """Stop service
@@ -164,9 +164,9 @@ class InitScript(object):
 
         """
         if not self.is_running:
-            raise InitScriptError('%s: not running' % (self.name))
+            raise InitScriptError('{0}: not running'.format(self.name))
 
-        self.message('Stopping: %s (pid %s) ' % (self.name, self.pid))
+        self.message('Stopping: {0} (pid {1}) '.format(self.name, self.pid))
         command = ['pkill', '-F', self.pidfile]
         p = Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
@@ -182,12 +182,12 @@ class InitScript(object):
 
         """
         if self.is_running:
-            self.error('%s: already running (pid %s)' % (self.name, self.pid))
+            self.error('{0}: already running (pid {1})'.format(self.name, self.pid))
 
         if not os.access(self.daemon, os.X_OK):
-            self.error('Not executable: %s' % self.daemon)
+            self.error('Not executable: {0}'.format(self.daemon))
 
-        self.message('Starting: %s ' % (self.name))
+        self.message('Starting: {0} '.format(self.name))
         command = [self.daemon] + self.daemon_args
         p = Popen(command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
@@ -221,7 +221,7 @@ class InitScript(object):
             if callback is None:
                 raise AttributeError
         except AttributeError:
-            self.error(code=1, message='Function not implemented: %s' % args.command)
+            self.error(code=1, message='Function not implemented: {0}'.format(args.command))
 
         try:
             return callback()

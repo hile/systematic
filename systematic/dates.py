@@ -6,7 +6,9 @@ Suited for walking weeks and months and to get working days for
 certain calendar date week easily.
 """
 
-import time,calendar
+import time
+import calendar
+
 from time import localtime, struct_time
 from datetime import datetime, date, timedelta
 
@@ -42,41 +44,41 @@ class Day(object):
     """
     Extension of datetime.date object supporting iteration and some basic operations
     """
-    def __init__(self,value=None,input_format=None):
+    def __init__(self, value=None, input_format=None):
         self.log = Logger('dates').default_stream
 
         if value is None:
             self.value = datetime.now().date()
 
-        elif isinstance(value,Day):
+        elif isinstance(value, Day):
             self.value = value.value
 
-        elif isinstance(value,date):
+        elif isinstance(value, date):
             self.value = value
 
-        elif isinstance(value,datetime):
+        elif isinstance(value, datetime):
             self.value = value.date()
 
-        elif isinstance(value,struct_time):
+        elif isinstance(value, struct_time):
             self.value = date(*value[:3])
 
-        elif isinstance(value,basestring) and input_format is None and value=='':
+        elif isinstance(value, basestring) and input_format is None and value=='':
             self.value = datetime.now().date()
 
         else:
             input_format = input_format is not None and input_format or DEFAULT_DATE_FORMAT
             try:
-                self.value = datetime.strptime(str(value),input_format).date()
+                self.value = datetime.strptime(str(value), input_format).date()
             except ValueError:
                 try:
                     self.value = date(*time.localtime(int(value))[:3])
-                except ValueError,emsg:
-                    raise DatesError('Error parsing date: %s' % value)
+                except ValueError, emsg:
+                    raise DatesError('Error parsing date: {0}'.format(value))
 
-    def __getattr__(self,attr):
+    def __getattr__(self, attr):
         if attr == 'weekday':
             return self.value.isoweekday()
-        return getattr(self.value,attr)
+        return getattr(self.value, attr)
 
     def __long__(self):
         return long(self.value.strftime('%s'))
@@ -87,22 +89,22 @@ class Day(object):
     def __str__(self):
         return self.value.strftime(DEFAULT_DATE_FORMAT)
 
-    def __cmp__(self,value):
+    def __cmp__(self, value):
         return cmp(long(self), long(value))
 
-    def __sub__(self,value):
+    def __sub__(self, value):
         try:
             return Day(self.value - timedelta(days=value))
         except ValueError:
-            raise DatesError('Invalid day delta: %s' % value)
+            raise DatesError('Invalid day delta: {0}'.format(value))
 
-    def __add__(self,value):
+    def __add__(self, value):
         try:
             return Day(self.value + timedelta(days=value))
         except ValueError:
-            raise DatesError('Invalid day delta: %s' % value)
+            raise DatesError('Invalid day delta: {0}'.format(value))
 
-    def strftime(self,value):
+    def strftime(self, value):
         return self.value.strftime(value)
 
 
@@ -111,13 +113,13 @@ class Week(object):
     Week instance supporting iteration
     """
     def __init__(self, value=None, input_format=DEFAULT_DATE_FORMAT,
-                 firstweekday=WEEK_START_DEFAULT, workdays=None, 
+                 firstweekday=WEEK_START_DEFAULT, workdays=None,
                  workdays_per_week=WORKDAYS_PER_WEEK):
-        
+
         self.__next = 0
         self.log = Logger('dates').default_stream
 
-        day = Day(value=value,input_format=input_format)
+        day = Day(value=value, input_format=input_format)
 
         if firstweekday in WEEKDAY_NAMES:
             self.firstweekday = WEEKDAY_NAMES.index(firstweekday)
@@ -127,7 +129,7 @@ class Week(object):
                 if self.firstweekday<0 or self.firstweekday>6:
                     raise ValueError
             except ValueError:
-                raise ValueError('Invalid first week day index: %s' % firstweekday)
+                raise ValueError('Invalid first week day index: {0}'.format(firstweekday))
         wday = (day.value.isoweekday()+(7-self.firstweekday)) % 7
 
         self.first = day - wday
@@ -136,8 +138,8 @@ class Week(object):
 
         self.workdays = []
         if workdays is not None:
-            if not isinstance(workdays,iterable):
-                raise ValueError('Invalid workdays index list parameter: %s' % workdays)
+            if not isinstance(workdays, iterable):
+                raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
             for i in workdays:
                 try:
                     i = int(i)
@@ -145,7 +147,7 @@ class Week(object):
                         raise ValueError
                     self.workdays.append(self.first+i)
                 except ValueError:
-                    raise ValueError('Invalid workdays index list parameter: %s' % workdays)
+                    raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
 
         else:
             try:
@@ -153,18 +155,18 @@ class Week(object):
                 if workdays_per_week<0 or workdays_per_week>7:
                     raise ValueError
             except ValueError:
-                raise ValueError('Invalid value for workdays_per_week: %s' % workdays_per_week)
-            self.workdays = [self[i] for i in filter(lambda i: i<=6, range(0,workdays_per_week))]
-        
+                raise ValueError('Invalid value for workdays_per_week: {0}'.format(workdays_per_week))
+            self.workdays = [self[i] for i in filter(lambda i: i<=6, range(0, workdays_per_week))]
+
         self.workdays.sort()
 
-    def __getattr__(self,attr):
+    def __getattr__(self, attr):
         if attr == 'previous':
             return self-1
         if attr == 'next':
             return self+1
-        
-        return getattr(self.first.value,attr)
+
+        return getattr(self.first.value, attr)
 
     def __hash__(self):
         return long(self.first)
@@ -172,7 +174,7 @@ class Week(object):
     def __int__(self):
         self.first.strftime('%U')
 
-    def __getitem__(self,attr):
+    def __getitem__(self, attr):
         try:
             index = int(attr)
             if index < 0 or index > 6:
@@ -180,18 +182,18 @@ class Week(object):
             return self.first + index
         except ValueError:
             pass
-        
-        raise IndexError('Invalid week day index: %s' % attr)
+
+        raise IndexError('Invalid week day index: {0}'.format(attr))
 
 
-    def __sub__(self,value):
+    def __sub__(self, value):
         return Week(self.first-7*int(value), None, firstweekday=self.firstweekday)
 
-    def __add__(self,value):
+    def __add__(self, value):
         return Week(self.first+7*value, None, firstweekday=self.firstweekday)
 
     def __str__(self):
-        return 'WEEK %s %s - %s' % (self.first.strftime('%U'),self.first,self.last)
+        return 'WEEK {0} {1} - {2}'.format(self.first.strftime('%U'), self.first, self.last)
 
     def __iter__(self):
         return self
@@ -206,7 +208,7 @@ class Week(object):
         else:
             self.__next = 0
             raise StopIteration
-        
+
         return day
 
 
@@ -214,13 +216,13 @@ class Month(object):
     """
     Month instance supporting iteration
     """
-    def __init__(self,value=None, input_format=DEFAULT_DATE_FORMAT,
+    def __init__(self, value=None, input_format=DEFAULT_DATE_FORMAT,
                 firstweekday=WEEK_START_DEFAULT):
         self.__next = 0
         self.log = Logger('dates').default_stream
 
         self.first = Day(Day(value=value, input_format=input_format).value.replace(day=1))
-        self.days = calendar.monthrange(self.first.value.year,self.first.value.month)[1]
+        self.days = calendar.monthrange(self.first.value.year, self.first.value.month)[1]
         self.last  = self.first+(self.days-1)
 
         self.firstweekday = firstweekday
@@ -233,7 +235,7 @@ class Month(object):
     def __hash__(self):
         return long(self.first)
 
-    def __getitem__(self,attr):
+    def __getitem__(self, attr):
         try:
             index = int(attr)
             if index < 0 or index >= self.days:
@@ -241,8 +243,8 @@ class Month(object):
             return self.first + index
         except ValueError:
             pass
-        
-        raise IndexError('Invalid month day index: %s (month has %d days)' % (attr,self.days))
+
+        raise IndexError('Invalid month day index: {0} (month has {1:d} days)'.format(attr, self.days))
 
     def __repr__(self):
          return self.first.strftime('%B %Y')
@@ -250,19 +252,19 @@ class Month(object):
     def __len__(self):
         return self.days
 
-    def __sub__(self,value):
+    def __sub__(self, value):
         return self.__add__(-value)
 
-    def __add__(self,value):
+    def __add__(self, value):
         m = self
         value = int(value)
         if value>=0:
-            for i in range(0,int(value)):
+            for i in range(0, int(value)):
                 m = Month(m.first+m.days, None, firstweekday=self.firstweekday)
         else:
-            for i in range(value,0):
+            for i in range(value, 0):
                 m = Month(m.first-1, None, firstweekday=self.firstweekday)
-        
+
         return m
 
     def __iter__(self):
@@ -279,5 +281,5 @@ class Month(object):
         else:
             self.__next = 0
             raise StopIteration
-        
+
         return day

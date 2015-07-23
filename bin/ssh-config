@@ -33,11 +33,11 @@ class ListCommand(SSHConfigCommand):
 
         if args.command == 'available':
             for k in filter(lambda x: x.available,  self.keys.values()):
-                print KEY_DETAILS % k
+                self.message(KEY_DETAILS % k)
 
         elif args.command == 'list':
             for k in self.keys.loaded_keys.values():
-                print KEY_DETAILS % k
+                self.message(KEY_DETAILS % k)
 
         elif args.command == 'status':
             for k in self.keys.values():
@@ -45,7 +45,7 @@ class ListCommand(SSHConfigCommand):
                     status = k.is_loaded and 'LOADED' or 'UNLOADED'
                 else:
                     status = 'UNAVAILABLE'
-                print '%12s %s' % (status, k.path)
+                self.message('{0:12s} {1}'.format(status, k.path))
 
 
 class HostsCommand(SSHConfigCommand):
@@ -53,10 +53,10 @@ class HostsCommand(SSHConfigCommand):
         args = SSHConfigCommand.parse_args(self, args)
 
         for name in sorted(self.config.keys()):
-            print name
+            self.message(name)
             hostconfig = self.config[name]
             for k,v in hostconfig.items():
-                print '%20s %s' % (k, v)
+                self.message('{0:20s} {1}'.format(k, v))
 
 
 class LoaderCommand(SSHConfigCommand):

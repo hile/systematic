@@ -31,7 +31,7 @@ class MountPoints(object):
                 MountPoints.__loader = BSDMountPoints()
 
             else:
-                raise ValueError('MountPoints loader for OS not available: %s' % sys.platform)
+                raise ValueError('MountPoints loader for OS not available: {0}'.format(sys.platform))
 
         self.__dict__['_MountPoints__loader'] = MountPoints.__loader
         self.__loader.update()

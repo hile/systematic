@@ -5,9 +5,9 @@ Common wrapper classes
 from systematic.log import Logger, LoggerError
 
 class SortableContainer(object):
-    """Sortable containers 
+    """Sortable containers
 
-    Sort objects by comparing attributes specified in 
+    Sort objects by comparing attributes specified in
     tuple self.compare_fields
 
     List of attributes must match for compared objects or
@@ -16,7 +16,7 @@ class SortableContainer(object):
     """
 
     compare_fields = ()
-    
+
     def __cmp__(self, other):
         if self.compare_fields:
             for field in self.compare_fields:
@@ -60,9 +60,9 @@ class FileSystemFlags(dict):
         self.log = Logger('filesystems').default_stream
 
         if isinstance(flags, list):
-            for k in flags: 
+            for k in flags:
                 self.set(k)
-        
+
         if isinstance(flags, dict):
             for k, v in flags.items():
                 self.set(k, v)
@@ -85,7 +85,7 @@ class FileSystemFlags(dict):
         Set a filesystem flag
         """
         if self.has_key(flag):
-            raise ValueError('Flag already set: %s' % flag)
+            raise ValueError('Flag already set: {0}'.format(flag))
 
         self.__setitem__(flag, value)
 
@@ -104,7 +104,7 @@ class MountPoint(SortableContainer):
         self.flags = FileSystemFlags(flags=flags)
 
     def __repr__(self):
-        return '%s mounted on %s' % (self.device,self.path)
+        return '{0} mounted on {1}'.format(self.device,self.path)
 
     @property
     def name(self):
@@ -124,16 +124,16 @@ class MountPoints(list):
         for entry in self:
             if entry.path == item:
                 return entry
-        raise KeyError('No such mountpoint: %s' % item)
+        raise KeyError('No such mountpoint: {0}'.format(item))
 
     def __setitem__(self, item):
         raise NotImplementedError('MountPoints is readonly')
 
-    @property 
+    @property
     def devices(self):
         return [x.device for x in self]
 
-    @property 
+    @property
     def paths(self):
         return [x.path for x in self]
 
