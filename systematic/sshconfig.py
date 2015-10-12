@@ -19,8 +19,7 @@ DEFAULT_AUTHORIZED_KEYS = os.path.expanduser('~/.ssh/authorized_keys')
 SSH_DIR_PERMS = '0700'
 SSH_FILE_PERMS = '0600'
 
-RE_KEYINFO = re.compile('^(?P<bits>[0-9]+) (?P<fingerprint>[0-9a-f:]+) ' +
-                        '(?P<path>.*) \((?P<algorithm>[A-Z0-9-]+)\)$')
+RE_KEYINFO = re.compile('^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$')
 
 class SSHKeyError(Exception):
     pass

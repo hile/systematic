@@ -6,7 +6,7 @@ Script to load and view ssh keys found from user directories
 import os
 
 from systematic.shell import Script, ScriptCommand, ScriptError
-from systematic.sshconfig import UserSSHKeys, SSHConfig
+from systematic.sshconfig import UserSSHKeys, SSHConfig, SSHKeyError
 
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 
@@ -22,7 +22,10 @@ class SSHConfigCommand(ScriptCommand):
         self.config = SSHConfig()
 
         if os.path.isfile(args.config):
-            self.keys.read_config(path=args.config)
+            try:
+                self.keys.read_config(path=args.config)
+            except SSHKeyError, emsg:
+                self.exit(1, 'Error loading {0}: {1}'.format(args.config, emsg))
 
         return args
 
