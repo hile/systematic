@@ -13,8 +13,9 @@ class SQLiteError(Exception):
 
 class SQLiteDatabase(object):
     """
-    Singleton instance sqlite3 file access wrapper
+    Singleton instance sqlite3 file wrapper
     """
+
     def __init__(self, db_path, tables_sql=None, foreign_keys=True):
         """
         Opens given database reference. If tables_sql list is given,
@@ -26,6 +27,7 @@ class SQLiteDatabase(object):
 
         if db_path is None:
             raise SQLiteError('Database path is None')
+
         db_dir = os.path.dirname(db_path)
         if not os.path.isdir(db_dir):
             try:

@@ -1,3 +1,6 @@
+"""
+Parser for nagios/icinga log entries
+"""
 
 import os
 import re
@@ -9,6 +12,7 @@ RE_ICINGA_LOG = [
     re.compile('^\[(?P<epoch>\d+)\] (?P<category>[^:]+): (?P<message>.*)$'),
     re.compile('^\[(?P<epoch>\d+)\] (?P<message>.*)$'),
 ]
+
 
 class IcingaLogEntry(LogEntry):
     def __init__(self, line, year, source_formats):
@@ -33,6 +37,7 @@ class IcingaLogEntry(LogEntry):
             return '{0} {1} {2}'.format(self.time, self.category, self.message)
         else:
             return '{0} {1}'.format(self.time, self.message)
+
 
 class IcingaLog(LogFile):
     lineloader = IcingaLogEntry

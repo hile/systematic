@@ -8,7 +8,7 @@ import re
 import logging
 from subprocess import check_output, CalledProcessError
 
-from systematic.classes import MountPoint, MountPoints, FileSystemFlags, FileSystemError
+from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
 
 PSEUDO_FILESYSTEMS = (
     'proc',
@@ -100,37 +100,34 @@ class LinuxMountPoint(MountPoint):
         }
 
 
-
-class LinuxMountPoints(MountPoints):
+def load_mountpoints():
     """
-    Mount points for linux filesystems
+    Update list of linux mountpoints based on /bin/mount output
     """
-    def update(self):
-        """
-        Update list of linux mountpoints based on /bin/mount output
-        """
-        self.__delslice__(0, len(self))
+    mountpoints = []
 
-        try:
-            output = check_output(['/bin/mount'])
-        except CalledProcessError:
-            raise FileSystemError('Error running /bin/mount')
+    try:
+        output = check_output(['/bin/mount'])
+    except CalledProcessError:
+        raise FileSystemError('Error running /bin/mount')
 
-        for l in [l for l in output.split('\n') if l.strip() != '']:
-            if l[:4] == 'map ':
-                continue
+    for l in [l for l in output.split('\n') if l.strip() != '']:
+        if l[:4] == 'map ':
+            continue
 
-            m = RE_MOUNT.match(l)
-            if not m:
-                continue
+        m = RE_MOUNT.match(l)
+        if not m:
+            continue
 
-            device = m.group(1)
-            mountpoint = m.group(2)
-            filesystem = m.group(3)
-            flags = map(lambda x: x.strip(), m.group(4).split(','))
+        device = m.group(1)
+        mountpoint = m.group(2)
+        filesystem = m.group(3)
+        flags = map(lambda x: x.strip(), m.group(4).split(','))
 
-            entry = LinuxMountPoint(device,mountpoint,filesystem)
-            for f in flags:
-                entry.flags.set(f,True)
+        entry = LinuxMountPoint(device,mountpoint,filesystem)
+        for f in flags:
+            entry.flags.set(f,True)
 
-            self.append(entry)
+        mountpoints.append(entry)
+
+    return mountpoints

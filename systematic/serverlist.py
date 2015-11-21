@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Configuration classes to enumerate servers in an organization & to run
 basic update, non-interactive and interactive shell commands on the servers.

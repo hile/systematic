@@ -7,7 +7,7 @@ import os,re
 from subprocess import check_output,CalledProcessError
 
 from systematic.log import Logger, LoggerError
-from systematic.classes import MountPoint, MountPoints, FileSystemFlags, FileSystemError
+from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
 
 PSEUDO_FILESYSTEMS = [
     'procfs',
@@ -60,38 +60,35 @@ class BSDMountPoint(MountPoint):
             'percent': int(percent)
         }
 
-
-class BSDMountPoints(MountPoints):
+def load_mountpoints():
     """
-    Mount points for freeBSD filesystems
+    Update list of FreeBSD mountpoints based on /sbin/mount output
     """
-    def update(self):
-        """
-        Update list of FreeBSD mountpoints based on /sbin/mount output
-        """
-        self.__delslice__(0, len(self))
+    mountpoints = []
 
-        try:
-            output = check_output(['/sbin/mount'])
-        except CalledProcessError:
-            raise FileSystemError('Error running /sbin/mount')
+    try:
+        output = check_output(['/sbin/mount'])
+    except CalledProcessError:
+        raise FileSystemError('Error running /sbin/mount')
 
-        for l in [l for l in output.split('\n') if l.strip()!='']:
-            if l[:4] == 'map ':
-                continue
+    for l in [l for l in output.split('\n') if l.strip()!='']:
+        if l[:4] == 'map ':
+            continue
 
-            m = RE_MOUNT.match(l)
-            if not m:
-                continue
+        m = RE_MOUNT.match(l)
+        if not m:
+            continue
 
-            device = m.group(1)
-            mountpoint = m.group(2)
-            flags = map(lambda x: x.strip(), m.group(3).split(','))
-            filesystem = flags[0]
-            flags = flags[1:]
+        device = m.group(1)
+        mountpoint = m.group(2)
+        flags = map(lambda x: x.strip(), m.group(3).split(','))
+        filesystem = flags[0]
+        flags = flags[1:]
 
-            entry = BSDMountPoint(device, mountpoint, filesystem)
-            for f in flags:
-                entry.flags.set(f,True)
+        entry = BSDMountPoint(device, mountpoint, filesystem)
+        for f in flags:
+            entry.flags.set(f,True)
 
-            self.append(entry)
+        mountpoints.append(entry)
+
+    return mountpoints

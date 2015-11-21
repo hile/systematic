@@ -2,6 +2,8 @@
 Common wrapper classes
 """
 
+import pwd
+
 from systematic.log import Logger, LoggerError
 
 class SortableContainer(object):
@@ -119,27 +121,47 @@ class MountPoint(SortableContainer):
         raise NotImplementedError('Implement usage() is child class')
 
 
-class MountPoints(list):
-    def __getitem__(self, item):
-        for entry in self:
-            if entry.path == item:
-                return entry
-        raise KeyError('No such mountpoint: {0}'.format(item))
+class Process(SortableContainer):
+    compare_fields = ( 'username', 'pid', )
 
-    def __setitem__(self, item):
-        raise NotImplementedError('MountPoints is readonly')
+    def __init__(self, username, pid, command, kernel_thread=False):
+        self.log = Logger().default_stream
+        self.pid = int(pid)
+        self.command = command
+
+        try:
+            self.uid = int(username)
+            self.username = pwd.getpwuid(self.uid).pw_name
+        except ValueError:
+            self.username = username
+            try:
+                self.uid = pwd.getpwnam(username).pw_uid
+            except KeyError:
+                self.uid = -1
+
+        self.kernel_thread = kernel_thread
+
+    def __repr__(self):
+        return '{0} {1} {2}'.format(self.username, self.pid, self.command)
 
     @property
-    def devices(self):
-        return [x.device for x in self]
+    def basename(self):
+        if self.kernel_thread:
+            return None
+        command = self.command.split()[0]
+        if command.endswith(':'):
+            command = command[:-1]
+        return os.path.basename(command)
 
     @property
-    def paths(self):
-        return [x.path for x in self]
+    def args(self):
+        if self.kernel_thread:
+            return None
 
-    def filter(self, callback):
-        """
-        Return mountpoints matching a callback function
-        """
-        return [x for x in self if callback(x)]
-
+        try:
+            command, args = self.command.split(None, 1)
+            if command[-1] == ':':
+                return args
+            return args.split()
+        except ValueError:
+            return []

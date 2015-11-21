@@ -77,13 +77,16 @@ PLATFORM_IGNORED_DEVICE_MATCHES = {
     ],
 }
 
+
 class SmartError(Exception):
     def __str__(self):
         return self.args[0]
 
+
 def execute(command):
     if not isinstance(command,list):
         raise SmartError('Command to execute must be a list')
+
     try:
         output = check_output(command)
     except CalledProcessError,emsg:
@@ -92,6 +95,7 @@ def execute(command):
     headers = {}
     lines = []
     for l in output.split('\n'):
+
         matched = False
         for name,re_header in HEADERS.items():
             m = re_header.match(l)
@@ -99,35 +103,12 @@ def execute(command):
                 headers[name] = m.groupdict()
                 matched = True
                 break
+
         if not matched:
             lines.append(l)
+
     return lines
 
-class SmartDevices(list):
-    def __init__(self):
-        if not commands.which(CMD):
-            raise SmartError('No such command: {0}'.format(CMD))
-        self.scan()
-
-    def is_ignored(self,device):
-        if sys.platform not in PLATFORM_IGNORED_DEVICE_MATCHES.keys():
-            return False
-        for m in PLATFORM_IGNORED_DEVICE_MATCHES[sys.platform]:
-            if m.match(device):
-                return True
-        return False
-
-    def scan(self):
-        cmd = [CMD,'--scan']
-        for l in [l.strip() for l in execute(cmd) if l.strip()!='']:
-            try:
-                data,comment = [x.strip() for x in l.split('#',1)]
-                device,flags = [x.strip() for x in data.split(None,1)]
-                flags = flags.split()
-                if not self.is_ignored(device):
-                    self.append(SmartDrive(device,flags))
-            except ValueError:
-                raise SmartError('Error parsing line from output: {0}'.format(l))
 
 class SmartDrive(object):
     def __init__(self,device,flags=[]):
@@ -138,11 +119,13 @@ class SmartDrive(object):
 
     def __re_line_matches__(self,regexp,lines):
         matches = []
+
         for l in lines:
             m =regexp.match(l)
             if not m:
                 continue
             matches.append(m.groupdict())
+
         return matches
 
     @property
@@ -159,6 +142,7 @@ class SmartDrive(object):
             '(?P<failed>[^\s]+)',
             '(?P<raw_value>[0-9a-f]+)',
         ]))
+
         re_result = re.compile(re_string)
         matches = self.__re_line_matches__(re_result,execute([CMD,'--format=hex','--attributes',self.device]))
         fields = []
@@ -176,7 +160,9 @@ class SmartDrive(object):
                 m['attribute_name'] = ATTRIBUTE_FIELD_NAME_MAP[m['attribute_name']]
 
             fields.append(m)
+
         fields.sort(lambda x,y: cmp(x['attribute_name'],y['attribute_name']))
+
         return fields
 
     @property
@@ -195,22 +181,27 @@ class SmartDrive(object):
                 details[field] = value
             else:
                 details[m['field']] = m['value']
+
         return details
 
     @property
     def health_status(self):
         re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
+
         matches = self.__re_line_matches__(re_result,execute([CMD,'--health',self.device]))
         if not matches:
             raise SmartError('Did not receive health status line in output')
+
         status = matches[0]['status']
         health = status in ['PASSED'] and True or False
         return health,status
 
     def get_attribute_by_id(self,attribute_id):
         if not isinstance(attribute_id,int):
+
             try:
                 attribute_id = int(attribute_id)
+
             except ValueError:
                 try:
                     attribute_id = int(attribute_id,16)
@@ -220,6 +211,7 @@ class SmartDrive(object):
         for attr in self.attributes:
             if attr['id'] == attribute_id:
                 return attr
+
         return None
 
     def set_smart_status(self,status):
@@ -233,3 +225,35 @@ class SmartDrive(object):
     def set_attribute_autosave(self,status):
         status = status and 'on' or 'off'
         execute([CMD,'--saveauto={0}'.format(status, self.device)])
+
+
+class SmartDevices(list):
+    def __init__(self):
+        if not commands.which(CMD):
+            raise SmartError('No such command: {0}'.format(CMD))
+        self.scan()
+
+    def is_ignored(self,device):
+        if sys.platform not in PLATFORM_IGNORED_DEVICE_MATCHES.keys():
+            return False
+
+        for m in PLATFORM_IGNORED_DEVICE_MATCHES[sys.platform]:
+            if m.match(device):
+                return True
+
+        return False
+
+    def scan(self):
+        cmd = [CMD,'--scan']
+
+        for l in [l.strip() for l in execute(cmd) if l.strip()!='']:
+
+            try:
+                data,comment = [x.strip() for x in l.split('#',1)]
+                device,flags = [x.strip() for x in data.split(None,1)]
+                flags = flags.split()
+                if not self.is_ignored(device):
+                    self.append(SmartDrive(device,flags))
+
+            except ValueError:
+                raise SmartError('Error parsing line from output: {0}'.format(l))

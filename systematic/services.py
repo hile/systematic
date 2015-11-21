@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 Parser for /etc/services file
 """

@@ -8,7 +8,7 @@ import re
 from subprocess import check_output, CalledProcessError
 from mactypes import Alias
 
-from systematic.classes import MountPoint, MountPoints, FileSystemFlags, FileSystemError
+from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
 from systematic.platform.darwin.diskutil import DiskInfo, DiskUtilError
 
 re_mountpoint = re.compile(r'([^\s]*) on (.*) \(([^\)]*)\)$')
@@ -144,45 +144,39 @@ class OSXMountPoint(MountPoint):
         self.diskinfo = DiskInfo(self.device)
 
 
-
-class OSXMountPoints(MountPoints):
+def load_mountpoints():
     """
-    OS X mount points parser
+    Update mount points from /sbin/mount output
     """
+    mountpoints = []
 
-    def update(self):
-        """
-        Update mount points from /sbin/mount output
-        """
-        self.__delslice__(0, len(self))
+    try:
+        output = check_output(['/sbin/mount'])
+    except CalledProcessError, e:
+        raise FileSystemError('Error getting mountpoints: {0}'.format(e))
 
-        try:
-            output = check_output(['/sbin/mount'])
-        except CalledProcessError, e:
-            raise FileSystemError('Error getting mountpoints: {0}'.format(e))
+    for l in [l for l in output.split('\n') if l.strip() != '']:
+        if l[:4] == 'map ':
+            continue
 
-        for l in [l for l in output.split('\n') if l.strip() != '']:
-            if l[:4] == 'map ':
-                continue
+        m = re_mountpoint.match(l)
+        if not m:
+            continue
 
-            m = re_mountpoint.match(l)
-            if not m:
-                continue
+        device = m.group(1)
+        mountpoint = m.group(2)
+        flags = map(lambda x: x.strip(), m.group(3).split(','))
+        filesystem = flags[0]
+        flags = flags[1:]
 
-            device = m.group(1)
-            mountpoint = m.group(2)
-            flags = map(lambda x: x.strip(), m.group(3).split(','))
-            filesystem = flags[0]
-            flags = flags[1:]
+        entry = OSXMountPoint(mountpoint, device, filesystem)
 
-            entry = OSXMountPoint(mountpoint, device, filesystem)
+        for f in flags:
+            if f[:11] == 'mounted by ':
+                entry.flags.set('owner', f[11:])
+            else:
+                entry.flags.set(f, True)
 
-            for f in flags:
-                if f[:11] == 'mounted by ':
-                    entry.flags.set('owner', f[11:])
-                else:
-                    entry.flags.set(f, True)
+        mountpoints.append(entry)
 
-            self.append(entry)
-
-        self.sort()
+        return mountpoints

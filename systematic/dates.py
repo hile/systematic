@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Class to parse and represent local calendar.
 

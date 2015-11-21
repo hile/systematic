@@ -11,51 +11,53 @@ import fnmatch
 from systematic.log import Logger, LoggerError
 
 
-class MountPoints(object):
+class MountPoints(list):
     """
     Thin wrapper to load OS specific implementation for mountpoints
     """
-    __loader = None
     def __init__(self):
-        if MountPoints.__loader is None:
-            if sys.platform[:5] == 'linux':
-                from systematic.platform.linux.filesystems import LinuxMountPoints
-                MountPoints.__loader = LinuxMountPoints()
+        if sys.platform[:5] == 'linux':
+            from systematic.platform.linux.filesystems import load_mountpoints
+            self.loader = load_mountpoints
 
-            elif sys.platform == 'darwin':
-                from systematic.platform.darwin.filesystems import OSXMountPoints
-                MountPoints.__loader = OSXMountPoints()
+        elif sys.platform == 'darwin':
+            from systematic.platform.darwin.filesystems import load_mountpoints
+            self.loader = load_mountpoints
 
-            elif fnmatch.fnmatch(sys.platform, 'freebsd*'):
-                from systematic.platform.bsd.filesystems import BSDMountPoints
-                MountPoints.__loader = BSDMountPoints()
+        elif fnmatch.fnmatch(sys.platform, 'freebsd*'):
+            from systematic.platform.bsd.filesystems import load_mountpoints
+            self.loader = load_mountpoints
 
-            else:
-                raise ValueError('MountPoints loader for OS not available: {0}'.format(sys.platform))
+        else:
+            raise ValueError('MountPoints loader for OS not available: {0}'.format(sys.platform))
 
-        self.__dict__['_MountPoints__loader'] = MountPoints.__loader
-        self.__loader.update()
+        self.update()
 
-    def __getattr__(self, attr):
-        return getattr(self.__loader, attr)
-
-    def __setattr__(self, attr, value):
-        return setattr(self.__loader, attr, value)
-
-    def __getitem__(self, item):
+    def __getitem__(self, name):
         """
         Delegate implementation to OS specific class
         """
-        return self.__loader[item]
+        for mountpoint in self:
+            if mountpoint == name:
+                return mountpoint
+        return None
 
-    def __setitem__(self, item, value):
+    def update(self):
+        self.__delslice__(0, len(self))
+        self.extend(self.loader())
+        self.sort()
+
+    @property
+    def devices(self):
+        return [mountpoint.device for mountpoint in self if hasattr(mountpoint, 'device')]
+
+    @property
+    def paths(self):
+        return [mountpoint.path for mountpoint in self if hasattr(mountpoint, 'path')]
+
+    def filter(self, callback):
         """
-        Delegate implementation to OS specific class
+        Return mountpoints matching a callback function
         """
-        self.__loader[item] = value
+        return [mountpoint for mountpoint in self if callback(mountpoint)]
 
-    def __iter__(self):
-        return self.__loader.__iter__()
-
-    def next(self):
-        return self.__loader.next()
