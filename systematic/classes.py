@@ -2,6 +2,7 @@
 Common wrapper classes
 """
 
+import os
 import pwd
 
 from systematic.log import Logger, LoggerError
