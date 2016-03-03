@@ -1,10 +1,5 @@
-#!/usr/bin/env python
-"""
-Platform indepependent tools for sysadmins.
 
-Platform dependent modules are now split to their own packages.
-"""
-
+import glob
 import sys
 import os
 from setuptools import setup, find_packages
@@ -20,6 +15,7 @@ setup(
     version = __version__,
     license = 'PSF',
     packages = find_packages(),
+    scripts = glob.glob('bin/*'),
     install_requires = (
         'setproctitle',
         'configobj',
