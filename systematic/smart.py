@@ -5,7 +5,7 @@ Parsing of smartctl command output information
 import re
 
 from datetime import datetime,timedelta
-from subprocess import check_output,CalledProcessError,Popen,PIPE
+from systematic.classes import check_output, CalledProcessError
 from systematic.shell import CommandPathCache
 
 commands = CommandPathCache()

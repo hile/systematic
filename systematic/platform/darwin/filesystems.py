@@ -5,7 +5,8 @@ Abstraction of filesystem mount points for OS X
 
 import os
 import re
-from subprocess import check_output, CalledProcessError
+from systematic.classes import check_output, CalledProcessError
+
 from mactypes import Alias
 
 from systematic.classes import MountPoint, FileSystemFlags, FileSystemError

@@ -3,8 +3,9 @@
 Implementation of FreeBSD filesystem mount point parsing
 """
 
-import os,re
-from subprocess import check_output,CalledProcessError
+import os
+import re
+from systematic.classes import check_output, CalledProcessError
 
 from systematic.log import Logger, LoggerError
 from systematic.classes import MountPoint, FileSystemFlags, FileSystemError

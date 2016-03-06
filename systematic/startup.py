@@ -8,7 +8,7 @@ import sys
 import os
 import logging
 import argparse
-from subprocess import check_output, Popen, PIPE
+from subprocess import Popen, PIPE
 
 LOGGING_FORMAT = '%(asctime)s %(name)s %(message)s'
 LOGGING_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"

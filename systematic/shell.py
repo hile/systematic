@@ -13,7 +13,8 @@ import unicodedata
 
 from Queue import Queue, Empty
 
-from subprocess import check_output, CalledProcessError, Popen, PIPE
+from systematic.classes import check_output, CalledProcessError
+from subprocess import Popen, PIPE
 from setproctitle import setproctitle
 
 from systematic.log import Logger
