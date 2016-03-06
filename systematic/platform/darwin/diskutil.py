@@ -59,7 +59,7 @@ class DiskInfo(dict):
         """
         Return keys as sorted list
         """
-        return sorted(dict.keys(self))
+        return sorted(super(DiskInfo, self).keys())
 
     def items(self):
         """

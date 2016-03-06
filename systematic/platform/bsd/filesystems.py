@@ -24,7 +24,7 @@ class BSDMountPoint(MountPoint):
     Additional attributes:
     """
     def __init__(self, device, mountpoint, filesystem):
-        MountPoint.__init__(self, device, mountpoint, filesystem)
+        super(BSDMountPoint, self).__init__(device, mountpoint, filesystem)
 
     @property
     def is_virtual(self):

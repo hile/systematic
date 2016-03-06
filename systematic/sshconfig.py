@@ -200,7 +200,7 @@ class UserSSHKeys(dict):
         """
         Return key filenames as sorted list
         """
-        return sorted(dict.keys(self))
+        return sorted(super(UserSSHKeys, self).keys())
 
     def items(self):
         """
@@ -263,7 +263,57 @@ class UserSSHKeys(dict):
         else:
             self.log.debug('All SSH keys were already loaded to SSH agent')
 
-class AuthorizedKeys(dict):
+
+class OpenSSHPublicKey(dict):
+    def __init__(self, line):
+        self.line = line
+
+        parts = line.split()
+
+        if parts[0][0] in string.digits and len(parts) == 4:
+            self['keyformat'] = 1
+            self['bits'] = int(parts[0])
+            self['exponent'] = parts[1]
+            self['modulus'] = parts[2]
+            self['comment'] = parts[3]
+            self['options'] = None
+
+        elif parts[0] in ( 'ssh-dsa', 'ssh-rsa', ):
+            self['keyformat'] = 2
+            self['keytype'] = parts[0]
+            self['key_base64'] = parts[1]
+            self['comment'] = len(parts) > 2 and parts[2] or ''
+            self['options'] = None
+
+        else:
+            self['options'] = parts[0]
+            parts = parts[1:]
+
+            if not parts:
+                raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
+
+            if parts[0] in ( 'ssh-dsa', 'ssh-rsa', ) and len(parts) ==  3:
+                self['keyformat'] = 2
+                self['keytype'] = parts[0]
+                self['key_base64'] = parts[1]
+                self['comment'] = parts[2]
+
+            elif parts[0] in string.digits:
+                self['keyformat'] = 1
+                self['keyformat'] = 1
+                self['bits'] = int(parts[0])
+                self['exponent'] = parts[1]
+                self['modulus'] = parts[2]
+                self['comment'] = parts[3]
+
+        if not self.keys():
+            raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
+
+    def __repr__(self):
+        return self.line
+
+
+class AuthorizedKeys(list):
     """
     Parser for OpenSSH authorized_keys file contents
     """
@@ -281,53 +331,20 @@ class AuthorizedKeys(dict):
 
         See man sshd for details.
         """
-        self.clear()
+        self.__delslice__(0, len(self))
+
         if not os.path.isfile(self.path):
             self.log.debug('No such file: {0}'.format(self.path))
             return
 
-        for l in [l.rstrip() for l in open(self.path, 'r').readlines()]:
-            if l.startswith('#') or l.strip() == '':
+        for line in [l.rstrip() for l in open(self.path, 'r').readlines()]:
+            if line.startswith('#') or line.strip() == '':
                 continue
 
-            entry = {}
-            parts = l.split()
-
-            if parts[0][0] in string.digits and len(parts) == 4:
-                entry['keyformat'] = 1
-                entry['bits'] = int(parts[0])
-                entry['exponent'] = parts[1]
-                entry['modulus'] = parts[2]
-                entry['comment'] = parts[3]
-                entry['options'] = None
-
-            elif parts[0] in ( 'ssh-dsa', 'ssh-rsa', ):
-                entry['keyformat'] = 2
-                entry['keytype'] = parts[0]
-                entry['key_base64'] = parts[1]
-                entry['comment'] = len(parts) > 2 and parts[2] or ''
-                entry['options'] = None
-
-            else:
-                entry['options'] = parts[0]
-                parts = parts[1:]
-
-                if not parts:
-                    continue
-
-                if parts[0] in ( 'ssh-dsa', 'ssh-rsa', ) and len(parts) ==  3:
-                    entry['keyformat'] = 2
-                    entry['keytype'] = parts[0]
-                    entry['key_base64'] = parts[1]
-                    entry['comment'] = parts[2]
-
-                elif parts[0] in string.digits:
-                    entry['keyformat'] = 1
-                    entry['keyformat'] = 1
-                    entry['bits'] = int(parts[0])
-                    entry['exponent'] = parts[1]
-                    entry['modulus'] = parts[2]
-                    entry['comment'] = parts[3]
+            try:
+                self.append(OpenSSHPublicKey(line))
+            except SSHKeyError:
+                pass
 
 
 class SSHConfigHost(dict):
@@ -359,8 +376,8 @@ class SSHConfigHost(dict):
         raise AttributeError
 
     def __getitem__(self, item):
-        if item in dict.keys(self):
-            return dict.__getitem__(self, item)
+        if item in super(SSHConfigHost, self).keys():
+            return super(SSHConfigHost, self).__getitem__(item)
         else:
             return self.config.defaults[item]
 
@@ -397,25 +414,25 @@ class SSHConfigHost(dict):
             return False
 
     def keys(self):
-        return sorted(set(dict.keys(self) + self.config.defaults.keys()))
+        return sorted(super(SSHConfigHost, self).keys() + self.config.defaults.keys())
 
     def items(self):
         items = []
-        for k in self.keys():
-            if k in dict.keys(self):
-                items.append((k, self[k]))
+        for key in self.keys():
+            if key in super(SSHConfigHost, self).keys():
+                items.append((key, self[key]))
             else:
-                items.append((k, self.config.defaults[k]))
+                items.append((key, self.config.defaults[key]))
 
         return items
 
     def values(self):
         items = []
-        for k in self.keys():
-            if k in dict.keys(self):
-                items.append(self[k])
+        for key in self.keys():
+            if key in super(SSHConfigHost, self).keys():
+                items.append(self[key])
             else:
-                items.append(self.config.defaults[k])
+                items.append(self.config.defaults[key])
 
         return items
 
@@ -450,7 +467,7 @@ class SSHConfig(dict):
             self.defaults.update(self.pop('*').items())
 
     def keys(self):
-        return [k for k in sorted(dict.keys(self))]
+        return [k for k in sorted(super(SSHConfig, self).keys())]
 
     def items(self):
         return [(k, self[k]) for k in self.keys()]

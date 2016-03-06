@@ -26,7 +26,7 @@ class OSXMountPoint(MountPoint):
     hfspath     Returns OS X 'hfs path' or None
     """
     def __init__(self, mountpoint, device=None, filesystem=None):
-        MountPoint.__init__(self, device, mountpoint, filesystem)
+        super(OSXMountPoint, self).__init__(device, mountpoint, filesystem)
 
         try:
             self.hfspath = Alias(self.mountpoint).hfspath

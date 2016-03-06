@@ -40,18 +40,18 @@ class LinuxMountPoint(MountPoint):
     label       Filesystem label
     """
     def __init__(self,device,mountpoint,filesystem):
-        MountPoint.__init__(self,device,mountpoint,filesystem)
+        super(LinuxMountPoint, self).__init__(device, mountpoint, filesystem)
 
         if self.device[:len(DM_PREFIX)] == DM_PREFIX:
             for name in os.listdir(MAPPER_PATH):
-                dev = os.path.realpath(os.path.join(MAPPER_PATH,name))
+                dev = os.path.realpath(os.path.join(MAPPER_PATH, name))
                 if name == os.path.basename(self.device):
                     self.device = dev
                     break
 
         self.uuid = None
         for uuid in os.listdir(UUID_PATH):
-            dev = os.path.realpath(os.path.join(UUID_PATH,uuid))
+            dev = os.path.realpath(os.path.join(UUID_PATH, uuid))
             if dev == self.device:
                 self.uuid = uuid
                 break
@@ -59,7 +59,7 @@ class LinuxMountPoint(MountPoint):
         self.label = None
         if os.path.isdir(LABEL_PATH):
             for label in os.listdir(LABEL_PATH):
-                dev = os.path.realpath(os.path.join(LABEL_PATH,label))
+                dev = os.path.realpath(os.path.join(LABEL_PATH, label))
                 if dev == self.device:
                     self.label = label
                     break
@@ -78,17 +78,17 @@ class LinuxMountPoint(MountPoint):
             return {}
 
         try:
-            output = check_output(['df','-k',self.mountpoint])
+            output = check_output( ('df', '-k', self.mountpoint, ) )
         except CalledProcessError:
             raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
-        (header,usage) = output.split('\n',1)
+        (header,usage) = output.split('\n', 1)
 
         try:
             usage = ' '.join(usage.split('\n'))
         except ValueError:
             pass
 
-        (fs,size,used,free,percent,mp) = [x.strip() for x in usage.split()]
+        fs, size, used, free, percent, mp = [x.strip() for x in usage.split()]
         percent = percent.rstrip('%')
 
         return {

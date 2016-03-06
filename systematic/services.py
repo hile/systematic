@@ -17,7 +17,6 @@ class ServiceListEntry(list):
     Class representing exactly one port, protocol pair from /etc/services
     """
     def __init__(self, port, protocol, names):
-        list.__init__(self)
         self.port = int(port)
         self.protocol = protocol.upper()
         if isinstance(names, basestring):
@@ -78,7 +77,7 @@ class ServiceList(dict):
         """
         Return services sorted by name
         """
-        return sorted(dict.keys(self))
+        return sorted(super(ServiceList, self).keys())
 
     def items(self):
         """

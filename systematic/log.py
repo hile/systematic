@@ -585,7 +585,7 @@ class LogFile(list):
         Reload file, clearing existing entries
 
         """
-        list.__delslice__(self, 0, len(self))
+        self.__delslice__(0, len(self))
         self.__loaded = False
         while True:
             try:
@@ -783,7 +783,7 @@ class LogfileTailReader(TailReader):
 
     """
     def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS, lineparser=LogEntry):
-        TailReader.__init__(self, path, fd)
+        super(LogfileTailReader, self).__init__(wpath, fd)
         self.source_formats = source_formats
         self.lineparser = lineparser
 
