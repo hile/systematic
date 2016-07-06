@@ -5,6 +5,7 @@ More user friendly smartctl status command
 """
 
 import fnmatch
+import os
 
 from systematic.shell import Script, ScriptCommand
 from systematic.smart import SmartCtlClient, ATTRIBUTE_COMMON_FIELDS
@@ -22,11 +23,13 @@ class SmartCommand(ScriptCommand):
 
         self.client.scan()
 
-        if 'pattern' in args and args.pattern:
+        if 'patterns' in args and args.patterns:
             self.drives = []
             for drive in self.client.drives:
-                if fnmatch.fnmatch(drive.name, args.pattern):
-                    self.drives.append(drive)
+                for pattern in args.patterns:
+                    if fnmatch.fnmatch(drive.name, os.path.basename(pattern)):
+                        self.drives.append(drive)
+                        break
 
         else:
             self.drives = self.client.drives
@@ -64,9 +67,9 @@ class InfoCommand(SmartCommand):
 script = Script()
 
 c = script.add_subcommand(ListCommand('list', 'List drives with S.M.A.R.T. support'))
-c.add_argument('pattern', nargs='*', help='Drives matching pattern')
+c.add_argument('patterns', nargs='*', help='Drives matching pattern')
 
 c = script.add_subcommand(InfoCommand('info', 'Show basic info for drives'))
-c.add_argument('pattern', nargs='*', help='Drives matching pattern')
+c.add_argument('patterns', nargs='*', help='Drives matching pattern')
 
 args = script.parse_args()
