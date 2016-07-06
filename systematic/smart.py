@@ -2,7 +2,9 @@
 Parsing of smartctl command output information
 """
 
+import os
 import re
+import sys
 
 from datetime import datetime,timedelta
 from systematic.classes import check_output, CalledProcessError
@@ -11,113 +13,167 @@ from systematic.shell import CommandPathCache
 commands = CommandPathCache()
 commands.update()
 
-CMD = 'smartctl'
 HEADERS = {
     'version': re.compile('^smartctl\s+(?P<version>[^\s]+)\s+(?P<date>[0-9-]+)\s+(?P<release>[^\s]+)\s+(?P<build>.*)$'),
     'copyright': re.compile('^Copyright\s+\(C\)\s+(?P<copyright>.*)$'),
 }
+
 INFO_FIELD_MAP = {
-    'ATA Version is':       'ata_version',
-    'Device Model':         'device_model',
-    'Device is':            'device_smart',
-    'Firmware Version':     'firmware_version',
-    'LU WWN Device Id':     'lu_wwn_device_id',
-    'Local Time is':        'local_time',
-    'Model Family':         'model_family',
-    'Rotation Rate':        'rpm',
-    'SATA Version is':      'smart_version',
-    'SMART support is':     'smart_support',
-    'Sector Sizes':         'sector_sizes',
-    'Sector Size':          'sector_size',
-    'Serial Number':        'serial_number',
-    'User Capacity':        'user_capacity',
-}
-INFO_FIELD_PARSERS = {
-    'local_time':           lambda x: datetime.strptime(x,'%a %b %d %H:%M:%S %Y %Z'),
-    'smart_support':        lambda x: x=='Enabled',
-    'user_capacity':        lambda x: long(x.replace(',','').split()[0]),
+    'ATA Version is':       'ATA version',
+    'Device Model':         'Device model',
+    'Firmware Version':     'Firmware version',
+    'LU WWN Device Id':     'LU WWN device ID',
+    'Local Time is':        'Date',
+    'Model Family':         'Model family',
+    'Rotation Rate':        'Rotation rate',
+    'SATA Version is':      'SATA version',
+    'SMART support is':     'SMART status',
+    'Sector Sizes':         'Sector sizes',
+    'Sector Size':          'Sector size',
+    'Serial Number':        'Serial number',
+    'User Capacity':        'User capacity',
 }
 
+INFO_FIELD_PARSERS = {
+    'Date':                 lambda x: datetime.strptime(x, '%a %b %d %H:%M:%S %Y %Z'),
+    'SMART status':         lambda x: x == 'Enabled',
+    'User capacity':        lambda x: long(x.replace(',', '').split()[0]),
+}
+
+INFO_COMMON_FIELDS = (
+    'Device model',
+    'Serial number',
+    'Firmware version',
+    'Model family',
+    'User capacity',
+    'Sector size',
+    'Sector sizes',
+)
+
 ATTRIBUTE_FIELD_NAME_MAP = {
-    'airflow_temperature_cel':  'airflow_temperature',
-    'calibration_retry_count':  'calibration_retries',
-    'current_pending_sector':   'pending_sectors',
-    'erase_fail_count':         'erase_failures',
-    'erase_fail_count_total':   'total_erase_failures',
-    'load_cycle_count':         'load_cycles',
-    'reallocated_sector_ct':    'reallocated_sectors',
-    'unexpect_power_loss_ct':   'unexpected_power_loss_count',
-    'power_cycle_count':        'power_cycles',
-    'power-off_retract_count':  'power_off_retracts',
-    'program_fail_count':       'program_failures',
-    'program_fail_cnt_total':   'total_program_failures',
-    'reallocated_event_count':  'reallocated_events',
-    'reported_uncorrect':       'reported_uncorrectable',
-    'retired_block_count':      'retired_blocks',
-    'runtime_bad_block':        'runtime_bad_blocks',
-    'spin_retry_count':         'spin_retries',
-    'start_stop_count':         'start_stop_cycles',
-    'total_lbas_written':       'total_lba_write',
-    'udma_crc_error_count':     'udma_crc_errors',
-    'unexpected_power_loss_count': 'unexpected_power_loss',
-    'used_rsvd_blk_cnt_tot':    'total_used_reserved_blocks',
-    'wear_leveling_count':      'wear_leveling_cycles',
+    'airflow_temperature_cel':      'Airflow temperature',
+    'calibration_retry_count':      'Calibration retries',
+    'current_pending_sector':       'Current pending sectors',
+    'crc_error_count':              'CRC errors',
+    'ecc_error_rate':               'ECC error rate',
+    'erase_fail_count':             'Erase fail',
+    'erase_fail_count_total':       'Erase fail total',
+    'load_cycle_count':             'Load cycles',
+    'multi_zone_error_rate':        'Multi-Zone error rate',
+    'reallocated_sector_ct':        'Reallocated sectors',
+    'power_on_hours':               'Power on hours',
+    'power_cycle_count':            'Power cycles',
+    'power-off_retract_count':      'Power-off retracts',
+    'program_fail_count':           'Program failures',
+    'program_fail_cnt_total':       'Program failures total',
+    'offline_uncorrectable':        'Offline uncorrectable',
+    'raw_read_error_rate':          'Raw read error rate',
+    'reallocated_event_count':      'Reallocated events',
+    'reported_uncorrect':           'Reported uncorrectable',
+    'retired_block_count':          'Retired blocks',
+    'runtime_bad_block':            'Runtibe bad blocks',
+    'POR_Recovery_Count':           'POR recoveries',
+    'seek_error_rate':              'Seek error rate',
+    'spin_retry_count':             'Spin retries',
+    'spin_up_time':                 'Spin up time',
+    'start_stop_count':             'Start-stop count',
+    'temperature_celsius':          'Temperature',
+    'total_lbas_written':           'Total LBAs written',
+    'udma_crc_error_count':         'UDMA CRC errors',
+    'uncorrectable_error_cnt':      'Uncorrectable errors',
+    'unexpect_power_loss_ct':       'Unexpected power losses',
+    'unexpected_power_loss_count':  'Unexpected power losses',
+    'used_rsvd_blk_cnt_tot':        'Used reserved blocks total',
+    'wear_leveling_count':          'Wear levelings',
 }
 
 ATTRIBUTE_FIELD_MAP_PARSERS = {
     'attribute_name':       lambda x: x.lower(),
-    'failed':               lambda x: x!='-',
+    'failed':               lambda x: x != '-',
     'type':                 lambda x: x.lower(),
     'updated':              lambda x: x.lower(),
 }
 
+ATTRIBUTE_COMMON_FIELDS = (
+    'power_on_hours',
+    'total_lbas_written',
+    'airflow_temperature_cel',
+    'temperature_celsius',
+    'seek_error_rate',
+    'uncorrectable_error_cnt',
+    'crc_error_count',
+    'udma_crc_error_count',
+    'ecc_error_rate',
+)
+
+
 PLATFORM_IGNORED_DEVICE_MATCHES = {
-    'freebsd9':     [
+    'freebsd9': [
+        re.compile('^/dev/ses[0-9]+$'),
+    ],
+    'freebsd10': [
         re.compile('^/dev/ses[0-9]+$'),
     ],
 }
 
 
 class SmartError(Exception):
-    def __str__(self):
-        return self.args[0]
+    pass
 
 
-def execute(command):
-    if not isinstance(command,list):
-        raise SmartError('Command to execute must be a list')
+class SmartInfoField(object):
+    """SMART info
 
-    try:
-        output = check_output(command)
-    except CalledProcessError,emsg:
-        raise SmartError('Error executing {0}: {1}'.format(' '.join(command), emsg))
+    SMART info for a drive, parsing the free-form text details
+    """
+    def __init__(self, drive, field, value):
+        self.drive = drive
+        self.field = field
+        self.value = value
 
-    headers = {}
-    lines = []
-    for l in output.split('\n'):
+    def __repr__(self):
+        return '{0}'.format(self.value)
 
-        matched = False
-        for name,re_header in HEADERS.items():
-            m = re_header.match(l)
-            if m:
-                headers[name] = m.groupdict()
-                matched = True
-                break
 
-        if not matched:
-            lines.append(l)
+class SmartAttribute(dict):
+    """SMART attribute
 
-    return lines
+    SMART counter attribute for drive
+    """
+    def __init__(self, drive, name, description, **attributes):
+        self.drive = drive
+        self.name = name
+        self.description = description
+        self.update(**attributes)
+
+    def __repr__(self):
+        return '{0} {1}'.format(self.description, self['raw_value'])
 
 
 class SmartDrive(object):
-    def __init__(self,device,flags=[]):
-        self.device = device
+    """SMART drive
 
-    def __str__(self):
+    One drive in SMART data
+    """
+
+    def __init__(self, client, device, flags=[]):
+        self.client = client
+        self.device = device
+        self.name = os.path.basename(device)
+
+    def __repr__(self):
         return self.device
 
-    def __re_line_matches__(self,regexp,lines):
+    def __cmp__(self, other):
+        if isinstance(other, basestring):
+            return cmp(self.device, other)
+        return cmp(self.device, other.device)
+
+    def __re_line_matches__(self, regexp, lines):
+        """Lines pattern matching
+
+        Returns re groupdict matches for lines matching regexp
+        """
         matches = []
 
         for l in lines:
@@ -129,8 +185,27 @@ class SmartDrive(object):
         return matches
 
     @property
-    def attributes(self):
-        re_string = '^{0}$'.format('\s+'.join([
+    def is_healthy(self):
+        """Return True if drive is healthy
+
+        Currently health check just checks if health status is 'PASSED'
+        """
+
+        re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
+        matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--health', self.device ]))
+        if not matches:
+            raise SmartError('Did not receive health status line in output')
+
+        status = matches[0]['status']
+        return status in ['PASSED'] and True or False
+
+    def get_attributes(self):
+        """Smart attributes
+
+        Return smart attributes for drive
+        """
+
+        re_match = re.compile('^{0}$'.format('\s+'.join([
             '(?P<id>0x[0-9a-f]+)',
             '(?P<attribute_name>[^\s]+)',
             '(?P<flag>0x[0-9a-f]+)',
@@ -141,14 +216,26 @@ class SmartDrive(object):
             '(?P<updated>[^\s]+)',
             '(?P<failed>[^\s]+)',
             '(?P<raw_value>[0-9a-f]+)',
-        ]))
+        ])))
+        matches = self.__re_line_matches__(re_match,
+            self.client.execute([ 'smartctl', '--format=hex', '--attributes', self.device ])
+        )
 
-        re_result = re.compile(re_string)
-        matches = self.__re_line_matches__(re_result,execute([CMD,'--format=hex','--attributes',self.device]))
-        fields = []
+        attributes = {}
         for m in matches:
+
+            if 'attribute_name' not in m:
+                continue
+
+            name = m['attribute_name']
+            try:
+                description = ATTRIBUTE_FIELD_NAME_MAP[m['attribute_name'].lower()]
+            except KeyError:
+                description = name
+
             for k in ('id','flag','value','worst','threshold'):
-                m[k] = int(m[k],16)
+                m[k] = int(m[k], 16)
+
             m['raw_value'] = int(m['raw_value'])
 
             for k in m.keys():
@@ -156,84 +243,119 @@ class SmartDrive(object):
                     continue
                 m[k] = ATTRIBUTE_FIELD_MAP_PARSERS[k](m[k])
 
-            if m['attribute_name'] in ATTRIBUTE_FIELD_NAME_MAP.keys():
-                m['attribute_name'] = ATTRIBUTE_FIELD_NAME_MAP[m['attribute_name']]
+            attributes[name.lower()] = SmartAttribute(self, name, description, **m)
 
-            fields.append(m)
+        return attributes
 
-        fields.sort(lambda x,y: cmp(x['attribute_name'],y['attribute_name']))
+    def get_overview(self):
+        """Return common info fields
+
+        Returns common info fields in default order
+        """
+        info = self.get_info()
+
+        fields = []
+        for key in INFO_COMMON_FIELDS:
+            try:
+                fields.append(info[key])
+            except KeyError:
+                continue
 
         return fields
 
-    @property
-    def info(self):
-        re_result = re.compile('^(?P<field>[^:]+):\s+(?P<value>.*)$')
-        matches = self.__re_line_matches__(re_result,execute([CMD,'--info',self.device]))
-        details = {}
+    def get_info(self):
+        """Return drive info
 
+        Returns all known info fields
+        """
+
+        re_result = re.compile('^(?P<field>[^:]+):\s+(?P<value>.*)$')
+        matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--info', self.device ]))
+
+        details = {}
         for m in matches:
-            if m['field'] in INFO_FIELD_MAP.keys():
-                field = INFO_FIELD_MAP[m['field']]
-                if field in INFO_FIELD_PARSERS.keys():
-                    value = INFO_FIELD_PARSERS[field](m['value'])
-                else:
-                    value = m['value']
-                details[field] = value
+
+            try:
+                name = INFO_FIELD_MAP[m['field']]
+            except KeyError:
+                continue
+
+            if name in INFO_FIELD_PARSERS.keys():
+                value = INFO_FIELD_PARSERS[name](m['value'])
             else:
-                details[m['field']] = m['value']
+                value = m['value']
+
+            details[name] = SmartInfoField(self, name, value)
 
         return details
 
-    @property
-    def health_status(self):
-        re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
+    def set_smart_status(self, enabled):
+        """Set SMART enabled status
 
-        matches = self.__re_line_matches__(re_result,execute([CMD,'--health',self.device]))
-        if not matches:
-            raise SmartError('Did not receive health status line in output')
+        Enable or disable SMART on drive
+        """
+        self.client.execute( [ 'smartctl', '--smart={0}'.format(enabled and 'on' or 'off', self.device) ] )
 
-        status = matches[0]['status']
-        health = status in ['PASSED'] and True or False
-        return health,status
+    def set_offline_testing(self, enabled):
+        """Set SMART offline testing status
 
-    def get_attribute_by_id(self,attribute_id):
-        if not isinstance(attribute_id,int):
+        Enable or disable SMART offline testing on drive
+        """
+        execute( [ 'smartctl', '--offlineauto={0}'.format(enabled and 'on' or 'off', self.device) ] )
 
-            try:
-                attribute_id = int(attribute_id)
+    def set_attribute_autosave(self, enabled):
+        """Set SMART attribute autosave
 
-            except ValueError:
-                try:
-                    attribute_id = int(attribute_id,16)
-                except ValueError:
-                    raise SmartError('Invalid attribute_id value: {0}'.format(attribute_id))
-
-        for attr in self.attributes:
-            if attr['id'] == attribute_id:
-                return attr
-
-        return None
-
-    def set_smart_status(self,status):
-        status = status and 'on' or 'off'
-        execute([CMD,'--smart={0}'.format(status, self.device)])
-
-    def set_offline_testing(self,status):
-        status = status and 'on' or 'off'
-        execute([CMD,'--offlineauto={0}'.format(status, self.device)])
-
-    def set_attribute_autosave(self,status):
-        status = status and 'on' or 'off'
-        execute([CMD,'--saveauto={0}'.format(status, self.device)])
+        Enable or disable SMART attribute autosave on drive
+        """
+        execute( [ 'smartctl', '--saveauto={0}'.format(enabled and 'on' or 'off', self.device) ] )
 
 
-class SmartDevices(list):
+class SmartCtlClient(object):
+    """Client for smartctl
+
+    API to enumerate SMART supported drives
+    """
+
     def __init__(self):
-        if not commands.which(CMD):
-            raise SmartError('No such command: {0}'.format(CMD))
-        self.scan()
+        if not commands.which('smartctl'):
+            raise SmartError('No such command: smartctl')
+        self.drives = []
 
-    def is_ignored(self,device):
+    def execute(self, command):
+        """Execute smartctl commands
+
+        Generic wrapper to execute smartctl commands
+        """
+
+        try:
+            output = check_output(command)
+        except CalledProcessError,emsg:
+            raise SmartError('Error executing {0}: {1}'.format(' '.join(command), emsg))
+
+        headers = {}
+        lines = []
+        for l in output.split('\n'):
+
+            matched = False
+            for name,re_header in HEADERS.items():
+                m = re_header.match(l)
+                if m:
+                    headers[name] = m.groupdict()
+                    matched = True
+                    break
+
+            if not matched:
+                lines.append(l)
+
+        return lines
+
+    def is_ignored(self, device):
+        """Check if given drive is ignored
+
+        Certain SMART supported drives are ignored on some platforms by device name
+        """
+
         if sys.platform not in PLATFORM_IGNORED_DEVICE_MATCHES.keys():
             return False
 
@@ -244,16 +366,23 @@ class SmartDevices(list):
         return False
 
     def scan(self):
-        cmd = [CMD,'--scan']
+        """Scan for drives
 
-        for l in [l.strip() for l in execute(cmd) if l.strip()!='']:
+        Scan for smart drives
+        """
+
+        self.drives = []
+
+        for line in [line.strip() for line in self.execute( ['smartctl', '--scan' ] ) if line.strip() != '']:
 
             try:
-                data,comment = [x.strip() for x in l.split('#',1)]
-                device,flags = [x.strip() for x in data.split(None,1)]
+                data, comment = [x.strip() for x in line.split('#', 1)]
+                device, flags = [x.strip() for x in data.split(None, 1)]
                 flags = flags.split()
                 if not self.is_ignored(device):
-                    self.append(SmartDrive(device,flags))
+                    self.drives.append(SmartDrive(self, device, flags))
 
             except ValueError:
-                raise SmartError('Error parsing line from output: {0}'.format(l))
+                raise SmartError('Error parsing line from output: {0}'.format(line))
+
+        self.drives.sort()

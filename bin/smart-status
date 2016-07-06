@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+USAGE = """S.M.A.R.T status
+
+More user friendly smartctl status command
+"""
+
+import fnmatch
+
+from systematic.shell import Script, ScriptCommand
+from systematic.smart import SmartCtlClient, ATTRIBUTE_COMMON_FIELDS
+
+
+class SmartCommand(ScriptCommand):
+    def __init__(self, *args, **kwargs):
+        super(SmartCommand, self).__init__(*args, **kwargs)
+        self.client = SmartCtlClient()
+
+    def parse_args(self, args):
+        """Parse common args
+
+        """
+
+        self.client.scan()
+
+        if 'pattern' in args and args.pattern:
+            self.drives = []
+            for drive in self.client.drives:
+                if fnmatch.fnmatch(drive.name, args.pattern):
+                    self.drives.append(drive)
+
+        else:
+            self.drives = self.client.drives
+
+        return args
+
+
+class ListCommand(SmartCommand):
+    def run(self, args):
+        args = self.parse_args(args)
+
+        for drive in self.drives:
+            self.message(drive)
+
+
+class InfoCommand(SmartCommand):
+    def run(self, args):
+        args = self.parse_args(args)
+
+        for drive in self.drives:
+            self.message('{0}'.format(drive.device))
+            for info in drive.get_overview():
+                self.message('  {0:20} {1}'.format(info.field, info.value))
+            self.message('  {0:20} {1}'.format('Drive health', drive.is_healthy and 'Healthy' or 'FAILING'))
+
+            attributes = drive.get_attributes()
+            for key in ATTRIBUTE_COMMON_FIELDS:
+                try:
+                    attribute = attributes[key]
+                except KeyError:
+                    continue
+                script.message('  {0:20} {1}'.format(attribute.description, attribute['raw_value']))
+
+
+script = Script()
+
+c = script.add_subcommand(ListCommand('list', 'List drives with S.M.A.R.T. support'))
+c.add_argument('pattern', nargs='*', help='Drives matching pattern')
+
+c = script.add_subcommand(InfoCommand('info', 'Show basic info for drives'))
+c.add_argument('pattern', nargs='*', help='Drives matching pattern')
+
+args = script.parse_args()
