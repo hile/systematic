@@ -365,6 +365,21 @@ class SmartCtlClient(object):
 
         return False
 
+    def find_drive(self, device):
+        """Find drive by name
+
+        Matches device name with full path or basename, returns drive if found or None
+        """
+        for drive in self.drives:
+            if isinstance(device, SmartDrive):
+                if drive == device:
+                    return drive
+
+            elif drive.device == device or drive.name == os.path.basename(device):
+                return drive
+
+        return None
+
     def scan(self):
         """Scan for drives
 
