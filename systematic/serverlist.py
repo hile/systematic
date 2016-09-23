@@ -38,29 +38,35 @@ class Server(object):
         else:
             return '{0}'.format(self.name)
 
-    def __cmp__(self, other):
-        if isinstance(other, basestring):
-            return cmp(self.name, other)
-
-        return cmp(self, other)
-
     def __eq__(self, other):
-        return self.__cmp__(other) == 0
+        if isinstance(other, str):
+            return self.name == other
+        return self.name == other.name
 
     def __ne__(self, other):
-        return self.__cmp__(other) != 0
+        if isinstance(other, str):
+            return self.name != other
+        return self.name != other.name
 
     def __gt__(self, other):
-        return self.__cmp__(other) > 0
-
-    def __gte__(self, other):
-        return self.__cmp__(other) >= 0
+        if isinstance(other, str):
+            return self.name > other
+        return self.name > other.name
 
     def __lt__(self, other):
-        return self.__cmp__(other) < 0
+        if isinstance(other, str):
+            return self.name < other
+        return self.name < other.name
 
-    def __lte__(self, other):
-        return self.__cmp__(other) <= 0
+    def __ge__(self, other):
+        if isinstance(other, str):
+            return self.name >= other
+        return self.name >= other.name
+
+    def __le__(self, other):
+        if isinstance(other, str):
+            return self.name <= other
+        return self.name <= other.name
 
     @property
     def connect_command(self):
@@ -178,7 +184,7 @@ class OperatingSystemGroup(object):
         return self._connect_command
     @connect_command.setter
     def connect_command(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             value = value.split()
         self._connect_command = value
         self.modified = True
@@ -188,7 +194,7 @@ class OperatingSystemGroup(object):
         return self._update_commands
     @update_command.setter
     def update_commands(self, value):
-        if isinstance(value, basestring):
+        if isinstance(value, str):
             value = [value]
         self._update_commands = value
         self.modified = True
@@ -243,12 +249,12 @@ class ServerConfigFile(object):
 
         try:
             config  = ConfigObj(self.path)
-        except ValueError, emsg:
-            raise ValueError('Error parsing {0}: {1}'.format(self.path, emsg))
+        except ValueError as e:
+            raise ValueError('Error parsing {0}: {1}'.format(self.path, e))
 
         osgroup = None
         for key, section in config.items():
-            if section.has_key('commands'):
+            if 'commands' in section:
                 if key in self.servers:
                     raise ValueError('Duplicate OS group name: {0}'.format(key))
                 osgroup = OperatingSystemGroup(self, key, **section)

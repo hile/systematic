@@ -18,23 +18,28 @@ parser = ET.XMLParser(remove_blank_text=True, remove_comments=args.remove_commen
 for path in args.paths:
     try:
         tree = ET.parse(path, parser=parser)
-    except IOError, error:
+    except IOError as error:
         script.message(str(error))
         continue
-    except XMLSyntaxError, emsg:
+
+    except XMLSyntaxError as emsg:
         script.message(emsg)
         continue
+
     if args.replace:
+
         output = ET.tostring(tree, pretty_print=True)
         old = open(path, 'r').read()
         if old!=output:
             try:
                 script.log.debug('Writing file: {0}'.format(path))
                 open(path, 'w').write(ET.tostring(tree, pretty_print=True))
-            except IOError, (ecode, emsg):
-                script.exit(1, 'Error writing to file {0}: {1}'.format(path, emsg))
+            except IOError as e:
+                script.exit(1, 'Error writing to file {0}: {1}'.format(path, e))
+
         else:
             script.log.debug('XML tree was not modified, not writing')
+
     else:
         print ET.tostring(tree, pretty_print=True)
 

@@ -51,8 +51,8 @@ class ServersCommand(ScriptCommand):
             config = USER_CONFIG
         try:
             self.config = ServerConfigFile(config)
-        except ValueError, emsg:
-            self.script.exit(1, emsg)
+        except ValueError as e:
+            self.script.exit(1, e)
 
         if 'groups' in args:
             if args.groups:
@@ -69,8 +69,8 @@ class ServersCommand(ScriptCommand):
         if 'group' in args:
             try:
                 self.group = self.config.match_os(args.group)
-            except ValueError, emsg:
-                self.script.exit(1, emsg)
+            except ValueError as e:
+                self.script.exit(1, e)
 
         all_servers = []
         for group in self.config.operating_systems:
@@ -167,8 +167,8 @@ class ListOrUpdateCommand(ServersCommand):
             for name in self.groups:
                 try:
                     group = self.config.match_os(name)
-                except ValueError, emsg:
-                    script.exit(1, emsg)
+                except ValueError as e:
+                    script.exit(1, e)
 
                 script.message("Server group: {0}".format(group))
                 script.message("Connect command: {0}".format(' '.join(group.connect_command)))

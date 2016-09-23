@@ -19,7 +19,7 @@ class ServiceListEntry(list):
     def __init__(self, port, protocol, names):
         self.port = int(port)
         self.protocol = protocol.upper()
-        if isinstance(names, basestring):
+        if isinstance(names, str):
             self['names'] = [names]
         self.extend(names)
 
@@ -41,10 +41,10 @@ class ServiceList(dict):
 
         try:
             lines = open(path, 'r').readlines()
-        except IOError, (ecode, emsg):
-            raise ServiceError('Error reading {0}: {1}'.format(path, emsg))
-        except OSError, (ecode, emsg):
-            raise ServiceError('Error reading {0}: {1}'.format(path, emsg))
+        except IOError as e:
+            raise ServiceError('Error reading {0}: {1}'.format(path, e))
+        except OSError as e:
+            raise ServiceError('Error reading {0}: {1}'.format(path, e))
 
         for l in filter(lambda l: not l.startswith('#'), lines):
             try:
@@ -69,7 +69,7 @@ class ServiceList(dict):
             except ValueError:
                 continue
 
-            if not self.has_key(port):
+            if port not in self:
                 self[port] = {}
             self[port][protocol] = ServiceListEntry(port, protocol, names)
 

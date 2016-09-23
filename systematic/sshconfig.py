@@ -50,7 +50,7 @@ class SSHKeyFile(dict):
 
         cmd = ( 'ssh-keygen', '-l', '-f',  public_key )
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = p.communicate()
+        (stdout, stderr) = [x.decode('utf-8') for x in p.communicate()]
         l = stdout.split('\n')[0].rstrip()
 
         if p.returncode != 0:
@@ -69,7 +69,7 @@ class SSHKeyFile(dict):
         return 'SSH key: {0}'.format(self.path)
 
     def __cmp__(self, other):
-        if isinstance(other, basestring):
+        if isinstance(other, str):
             return cmp(self['fingerprint'], other)
 
         for key in ( 'bits', 'fingerprint', 'algorithm', ):
@@ -134,8 +134,8 @@ class UserSSHKeys(dict):
         for path in paths:
             try:
                 sshkey = SSHKeyFile(self, path)
-            except SSHKeyError, emsg:
-                self.log.debug(emsg)
+            except SSHKeyError as e:
+                self.log.debug(e)
                 continue
 
             self[sshkey.path] = sshkey
@@ -157,10 +157,10 @@ class UserSSHKeys(dict):
 
                 self[sshkey.path].autoload = True
 
-        except IOError, (ecode, emsg):
-            raise SSHKeyError('Error loading {0}: {1}'.format(path, emsg))
-        except OSError, (ecode, emsg):
-            raise SSHKeyError('Error loading {0}: {1}'.format(path, emsg))
+        except IOError as e:
+            raise SSHKeyError('Error loading {0}: {1}'.format(path, e))
+        except OSError as e:
+            raise SSHKeyError('Error loading {0}: {1}'.format(path, e))
 
     @property
     def loaded_keys(self):
@@ -172,7 +172,7 @@ class UserSSHKeys(dict):
 
         cmd = ['ssh-add', '-l']
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = p.communicate()
+        (stdout, stderr) = [x.decode('utf-8') for x in p.communicate()]
 
         if p.returncode == 1:
             l = stdout.split('\n')[0].strip()
@@ -252,7 +252,7 @@ class UserSSHKeys(dict):
             if isinstance(key, SSHKeyFile):
                 if not key.is_loaded:
                     paths.append(key.path)
-            elif isinstance(key, basestring):
+            elif isinstance(key, str):
                 paths.append(key)
 
         if paths:
@@ -331,7 +331,7 @@ class AuthorizedKeys(list):
 
         See man sshd for details.
         """
-        self.__delslice__(0, len(self))
+        del self[0:len(self)]
 
         if not os.path.isfile(self.path):
             self.log.debug('No such file: {0}'.format(self.path))
@@ -414,7 +414,7 @@ class SSHConfigHost(dict):
             return False
 
     def keys(self):
-        return sorted(super(SSHConfigHost, self).keys() + self.config.defaults.keys())
+        return sorted(list(super(SSHConfigHost, self).keys()) + list(self.config.defaults.keys()))
 
     def items(self):
         items = []

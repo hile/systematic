@@ -44,7 +44,7 @@ class OSXMountPoint(MountPoint):
 
     @property
     def name(self):
-        if self.diskinfo.has_key('VolumeName'):
+        if 'VolumeName' in self.diskinfo:
             return self.diskinfo['VolumeName']
         return os.path.basename(self.mountpoint)
 
@@ -78,37 +78,37 @@ class OSXMountPoint(MountPoint):
 
     @property
     def writable(self):
-        if self.diskinfo.has_key('Writable'):
+        if 'Writable' in self.diskinfo:
             return self.diskinfo['Writable']
         return False
 
     @property
     def bootable(self):
-        if self.diskinfo.has_key('Bootable'):
+        if 'Bootable' in self.diskinfo:
             return self.diskinfo['Bootable']
         return False
 
     @property
     def internal(self):
-        if self.diskinfo.has_key('Internal'):
+        if 'Internal' in self.diskinfo:
             return self.diskinfo['Internal']
         return False
 
     @property
     def ejectable(self):
-        if self.diskinfo.has_key('Ejectable'):
+        if 'Ejectable' in self.diskinfo:
             return self.diskinfo['Ejectable']
         return True
 
     @property
     def removable(self):
-        if self.diskinfo.has_key('Removable'):
+        if 'Removable' in self.diskinfo:
             return self.diskinfo['Removable']
         return False
 
     @property
     def blocksize(self):
-        if self.diskinfo.has_key('DeviceBlockSize'):
+        if 'DeviceBlockSize' in self.diskinfo:
             return self.diskinfo['DeviceBlockSize']
         return 0
 
@@ -120,7 +120,7 @@ class OSXMountPoint(MountPoint):
         """
         try:
             output = check_output(['df', '-k', self.mountpoint])
-        except CalledProcessError,e:
+        except CalledProcessError as e:
             raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
 
         header, usage = output.split('\n', 1)
@@ -153,7 +153,7 @@ def load_mountpoints():
 
     try:
         output = check_output(['/sbin/mount'])
-    except CalledProcessError, e:
+    except CalledProcessError as e:
         raise FileSystemError('Error getting mountpoints: {0}'.format(e))
 
     for l in [l for l in output.split('\n') if l.strip() != '']:

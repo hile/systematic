@@ -11,11 +11,19 @@ import argparse
 import threading
 import unicodedata
 
-from Queue import Queue, Empty
+if sys.version_info.major < 3:
+    from Queue import Queue, Empty
+else:
+    from queue import Queue, Empty
 
 from systematic.classes import check_output, CalledProcessError
 from subprocess import Popen, PIPE
-from setproctitle import setproctitle
+
+try:
+    from setproctitle import setproctitle
+    has_setproctitle = True
+except ImportError:
+    has_setproctitle = False
 
 from systematic.log import Logger
 
@@ -70,7 +78,7 @@ class CommandPathCache(list):
         Updates the commands available on user's PATH
         """
         paths = []
-        self.__delslice__(0, len(self))
+        del self[0:len(self)]
 
         for path in os.getenv('PATH').split(os.pathsep):
             if not paths.count(path):
@@ -101,7 +109,7 @@ class CommandPathCache(list):
         if not len(self):
             self.update()
         try:
-            return filter(lambda x: os.path.basename(x) == name, self)[0]
+            return list(filter(lambda x: os.path.basename(x) == name, self))[0]
         except IndexError:
             return None
 
@@ -177,11 +185,14 @@ class Script(object):
     """
     def __init__(self, name=None, description=None, epilog=None, debug_flag=True):
         self.name = os.path.basename(sys.argv[0])
-        setproctitle('{0} {1}'.format(self.name, ' '.join(sys.argv[1:])))
         signal.signal(signal.SIGINT, self.SIGINT)
 
-        reload(sys)
-        sys.setdefaultencoding('utf-8')
+        if has_setproctitle:
+            setproctitle('{0} {1}'.format(self.name, ' '.join(sys.argv[1:])))
+
+        if sys.version_info.major < 3:
+            reload(sys)
+            sys.setdefaultencoding('utf-8')
 
         if name is None:
             name = self.name
@@ -333,7 +344,7 @@ class Script(object):
         elif hasattr(args, 'verbose') and getattr(args, 'verbose'):
             self.logger.set_level('INFO')
 
-        if self.subcommand_parser is not None:
+        if self.subcommand_parser is not None and args.command is not None:
             self.subcommands[args.command].run(args)
 
         return args
@@ -357,7 +368,7 @@ class Script(object):
         Default wrapper to execute given interactive shell command
         with standard stdin, stdout and stderr
         """
-        if isinstance(args, basestring):
+        if isinstance(args, str):
             args = args.split()
 
         if not isinstance(args, list):
@@ -375,19 +386,19 @@ class Script(object):
         """
         Wrapper for subprocess.check_output to be executed in script context
         """
-        if isinstance(args, basestring):
+        if isinstance(args, str):
             args = [args]
         try:
             return check_output(args)
 
-        except IOError, (ecode, emsg):
-            raise ScriptError(emsg)
+        except IOError as e:
+            raise ScriptError(e)
 
-        except OSError, (ecode, emsg):
-            raise ScriptError(emsg)
+        except OSError as e:
+            raise ScriptError(e)
 
-        except CalledProcessError, emsg:
-            raise ScriptError(emsg)
+        except CalledProcessError as e:
+            raise ScriptError(e)
 
 
 class ScriptCommand(argparse.ArgumentParser):

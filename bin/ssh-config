@@ -24,8 +24,8 @@ class SSHConfigCommand(ScriptCommand):
         if os.path.isfile(args.config):
             try:
                 self.keys.read_config(path=args.config)
-            except SSHKeyError, emsg:
-                self.exit(1, 'Error loading {0}: {1}'.format(args.config, emsg))
+            except SSHKeyError as e:
+                self.exit(1, 'Error loading {0}: {1}'.format(args.config, e))
 
         return args
 

@@ -8,7 +8,7 @@ import pwd
 # Make sure we have check_output in subprocess module for python 2.6 (RHEL6 compatibility)
 try:
     from subprocess import STDOUT, check_output, CalledProcessError
-except ImportError:  # pragma: no cover
+except ImportError:
     import subprocess
     STDOUT = subprocess.STDOUT
 
@@ -48,6 +48,7 @@ except ImportError:  # pragma: no cover
 
 from systematic.log import Logger, LoggerError
 
+
 class SortableContainer(object):
     """Sortable containers
 
@@ -61,7 +62,7 @@ class SortableContainer(object):
 
     compare_fields = ()
 
-    def __cmp__(self, other):
+    def __cmp_fields__(self, other):
         if self.compare_fields:
             for field in self.compare_fields:
                 a = getattr(self, field)
@@ -74,22 +75,22 @@ class SortableContainer(object):
         return cmp(self, other)
 
     def __eq__(self, other):
-        return self.__cmp__(other) == 0
+        return self.__cmp_fields__(other) == 0
 
     def __ne__(self, other):
-        return self.__cmp__(other) != 0
+        return self.__cmp_fields__(other) != 0
 
     def __lt__(self, other):
-        return self.__cmp__(other) < 0
+        return self.__cmp_fields__(other) < 0
 
     def __le__(self, other):
-        return self.__cmp__(other) <= 0
+        return self.__cmp_fields__(other) <= 0
 
     def __gt__(self, other):
-        return self.__cmp__(other) > 0
+        return self.__cmp_fields__(other) > 0
 
     def __ge__(self, other):
-        return self.__cmp__(other) >= 0
+        return self.__cmp_fields__(other) >= 0
 
 
 class FileSystemError(Exception):
@@ -128,7 +129,7 @@ class FileSystemFlags(dict):
         """
         Set a filesystem flag
         """
-        if self.has_key(flag):
+        if flag in self:
             raise ValueError('Flag already set: {0}'.format(flag))
 
         self.__setitem__(flag, value)

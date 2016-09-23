@@ -20,8 +20,8 @@ class test_filesystems(unittest.TestCase):
         try:
             mp = MountPoints()
             self.assertIsInstance(mp.keys(), list)
-        except FileSystemError, emsg:
-            print emsg
+        except FileSystemError as e:
+            print('Error listing mountpoints: {0}'.format(e))
             return
 
     def test2_check_mounpoint_type(self):
@@ -30,8 +30,8 @@ class test_filesystems(unittest.TestCase):
         """
         try:
             mp = MountPoints()
-        except FileSystemError, emsg:
-            print emsg
+        except FileSystemError as e:
+            print('Error checking mountpoint types: {0}'.format(e))
             return
 
         if sys.platform=='windows':

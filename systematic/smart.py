@@ -164,10 +164,35 @@ class SmartDrive(object):
     def __repr__(self):
         return self.device
 
-    def __cmp__(self, other):
-        if isinstance(other, basestring):
-            return cmp(self.device, other)
-        return cmp(self.device, other.device)
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.device == other
+        return self.device == other.device
+
+    def __ne__(self, other):
+        if isinstance(other, str):
+            return self.device != other
+        return self.device != other.device
+
+    def __gt__(self, other):
+        if isinstance(other, str):
+            return self.device > other
+        return self.device > other.device
+
+    def __le__(self, other):
+        if isinstance(other, str):
+            return self.device <= other
+        return self.device <= other.device
+
+    def __lt__(self, other):
+        if isinstance(other, str):
+            return self.device < other
+        return self.device < other.device
+
+    def __ge__(self, other):
+        if isinstance(other, str):
+            return self.device >= other
+        return self.device >= other.device
 
     def __re_line_matches__(self, regexp, lines):
         """Lines pattern matching
@@ -329,9 +354,9 @@ class SmartCtlClient(object):
         """
 
         try:
-            output = check_output(command)
-        except CalledProcessError,emsg:
-            raise SmartError('Error executing {0}: {1}'.format(' '.join(command), emsg))
+            output = check_output(command).decode('utf-8')
+        except CalledProcessError as e:
+            raise SmartError('Error executing {0}: {1}'.format(' '.join(command), e))
 
         headers = {}
         lines = []

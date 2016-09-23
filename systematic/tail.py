@@ -64,10 +64,10 @@ class TailReader(object):
             self.pos = 0
             self.year = time.localtime(self.stat.st_mtime).tm_year
 
-        except IOError, (ecode, emsg):
-            raise TailReaderError('Error opening {0}: {1}'.format(self.path, emsg))
-        except OSError, (ecode, emsg):
-            raise TailReaderError('Error opening {0}: {1}'.format(self.path, emsg))
+        except IOError as e:
+            raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
+        except OSError as e:
+            raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
 
     def seek_to_end(self):
         """Jump to end of file
@@ -99,9 +99,9 @@ class TailReader(object):
                     if self.pos > 0 and self.pos > os.stat(self.path).st_size:
                         self.load()
 
-            except IOError, (ecode, emsg):
+            except IOError:
                 self.close()
-            except OSError, (ecode, emsg):
+            except OSError:
                 self.close()
 
             if self.fd is None:
@@ -114,17 +114,17 @@ class TailReader(object):
                     if line != '':
                         return self.__format_line__(line[:-1])
 
-                except IOError, (ecode, emsg):
-                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, emsg))
-                except OSError, (ecode, emsg):
-                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, emsg))
+                except IOError as e:
+                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
+                except OSError as e:
+                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
 
                 try:
                     self.pos = self.fd.tell()
 
-                except IOError, (ecode, emsg):
-                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, emsg))
-                except OSError, (ecode, emsg):
-                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, emsg))
+                except IOError as e:
+                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, e))
+                except OSError as e:
+                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, e))
 
             time.sleep(INTERVAL)

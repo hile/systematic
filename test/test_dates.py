@@ -32,8 +32,8 @@ class test_dates(unittest.TestCase):
         for value, date_format in VALID_DATE_FORMATS:
             try:
                 Day(value=value, input_format=date_format)
-            except DatesError, emsg:
-                raise AssertionError('format {0}: {1}'.format(date_format, emsg))
+            except DatesError as e:
+                raise AssertionError('format {0}: {1}'.format(date_format, e))
 
         for value, date_format in INVALID_DATE_FORMATS:
             with self.assertRaisesRegexp(DatesError, 'Error parsing date: {0}'.format(value)):

@@ -1,4 +1,5 @@
-"""Init scripts
+"""
+Init scripts
 
 Wrapper to implement init scripts for python programs
 
@@ -203,7 +204,7 @@ class InitScript(object):
         """
         try:
             self.stop(exit=False)
-        except InitScriptError, emsg:
+        except InitScriptError:
             pass
 
         self.start()
@@ -225,5 +226,5 @@ class InitScript(object):
 
         try:
             return callback()
-        except InitScriptError,emsg:
-            self.error(code=1, message=emsg)
+        except InitScriptError as e:
+            self.error(code=1, message=e)

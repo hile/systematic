@@ -42,10 +42,10 @@ class DiskInfo(dict):
         try:
             plist = StringIO.StringIO(stdout)
             self.update(plistlib.readPlist(plist))
-        except ExpatError, emsg:
+        except ExpatError as e:
             raise DiskUtilError('Error parsing plist: {0}'.format(stdout))
 
-        if self.has_key('TotalSize') and self.has_key('FreeSpace'):
+        if 'TotalSize' in self and 'FreeSpace' in self:
             self['UsedSpace'] = self.TotalSize - self.FreeSpace
             self['UsedPercent'] = int(round(1-(float(self.FreeSpace) / float(self.TotalSize))))
 

@@ -146,7 +146,7 @@ class Processes(list):
         self.update(fields)
 
     def update(self, fields):
-        self.__delslice__(0, len(self))
+        del self[0:len(self)]
 
         cmd =  [ 'ps', '-wwaxo', ','.join(fields) ]
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
@@ -178,8 +178,8 @@ class Processes(list):
 
         try:
             filters = [(k,v) for x in args for k,v in x.split('=', 1)]
-        except ValueError, emsg:
-            raise ProcessError('Invalid filter list: {0}: {1}'.format(args, emsg))
+        except ValueError as e:
+            raise ProcessError('Invalid filter list: {0}: {1}'.format(args, e))
         filters.extend(kwargs.items())
 
         filtered = []

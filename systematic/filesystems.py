@@ -43,7 +43,7 @@ class MountPoints(list):
         return None
 
     def update(self):
-        self.__delslice__(0, len(self))
+        del self[0:len(self)]
         self.extend(self.loader())
         self.sort()
 

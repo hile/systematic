@@ -77,7 +77,7 @@ class Logger(object):
         if thread_id is not None:
             name = '{0:d}-{1}'.format(thread_id, name)
 
-        if not Logger.__instances.has_key(name):
+        if name not in Logger.__instances:
             Logger.__instances[name] = Logger.LoggerInstance(name, logformat, timeformat)
 
         self.__dict__['_Logger__instances'] = Logger.__instances
@@ -191,8 +191,8 @@ class Logger(object):
             logger = self.__get_or_create_logger__(name)
             try:
                 host, path = urllib.splithost(url[url.index(':')+1:])
-            except IndexError, emsg:
-                raise LoggerError('Error parsing URL {0}: {1}'.format(url, emsg))
+            except IndexError as e:
+                raise LoggerError('Error parsing URL {0}: {1}'.format(url, e))
 
             handler = logging.handlers.HTTPHandler(host, url, method)
             if not self.__match_handlers__(logger.handlers, handler):
@@ -397,7 +397,7 @@ class LogFile(list):
     """
     lineloader = LogEntry
     def __init__(self, path, source_formats=SOURCE_FORMATS):
-        if isinstance(path, basestring):
+        if isinstance(path, str):
             self.path = os.path.expanduser(os.path.expandvars(path))
         else:
             self.path = path
@@ -464,7 +464,7 @@ class LogFile(list):
             fd.readline()
             fd.seek(0)
             return fd
-        except IOError, emsg:
+        except IOError:
             pass
 
         try:
@@ -498,8 +498,8 @@ class LogFile(list):
                     try:
                         self.fd = self.__open_logfile__(self.path)
                         self.mtime = datetime.fromtimestamp(os.stat(self.path).st_mtime)
-                    except OSError, (ecode, emsg):
-                        raise LogFileError('Error opening {0}: {1}'.format(self.path, emsg))
+                    except OSError as e:
+                        raise LogFileError('Error opening {0}: {1}'.format(self.path, e))
 
             while True:
                 if self.get_iterator(iterator) < len(self)-1:
@@ -576,8 +576,8 @@ class LogFile(list):
                 self.append(entry)
                 return entry
 
-        except OSError, (ecode, emsg):
-            raise LogFileError('Error reading file {0}: {1}'.format(self.path, emsg))
+        except OSError as e:
+            raise LogFileError('Error reading file {0}: {1}'.format(self.path, e))
 
     def reload(self):
         """Reload file
@@ -585,7 +585,7 @@ class LogFile(list):
         Reload file, clearing existing entries
 
         """
-        self.__delslice__(0, len(self))
+        del self[0:len(self)]
         self.__loaded = False
         while True:
             try:
@@ -622,7 +622,7 @@ class LogFile(list):
         if len(self) == 0:
             self.reload()
 
-        if isinstance(message_regexp, basestring):
+        if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
 
         return [x for x in self if message_regexp.match(x.message)]
@@ -637,7 +637,7 @@ class LogFile(list):
         if len(self) == 0:
             self.reload()
 
-        if isinstance(message_regexp, basestring):
+        if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
 
         matches = []
@@ -676,10 +676,10 @@ class LogFileCollection(object):
                     stats[ts] = []
                 stats[ts].append(path)
 
-            except OSError, (ecode, emsg):
-                raise LogFileError('Error running stat on {0}: {1}'.format(path, emsg))
-            except IOError, (ecode, emsg):
-                raise LogFileError('Error running stat on {0}: {1}'.format(path, emsg))
+            except OSError as e:
+                raise LogFileError('Error running stat on {0}: {1}'.format(path, e))
+            except IOError as e:
+                raise LogFileError('Error running stat on {0}: {1}'.format(path, e))
 
         for ts in stats.keys():
             stats[ts].sort()
@@ -706,7 +706,7 @@ class LogFileCollection(object):
         try:
             logentry = self.__iter_entry.next()
 
-        except StopIteration, emsg:
+        except StopIteration:
             if self.__iter_index < len(self.logfiles) - 1:
                 self.__iter_index += 1
                 self.__iter_entry = self.logfiles[self.__iter_index]
@@ -753,7 +753,7 @@ class LogFileCollection(object):
         Match all loaded logfiles by matching program with LogFile.filter_message
 
         """
-        if isinstance(message_regexp, basestring):
+        if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
 
         matches = []
@@ -767,7 +767,7 @@ class LogFileCollection(object):
         Match all loaded logfiles by matching program with LogFile.match_message
 
         """
-        if isinstance(message_regexp, basestring):
+        if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
 
         matches = []

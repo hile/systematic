@@ -61,7 +61,7 @@ class Day(object):
         elif isinstance(value, struct_time):
             self.value = date(*value[:3])
 
-        elif isinstance(value, basestring) and input_format is None and value=='':
+        elif isinstance(value, str) and input_format is None and value=='':
             self.value = datetime.now().date()
 
         else:
@@ -71,7 +71,7 @@ class Day(object):
             except ValueError:
                 try:
                     self.value = date(*time.localtime(int(value))[:3])
-                except ValueError, emsg:
+                except ValueError:
                     raise DatesError('Error parsing date: {0}'.format(value))
 
     def __getattr__(self, attr):
@@ -88,8 +88,23 @@ class Day(object):
     def __str__(self):
         return self.value.strftime(DEFAULT_DATE_FORMAT)
 
-    def __cmp__(self, value):
-        return cmp(long(self), long(value))
+    def __eq__(self, value):
+        return long(self) == long(value)
+
+    def __ne__(self, value):
+        return long(self) != long(value)
+
+    def __gt__(self, value):
+        return long(self) > long(value)
+
+    def __lt__(self, value):
+        return long(self) < long(value)
+
+    def __le__(self, value):
+        return long(self) <= long(value)
+
+    def __ge__(self, value):
+        return long(self) >= long(value)
 
     def __sub__(self, value):
         try:
