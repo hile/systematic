@@ -1,5 +1,5 @@
 """
-Parsing of SSH configuration files
+Parse of SSH configuration files and keys
 """
 
 import sys
@@ -19,10 +19,25 @@ DEFAULT_AUTHORIZED_KEYS = os.path.expanduser('~/.ssh/authorized_keys')
 SSH_DIR_PERMS = '0700'
 SSH_FILE_PERMS = '0600'
 
-RE_KEYINFO = re.compile('^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$')
+# Lines for public keys
+RE_PUBLIC_KEY_PATTERNS = (
+    re.compile('^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$'),
+)
 
 class SSHKeyError(Exception):
     pass
+
+
+def  parse_public_key_line_pattern(line):
+    """Match public key lines to patterns
+
+    Returns the match pattern as dict or None
+    """
+    for pattern in RE_PUBLIC_KEY_PATTERNS:
+        m = pattern.match(line)
+        if m:
+            return m.groupdict()
+    return None
 
 
 class SSHKeyFile(dict):
@@ -56,11 +71,11 @@ class SSHKeyFile(dict):
         if p.returncode != 0:
             raise SSHKeyError('ERROR parsing public key: {0}'.format(public_key))
 
-        m = RE_KEYINFO.match(l)
-        if not m:
+        data = parse_public_key_line_pattern(l)
+        if not data:
             raise SSHKeyError('Unsupported public key output: {0}'.format(l))
 
-        for k, v in m.groupdict().items():
+        for k, v in data.items():
             if k == 'path':
                 k = 'public_key_path'
             self[k] = v
@@ -68,15 +83,66 @@ class SSHKeyFile(dict):
     def __repr__(self):
         return 'SSH key: {0}'.format(self.path)
 
-    def __cmp__(self, other):
+    def __eq__(self, other):
         if isinstance(other, str):
-            return cmp(self['fingerprint'], other)
+            return self['fingerprint'] == other
 
         for key in ( 'bits', 'fingerprint', 'algorithm', ):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
-                return cmp(a, b)
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        if isinstance(other, str):
+            return self['fingerprint'] < other
+
+        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+            a = getattr(self, key)
+            b = getattr(other, key)
+            if a != b:
+                return a < b
+
+        return 0
+
+    def __gt__(self, other):
+        if isinstance(other, str):
+            return self['fingerprint'] > other
+
+        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+            a = getattr(self, key)
+            b = getattr(other, key)
+            if a != b:
+                return a > b
+
+        return 0
+
+    def __le__(self, other):
+        if isinstance(other, str):
+            return self['fingerprint'] <= other
+
+        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+            a = getattr(self, key)
+            b = getattr(other, key)
+            if a != b:
+                return a <= b
+
+        return 0
+
+    def __ge__(self, other):
+        if isinstance(other, str):
+            return self['fingerprint'] >= other
+
+        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+            a = getattr(self, key)
+            b = getattr(other, key)
+            if a != b:
+                return a >= b
 
         return 0
 
@@ -183,11 +249,9 @@ class UserSSHKeys(dict):
             raise SSHKeyError('Error listing loaded SSH agent keys')
 
         for l in [l.rstrip() for l in stdout.split('\n')[:-1]]:
-            m = RE_KEYINFO.match(l)
-            if not m:
+            data = parse_public_key_line_pattern(l)
+            if not data:
                 raise SSHKeyError('Error parsing agent key list line {0}'.format(l))
-
-            data = m.groupdict()
             keys[data['fingerprint']] = data
 
         return keys
@@ -262,7 +326,6 @@ class UserSSHKeys(dict):
             p.wait()
         else:
             self.log.debug('All SSH keys were already loaded to SSH agent')
-
 
 class OpenSSHPublicKey(dict):
     def __init__(self, line):
