@@ -55,7 +55,12 @@ class InfoCommand(SmartCommand):
                 self.message('  {0:20} {1}'.format(info.field, info.value))
             self.message('  {0:20} {1}'.format('Drive health', drive.is_healthy and 'Healthy' or 'FAILING'))
 
-            attributes = drive.get_attributes()
+            try:
+                attributes = drive.get_attributes()
+            except SmartError as e:
+                script.message('Error listing attributes for {0}: {1}'.format(drive, e))
+                continue
+
             for key in ATTRIBUTE_COMMON_FIELDS:
                 try:
                     attribute = attributes[key]
