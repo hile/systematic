@@ -225,7 +225,7 @@ class Script(object):
             if hasattr(t, 'stop') and callable(t.stop):
                 t.stop()
 
-        for t in [t for t in threading.enumerate() if t.name != 'MainThread']::
+        for t in [t for t in threading.enumerate() if t.name != 'MainThread']:
             t.join()
 
         self.exit(1)
