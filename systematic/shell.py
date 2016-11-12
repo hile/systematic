@@ -99,7 +99,7 @@ class CommandPathCache(list):
         """
         if not len(self):
             self.update()
-        return filter(lambda x: os.path.basename(x) == name, self)
+        return [version for version in self if os.path.basename(version) == name]
 
     def which(self, name):
         """
@@ -109,7 +109,7 @@ class CommandPathCache(list):
         if not len(self):
             self.update()
         try:
-            return list(filter(lambda x: os.path.basename(x) == name, self))[0]
+            return [version for version in self if os.path.basename(version) == name][0]
         except IndexError:
             return None
 
@@ -221,11 +221,11 @@ class Script(object):
         """
         Parse SIGINT signal by quitting the program cleanly with exit code 1
         """
-        for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+        for t in [t for t in threading.enumerate() if t.name != 'MainThread']:
             if hasattr(t, 'stop') and callable(t.stop):
                 t.stop()
 
-        for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+        for t in [t for t in threading.enumerate() if t.name != 'MainThread']::
             t.join()
 
         self.exit(1)
@@ -236,7 +236,7 @@ class Script(object):
         Poll interval is time to wait between checks for threads
         """
         while True:
-            active = filter(lambda t: t.name!='MainThread', threading.enumerate())
+            active = [t for t in threading.enumerate() if t.name != 'MainThread']
             if not len(active):
                 break
             self.log.debug('Waiting for {0:d} threads'.format(len(active)))
@@ -263,12 +263,12 @@ class Script(object):
         if message is not None:
             self.message(message)
 
-        for t in filter(lambda t: t.name!='MainThread', threading.enumerate()):
+        for t in [t for t in threading.enumerate() if t.name != 'MainThread']:
             if hasattr(t, 'stop') and callable(t.stop):
                 t.stop()
 
         while True:
-            active = filter(lambda t: t.name!='MainThread', threading.enumerate())
+            active = [t for t in threading.enumerate() if t.name != 'MainThread']
             if not len(active):
                 break
             time.sleep(0.1)
