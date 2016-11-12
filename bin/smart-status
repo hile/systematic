@@ -57,7 +57,7 @@ class InfoCommand(SmartCommand):
                 script.message('Error getting SMART overview for {0}: {1}'.format(drive, e))
                 continue
 
-            for info in details
+            for info in details:
                 self.message('  {0:20} {1}'.format(info.field, info.value))
             self.message('  {0:20} {1}'.format('Drive health', drive.is_healthy and 'Healthy' or 'FAILING'))
 
