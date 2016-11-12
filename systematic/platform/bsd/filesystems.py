@@ -51,7 +51,7 @@ class BSDMountPoint(MountPoint):
         except ValueError:
             pass
 
-        fs, size, used, free, percent, mp = map(lambda x: x.strip(), usage.split())
+        fs, size, used, free, percent, mp = [x.strip() for x in usage.split()]
         percent = percent.rstrip('%')
         return {
             'mountpoint': self.mountpoint,
@@ -82,7 +82,7 @@ def load_mountpoints():
 
         device = m.group(1)
         mountpoint = m.group(2)
-        flags = map(lambda x: x.strip(), m.group(3).split(','))
+        flags = [x.strip() for x in m.group(3).split(',')]
         filesystem = flags[0]
         flags = flags[1:]
 

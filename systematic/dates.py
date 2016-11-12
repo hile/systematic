@@ -170,7 +170,10 @@ class Week(object):
                     raise ValueError
             except ValueError:
                 raise ValueError('Invalid value for workdays_per_week: {0}'.format(workdays_per_week))
-            self.workdays = [self[i] for i in filter(lambda i: i<=6, range(0, workdays_per_week))]
+            self.workdays = []
+            for i in range(0, workdays_per_week):
+                if i <= 6:
+                    self.workdays.append(self[i])
 
         self.workdays.sort()
 

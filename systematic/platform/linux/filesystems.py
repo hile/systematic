@@ -123,7 +123,7 @@ def load_mountpoints():
         device = m.group(1)
         mountpoint = m.group(2)
         filesystem = m.group(3)
-        flags = map(lambda x: x.strip(), m.group(4).split(','))
+        flags = [x.strip() for x in m.group(4).split(',')]
 
         entry = LinuxMountPoint(device,mountpoint,filesystem)
         for f in flags:

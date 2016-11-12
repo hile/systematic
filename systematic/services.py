@@ -46,18 +46,18 @@ class ServiceList(dict):
         except OSError as e:
             raise ServiceError('Error reading {0}: {1}'.format(path, e))
 
-        for l in filter(lambda l: not l.startswith('#'), lines):
+        for l in [l for l in lines if not l.startswith('#'), lines]:
             try:
                 l = l[:l.index('#')]
             except ValueError:
                 pass
 
             try:
-                name, target, aliases =  map(lambda x: x.strip(), l.split(None, 2))
+                name, target, aliases =  [x.strip() for x in l.split(None, 2)]
                 names = [name] + aliases.split()
             except ValueError:
                 try:
-                    name, target = map(lambda x: x.strip(), l.split(None, 1))
+                    name, target = [x.strip() for x in l.split(None, 1)]
                 except ValueError:
                     continue
                 names = [name]

@@ -190,13 +190,13 @@ class UserSSHKeys(dict):
         if not os.path.isdir(user_sshdir):
             return
 
-        paths = filter(lambda x:
-            os.path.isfile(x),
-            [os.path.join(user_sshdir, x) for x in filter(lambda x:
-                x not in SSH_CONFIG_FILES and os.path.splitext(x)[1]!='.pub',
-                os.listdir(user_sshdir)
-            )]
-        )
+        paths = []
+        for filename in os.listdir(user_sshdir):
+            if filename in SSH_CONFIG_FILES or os.path.splitext(x)[1] != '.pub':
+                continue
+            path = os.path.join(user_sshdir, filename)
+            if os.path.isfile(path)
+                paths.append(path)
         for path in paths:
             try:
                 sshkey = SSHKeyFile(self, path)
