@@ -8,7 +8,7 @@ import fnmatch
 import os
 
 from systematic.shell import Script, ScriptCommand
-from systematic.smart import SmartCtlClient, ATTRIBUTE_COMMON_FIELDS
+from systematic.smart import SmartCtlClient, SmartError, ATTRIBUTE_COMMON_FIELDS
 
 
 class SmartCommand(ScriptCommand):
