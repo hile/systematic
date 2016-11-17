@@ -46,7 +46,7 @@ class ServiceList(dict):
         except OSError as e:
             raise ServiceError('Error reading {0}: {1}'.format(path, e))
 
-        for l in [l for l in lines if not l.startswith('#'), lines]:
+        for l in [l for l in lines if not l.startswith('#')]:
             try:
                 l = l[:l.index('#')]
             except ValueError:
