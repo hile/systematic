@@ -30,7 +30,7 @@ class DMIProperty(dict):
         self.options = []
 
     def __repr__(self):
-        return self.name
+        return '{0}={1}'.format(self.name, self.value)
 
     def add_option(self, value):
         self.options.append(value)
@@ -237,3 +237,26 @@ class DMI(object):
 
         """
         return json.dumps(self.as_dict(), indent=2)
+
+    def find_groups(self, group_name):
+        """Find groups by name
+
+        """
+        groups = []
+        for table in self.tables:
+            for handle in table.handles:
+                for group in handle.groups:
+                    if group.name == group_name:
+                        groups.append(group)
+        return groups
+
+    def find_properties(self, group_name, property_name):
+        """Find properties by group and name
+
+        """
+        properties = []
+        for group in self.find_groups(group_name):
+            for prop in group.properties:
+                if prop.name == property_name:
+                    properties.append(prop)
+        return properties
