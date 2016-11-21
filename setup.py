@@ -17,7 +17,6 @@ setup(
     packages = find_packages(),
     scripts = glob.glob('bin/*'),
     install_requires = (
-        'setproctitle',
         'configobj',
     ),
 )
