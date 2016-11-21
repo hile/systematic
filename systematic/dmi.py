@@ -1,7 +1,13 @@
 """
 Parse dmidecode output
 
-DMI() can be output as dictionary with as_dict() or as json with to_json()
+Example usage:
+
+from systematic.dmi import DMI
+
+dmi = DMI()
+print(dmi.to_json())
+
 """
 
 import json
