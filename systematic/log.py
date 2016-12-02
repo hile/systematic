@@ -780,6 +780,15 @@ class LogfileTailReader(TailReader):
     """Logfile tail reader
 
     Tail reader returning LogFile entries
+
+    Example usage for MacOS (needs read access to logfile of course)
+
+    from systematic.log import LogfileTailReader
+    r = LogfileTailReader('/var/log/system.log')
+    r.seek_to_end()
+    while True:
+        print vars(r.next())
+
     """
     lineparser = LogEntry
 
