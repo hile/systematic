@@ -392,8 +392,11 @@ class LogEntry(object):
 
 
 class LogFile(list):
-    """
-    Generic syslog file parser
+    """Generic syslog file iterator
+
+    Opens logfile with self.lineloader and returns
+
+    default lineloader is systematic.log.LogEntry
     """
     lineloader = LogEntry
     def __init__(self, path, source_formats=SOURCE_FORMATS):
@@ -485,7 +488,18 @@ class LogFile(list):
 
         raise LogFileError('Error opening logfile {0}'.format(path))
 
+    def next(self):
+        """Next iterator
+
+        Standard iterator next() call
+        """
+        return self.next_iterator_match(iterator='default')
+
     def next_iterator_match(self, iterator, callback=None):
+        """Return next matching line
+
+        Iterates lines from log with self.readline()
+        """
         if iterator not in self.iterators:
             raise LogFileError('Unknown iterator: {0}'.format(iterator))
 
@@ -543,20 +557,15 @@ class LogFile(list):
                     self.reset_iterator(iterator)
                     raise StopIteration
 
-    def next(self):
-        """Next iterator
-
-        Standard iterator next() call
-
-        """
-        return self.next_iterator_match(iterator='default')
-
     def readline(self):
-        """
+        """Read line from log
+
         Parse entry from logfile
         """
+
         if self.fd is None:
-            raise LogFileError('File was not loaded')
+            raise LogFileError('File is not loaded')
+
         try:
             l = self.fd.readline()
             if l == '':
@@ -583,7 +592,6 @@ class LogFile(list):
         """Reload file
 
         Reload file, clearing existing entries
-
         """
         del self[0:len(self)]
         self.__loaded = False
@@ -597,7 +605,6 @@ class LogFile(list):
         """Filter by host name
 
         Return log entries matching given host name
-
         """
         if len(self) == 0:
             self.reload()
@@ -607,7 +614,6 @@ class LogFile(list):
         """Filter by program name
 
         Return log entries matching given program name
-
         """
         if len(self) == 0:
             self.reload()
@@ -617,7 +623,6 @@ class LogFile(list):
         """Filter by message regexp
 
         Filter log entries matching given regexp in message field
-
         """
         if len(self) == 0:
             self.reload()
@@ -632,7 +637,6 @@ class LogFile(list):
 
         Return dictionary of matching regexp keys for lines matching given regexp
          in message field
-
         """
         if len(self) == 0:
             self.reload()
@@ -657,8 +661,8 @@ class LogFileCollection(object):
         lc = LogFileCollection(glob.glob('/var/log/auth.log*'))
 
     Files are sorted by modification timestamp and name.
-
     """
+
     loader = LogFile
     def __init__(self, logfiles, source_formats=SOURCE_FORMATS):
         self.source_formats = source_formats
@@ -729,7 +733,6 @@ class LogFileCollection(object):
         """Filter by host
 
         Filter all loaded logfiles by matching host with LogFile.filter_host
-
         """
         matches = []
         for parser in self.logfiles:
@@ -740,7 +743,6 @@ class LogFileCollection(object):
         """Filter by program
 
         Filter all loaded logfiles by matching program with LogFile.filter_program
-
         """
         matches = []
         for parser in self.logfiles:
@@ -751,7 +753,6 @@ class LogFileCollection(object):
         """Filter messages by regexp
 
         Match all loaded logfiles by matching program with LogFile.filter_message
-
         """
         if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
@@ -765,7 +766,6 @@ class LogFileCollection(object):
         """Match messages by regexp
 
         Match all loaded logfiles by matching program with LogFile.match_message
-
         """
         if isinstance(message_regexp, str):
             message_regexp = re.compile(message_regexp)
@@ -780,13 +780,16 @@ class LogfileTailReader(TailReader):
     """Logfile tail reader
 
     Tail reader returning LogFile entries
-
     """
-    def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS, lineparser=LogEntry):
-        super(LogfileTailReader, self).__init__(wpath, fd)
+    lineparser = LogEntry
+
+    def __init__(self, path=None, fd=None, source_formats=SOURCE_FORMATS):
+        super(LogfileTailReader, self).__init__(path, fd)
         self.source_formats = source_formats
-        self.lineparser = lineparser
 
     def __format_line__(self, line):
-         return self.lineparser(line[:-1], self.year, source_formats=self.source_formats)
+        """Format line
 
+        Formats line as log entry. Returns None if entry is not supported
+        """
+        return self.lineparser(self, line[:-1], self.year, source_formats=self.source_formats)

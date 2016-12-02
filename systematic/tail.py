@@ -12,23 +12,26 @@ class TailReaderError(Exception):
 
 
 class TailReader(object):
+    """File tail reader
+
+    Read files like 'tail', opening closed / truncated files correctly
+    """
     def __init__(self, path=None, fd=None):
         self.path = path
         self.stat = None
         self.fd = fd
         self.pos = 0
 
-    def __iter__(self):
-        return self
-
     def __format_line__(self, line):
         """Format line
 
         Format entry returned by readline. Override in subclass to parse
         entries automatically: default version just returns provided value
-
         """
         return line
+
+    def __iter__(self):
+        return self
 
     def next(self):
         return self.readline()
@@ -43,7 +46,6 @@ class TailReader(object):
         """Load file
 
         Load file to self.fd
-
         """
         if self.fd is not None:
             self.close()
@@ -112,7 +114,11 @@ class TailReader(object):
                     line = self.fd.readline()
 
                     if line != '':
-                        return self.__format_line__(line[:-1])
+                        try:
+                            return self.__format_line__(line[:-1])
+                        except Exception as e:
+                            # Skip exceptions formatting lines, likely just corrupted
+                            pass
 
                 except IOError as e:
                     raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
