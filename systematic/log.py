@@ -801,4 +801,4 @@ class LogfileTailReader(TailReader):
 
         Formats line as log entry. Returns None if entry is not supported
         """
-        return self.lineparser(self, line[:-1], self.year, source_formats=self.source_formats)
+        return self.lineparser(self, line, self.year, source_formats=self.source_formats)

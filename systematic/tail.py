@@ -124,7 +124,7 @@ class TailReader(object):
 
                     if line != '':
                         try:
-                            return self.__format_line__(line[:-1])
+                            return self.__format_line__(line.rstrip())
                         except Exception as e:
                             # Skip exceptions formatting lines, likely just corrupted
                             pass
