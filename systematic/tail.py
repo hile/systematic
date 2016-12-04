@@ -5,7 +5,11 @@ Python implementation of 'tail' type file reader class
 import os
 import time
 
+# Poll interval
 INTERVAL = 0.01
+
+# Retry fast but not as fast as as polling
+OPEN_RETRY_INTERVAL = 0.2
 
 class TailReaderError(Exception):
     pass
@@ -45,31 +49,36 @@ class TailReader(object):
     def load(self):
         """Load file
 
-        Load file to self.fd
+        Load file to self.fd.
+
+        This will hang until file is available and readable, and seek to beginning
+        of file when file is opened.
         """
-        if self.fd is not None:
-            self.close()
+        while True:
+            if self.fd is not None:
+                self.close()
 
-        if not os.path.isfile(self.path):
-            raise TailReaderError('No such file: {0}'.format(self.path))
+            if os.path.isfile(self.path) and os.access(self.path, os.R_OK):
 
-        if not os.access(self.path, os.R_OK):
-            self.stat = None
-            self.fd = None
-            self.pos = 0
-            raise TailReaderError('Permission denied: {0}'.format(self.path))
+                try:
+                    self.fd = open(self.path, 'r')
+                    self.stat = os.stat(self.path)
+                    self.fd.seek(0)
+                    self.pos = 0
+                    self.year = time.localtime(self.stat.st_mtime).tm_year
+                    break
 
-        try:
-            self.fd = open(self.path, 'r')
-            self.stat = os.stat(self.path)
-            self.fd.seek(0)
-            self.pos = 0
-            self.year = time.localtime(self.stat.st_mtime).tm_year
+                except IOError:
+                    pass
+                except OSError:
+                    pass
 
-        except IOError as e:
-            raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
-        except OSError as e:
-            raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
+            else:
+                self.stat = None
+                self.fd = None
+                self.pos = 0
+
+            time.sleep(OPEN_RETRY_INTERVAL)
 
     def seek_to_end(self):
         """Jump to end of file
