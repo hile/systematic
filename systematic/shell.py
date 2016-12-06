@@ -433,6 +433,9 @@ class ScriptCommand(argparse.ArgumentParser):
     def check_output(self, *args, **kwargs):
         return self.script.check_output(*args, **kwargs)
 
+    def error(self, message):
+        return self.script.error(message)
+
     def message(self, message):
         return self.script.message(message)
 
