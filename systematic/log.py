@@ -567,18 +567,20 @@ class LogFile(list):
             raise LogFileError('File is not loaded')
 
         try:
-            l = self.fd.readline()
-            if l == '':
+            line = self.fd.readline()
+            if line == '':
                 self.__loaded = True
                 return None
 
             # Multiline log entry
-            if l[:1] in [' ', '\t'] and len(self):
-                self[-1].append(l)
+            if line[:1] in [' ', '\t'] and len(self):
+                self[-1].append(line)
                 return self.readline()
 
             else:
-                entry = self.lineloader(self, l,
+                entry = self.lineloader(
+                    self,
+                    line,
                     year=self.mtime.year,
                     source_formats=self.source_formats
                 )
