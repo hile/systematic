@@ -217,10 +217,13 @@ class SmartDrive(object):
         """
 
         re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
-        matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--health', self.device ]))
-        if not matches:
-            raise SmartError('Did not receive health status line in output')
+        try:
+            matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--health', self.device ]))
+        except SmartError:
+            return False
 
+        if not matches:
+            return False
         status = matches[0]['status']
         return status in ['PASSED'] and True or False
 
@@ -229,6 +232,8 @@ class SmartDrive(object):
 
         Return smart attributes for drive
         """
+
+        attributes = {}
 
         re_match = re.compile('^{0}$'.format('\s+'.join([
             '(?P<id>0x[0-9a-f]+)',
@@ -242,11 +247,14 @@ class SmartDrive(object):
             '(?P<failed>[^\s]+)',
             '(?P<raw_value>[0-9a-f]+)',
         ])))
-        matches = self.__re_line_matches__(re_match,
-            self.client.execute([ 'smartctl', '--format=hex', '--attributes', self.device ])
-        )
 
-        attributes = {}
+        try:
+            matches = self.__re_line_matches__(re_match,
+                self.client.execute([ 'smartctl', '--format=hex', '--attributes', self.device ])
+            )
+        except SmartError:
+            return attributes
+
         for m in matches:
 
             if 'attribute_name' not in m:
@@ -295,9 +303,13 @@ class SmartDrive(object):
         """
 
         re_result = re.compile('^(?P<field>[^:]+):\s+(?P<value>.*)$')
-        matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--info', self.device ]))
-
         details = {}
+
+        try:
+            matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--info', self.device ]))
+        except SmartError:
+            return details
+
         for m in matches:
 
             try:
@@ -413,7 +425,12 @@ class SmartCtlClient(object):
 
         self.drives = []
 
-        for line in [line.strip() for line in self.execute( ['smartctl', '--scan' ] ) if line.strip() != '']:
+        try:
+            output = self.execute( ['smartctl', '--scan' ] )
+        except SmartError:
+            return self.drives
+
+        for line in [line.strip() for line in output if line.strip() != '']:
 
             try:
                 data, comment = [x.strip() for x in line.split('#', 1)]
