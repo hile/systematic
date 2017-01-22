@@ -29,7 +29,7 @@ class SQLiteDatabase(object):
             raise SQLiteError('Database path is None')
 
         db_dir = os.path.dirname(db_path)
-        if not os.path.isdir(db_dir):
+        if db_dir and not os.path.isdir(db_dir):
             try:
                 os.makedirs(db_dir)
             except IOError as e:
