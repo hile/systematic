@@ -13,7 +13,7 @@ class SQLiteError(Exception):
 
 class SQLiteDatabase(object):
     """
-    Singleton instance sqlite3 file wrapper
+    Sqlite3 database wrapper
     """
 
     def __init__(self, db_path, tables_sql=None, foreign_keys=True):

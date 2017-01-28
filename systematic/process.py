@@ -19,7 +19,6 @@ TIME_FORMATS = (
 
 PS_FIELDS = (
     'lstart',
-    'sess',
     'ppid',
     'pid',
     'ruid',
@@ -140,7 +139,7 @@ class Process(SortableContainer):
 
 class Processes(list):
     """
-    Thin wrapper to load OS specific implementation for process list
+    Load OS process list
     """
     def __init__(self, fields=PS_FIELDS):
         self.update(fields)
@@ -148,9 +147,14 @@ class Processes(list):
     def update(self, fields):
         del self[0:len(self)]
 
-        cmd =  [ 'ps', '-wwaxo', ','.join(fields) ]
-        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = p.communicate()
+        try:
+            cmd =  [ 'ps', '-wwaxo', ','.join(fields) ]
+            p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = p.communicate()
+            if p.returncode != 0:
+                raise ProcessError('Error running ps: {0}'.format(stderr))
+        except OSError as e:
+            raise ProcessError('Error running ps: {0}'.format(e))
 
         for line in stdout.splitlines()[1:]:
             self.append(Process(fields, line))

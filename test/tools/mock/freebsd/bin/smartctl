@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+#
+# Mock FreeBSD smartctl command
+#
+
+import os
+import sys
+
+TEST_ROOT = os.sep.join(os.path.realpath(__file__).split(os.sep)[:-5])
+MOCK_DATA = os.path.join(TEST_ROOT, 'data', 'mock-output')
+
+from argparse import ArgumentParser
+parser = ArgumentParser()
+dummy_args, args = parser.parse_known_args()
+
+if args == [ '--scan' ]:
+    filename = os.path.join(MOCK_DATA, 'freebsd', 'smartctl', 'scan')
+elif args[0] == '--info' and len(args) == 2:
+    drive = os.path.basename(args[1])
+    filename = os.path.join(MOCK_DATA, 'freebsd', 'smartctl', 'info', drive )
+elif args[0] == '--health' and len(args) == 2:
+    drive = os.path.basename(args[1])
+    filename = os.path.join(MOCK_DATA, 'freebsd', 'smartctl', 'health', drive )
+elif args[0] == '--format=hex' and args[1] == '--attributes' and len(args) == 3:
+    drive = os.path.basename(args[2])
+    filename = os.path.join(MOCK_DATA, 'freebsd', 'smartctl', 'attributes', drive )
+else:
+    sys.exit(1)
+
+try:
+    sys.stdout.write(open(filename, 'r').read())
+    sys.exit(0)
+except Exception as e:
+    sys.exit(1)

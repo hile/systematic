@@ -7,22 +7,29 @@ import os
 import re
 import logging
 
-from systematic.classes import check_output, CalledProcessError
-
 from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
+from systematic.shell import ShellCommandParser, ShellCommandParserError
 
 PSEUDO_FILESYSTEMS = (
     'proc',
     'sysfs',
+    'cgroup',
+    'autofs',
+    'hugetlbfs',
+    'mqueue',
     'devpts',
     'devtmpfs',
     'tmpfs',
     'fusectl',
+    'pstore',
+    'configfs',
+    'selinuxfs',
     'securityfs',
     'debugfs',
     'rpc_pipefs',
     'binfmt_misc',
     'nfsd',
+    'fuse.vmware-vmblock',
 )
 
 DM_PREFIX = '/dev/mapper/'
@@ -69,8 +76,7 @@ class LinuxMountPoint(MountPoint):
     def is_virtual(self):
         return self.filesystem in PSEUDO_FILESYSTEMS
 
-    @property
-    def usage(self):
+    def update_usage(self, line=None):
         """
         Check usage percentage for this mountpoint.
         Returns dictionary with usage details.
@@ -78,21 +84,28 @@ class LinuxMountPoint(MountPoint):
         if self.filesystem in PSEUDO_FILESYSTEMS:
             return {}
 
-        try:
-            output = check_output( ('df', '-k', self.mountpoint, ) )
-        except CalledProcessError:
-            raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
-        (header,usage) = output.split('\n', 1)
 
-        try:
-            usage = ' '.join(usage.split('\n'))
-        except ValueError:
-            pass
+        if line is None:
+            parser = ShellCommandParser()
+            try:
+                stdout, stderr = parser.execute( ('df', '-Pk', self.mountpoint) )
+            except ShellCommandParserError as e:
+                raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
+
+            (header,usage) = stdout.split('\n', 1)
+
+            try:
+                usage = ' '.join(usage.split('\n'))
+            except ValueError:
+                pass
+
+        else:
+            usage = ' '.join(line.split('\n'))
 
         fs, size, used, free, percent, mp = [x.strip() for x in usage.split()]
         percent = percent.rstrip('%')
 
-        return {
+        self.usage = {
             'mountpoint': self.mountpoint,
             'size': long(size),
             'used': long(used),
@@ -107,12 +120,13 @@ def load_mountpoints():
     """
     mountpoints = []
 
+    parser = ShellCommandParser()
     try:
-        output = check_output(['/bin/mount'])
-    except CalledProcessError:
-        raise FileSystemError('Error running /bin/mount')
+        stdout, stderr = parser.execute('mount')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
 
-    for l in [l for l in output.split('\n') if l.strip() != '']:
+    for l in [l for l in stdout.split('\n') if l.strip() != '']:
         if l[:4] == 'map ':
             continue
 
@@ -126,9 +140,22 @@ def load_mountpoints():
         flags = [x.strip() for x in m.group(4).split(',')]
 
         entry = LinuxMountPoint(device,mountpoint,filesystem)
+        if entry.is_virtual:
+            continue
+
         for f in flags:
             entry.flags.set(f,True)
 
         mountpoints.append(entry)
+
+    try:
+        stdout, stderr = parser.execute('df -Pk')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
+
+    for mountpoint in mountpoints:
+        for line in stdout.splitlines():
+            if line.split()[0] == mountpoint.device:
+                mountpoint.update_usage(line)
 
     return mountpoints

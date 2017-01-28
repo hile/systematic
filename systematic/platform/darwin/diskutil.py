@@ -32,6 +32,12 @@ class DiskUtilError(Exception):
     pass
 
 class DiskInfo(dict):
+
+    """MacOS disktuil info
+
+    Parse MacOS diskutil information
+    """
+
     def __init__(self, device):
         if not os.access(device, os.R_OK):
             raise DiskUtilError('Device not readable: {0}'.format(device))

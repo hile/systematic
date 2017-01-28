@@ -15,10 +15,16 @@ import fnmatch
 from systematic.log import Logger, LoggerError
 
 
+class FilesystemError(Exception):
+    pass
+
+
 class MountPoints(list):
+    """Mountpoints for this OS
+
+    Loads OS specific implementation of mountpoints
     """
-    Thin wrapper to load OS specific implementation for mountpoints
-    """
+
     def __init__(self):
         if sys.platform[:5] == 'linux':
             from systematic.platform.linux.filesystems import load_mountpoints
@@ -33,18 +39,27 @@ class MountPoints(list):
             self.loader = load_mountpoints
 
         else:
-            raise ValueError('MountPoints loader for OS not available: {0}'.format(sys.platform))
+            raise FileSystemError('MountPoints loader for OS not available: {0}'.format(sys.platform))
 
         self.update()
 
-    def __getitem__(self, name):
+    def __getitem__(self, item):
         """Get item for mountpoint
 
         Delegate implementation to OS specific class
         """
+        # Return by index
+        if isinstance(item, int):
+            return super(MountPoints, self).__getitem__(item)
+
+        # Return by device or path
         for mountpoint in self:
-            if mountpoint == name:
+            if mountpoint.device == item:
                 return mountpoint
+
+            if mountpoint.path == item:
+                return mountpoint
+
         return None
 
     def update(self):

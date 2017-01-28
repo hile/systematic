@@ -5,21 +5,21 @@ Abstraction of filesystem mount points for OS X
 
 import os
 import re
-from systematic.classes import check_output, CalledProcessError
 
 from mactypes import Alias
 
 from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
 from systematic.platform.darwin.diskutil import DiskInfo, DiskUtilError
+from systematic.shell import ShellCommandParser, ShellCommandParserError
 
-re_mountpoint = re.compile(r'([^\s]*) on (.*) \(([^\)]*)\)$')
-re_df = re.compile(r'^([^\s]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(.*)$')
+RE_MOUNTPOINT = re.compile(r'([^\s]*) on (.*) \(([^\)]*)\)$')
+RE_DF = re.compile(r'^([^\s]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(.*)$')
 
 PSEUDO_FILESYSTEMS = (
     'devfs',
 )
 
-class OSXMountPoint(MountPoint):
+class DarwinMountPoint(MountPoint):
     """
     One OS X mountpoint parsed from /sbin/mount output
 
@@ -27,7 +27,7 @@ class OSXMountPoint(MountPoint):
     hfspath     Returns OS X 'hfs path' or None
     """
     def __init__(self, mountpoint, device=None, filesystem=None):
-        super(OSXMountPoint, self).__init__(device, mountpoint, filesystem)
+        super(DarwinMountPoint, self).__init__(device, mountpoint, filesystem)
 
         try:
             self.hfspath = Alias(self.mountpoint).hfspath
@@ -42,39 +42,41 @@ class OSXMountPoint(MountPoint):
     def is_virtual(self):
         return self.filesystem in PSEUDO_FILESYSTEMS
 
+    def update_usage(self, line=None):
+        """
+        Check usage percentage for this mountpoint.
+        Returns dictionary with usage details.
+        """
+
+        if line is None:
+            parser = ShellCommandParser()
+            try:
+                stdout, stderr = parser.execute( ('df', '-k', self.mountpoint) )
+            except ShellCommandParserError as e:
+                raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
+
+            header, usage = stdout.split('\n', 1)
+
+        else:
+            usage = line
+
+        m = RE_DF.match(usage)
+        if not m:
+            raise FileSystemError('Error matching df output line: {0}'.format(usage))
+
+        self.usage = {
+            'mountpoint': self.mountpoint,
+            'size': int(m.group(2)),
+            'used': int(m.group(3)),
+            'free': int(m.group(4)),
+            'percent': int(m.group(5))
+        }
+
     @property
     def name(self):
         if 'VolumeName' in self.diskinfo:
-            return self.diskinfo['VolumeName']
-        return os.path.basename(self.mountpoint)
-
-    @property
-    def size(self):
-        try:
-            return self.usage['size']
-        except KeyError:
-            return 0
-
-    @property
-    def used(self):
-        try:
-            return self.usage['used']
-        except KeyError:
-            return 0
-
-    @property
-    def available(self):
-        try:
-            return self.usage['available']
-        except KeyError:
-            return 0
-
-    @property
-    def percent(self):
-        try:
-            return self.usage['percent']
-        except KeyError:
-            return 0
+            return self.diskinfo['VolumeName'].decode('utf-8')
+        return super(DarwinMountPoint, self).name
 
     @property
     def writable(self):
@@ -112,30 +114,6 @@ class OSXMountPoint(MountPoint):
             return self.diskinfo['DeviceBlockSize']
         return 0
 
-    @property
-    def usage(self):
-        """
-        Check usage percentage for this mountpoint.
-        Returns dictionary with usage details.
-        """
-        try:
-            output = check_output(['df', '-k', self.mountpoint])
-        except CalledProcessError as e:
-            raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
-
-        header, usage = output.split('\n', 1)
-        m = re_df.match(usage)
-        if not m:
-            raise FileSystemError('Error matching df output line: {0}'.format(usage))
-
-        return {
-            'mountpoint': self.mountpoint,
-            'size': long(m.group(2)),
-            'used': long(m.group(3)),
-            'free': long(m.group(4)),
-            'percent': int(m.group(5))
-        }
-
     def update_diskinfo(self):
         """Update DiskInfo object
 
@@ -144,6 +122,25 @@ class OSXMountPoint(MountPoint):
         """
         self.diskinfo = DiskInfo(self.device)
 
+    def as_dict(self, verbose=False):
+        """Data as dict
+
+        """
+        data = super(DarwinMountPoint, self).as_dict(verbose)
+
+        if verbose:
+            # These flags only report sensible data as root
+            if os.geteuid() == 0:
+                data.update(
+                    writable=self.writable,
+                    internal=self.internal,
+                    ejectable=self.ejectable,
+                    removable=self.removable,
+                    blocksize=self.blocksize,
+                )
+
+        return data
+
 
 def load_mountpoints():
     """
@@ -151,16 +148,17 @@ def load_mountpoints():
     """
     mountpoints = []
 
+    parser = ShellCommandParser()
     try:
-        output = check_output(['/sbin/mount'])
-    except CalledProcessError as e:
-        raise FileSystemError('Error getting mountpoints: {0}'.format(e))
+        stdout, stderr = parser.execute('mount')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
 
-    for l in [l for l in output.split('\n') if l.strip() != '']:
+    for l in [l for l in stdout.split('\n') if l.strip() != '']:
         if l[:4] == 'map ':
             continue
 
-        m = re_mountpoint.match(l)
+        m = RE_MOUNTPOINT.match(l)
         if not m:
             continue
 
@@ -170,7 +168,9 @@ def load_mountpoints():
         filesystem = flags[0]
         flags = flags[1:]
 
-        entry = OSXMountPoint(mountpoint, device, filesystem)
+        entry = DarwinMountPoint(mountpoint, device, filesystem)
+        if entry.is_virtual:
+            continue
 
         for f in flags:
             if f[:11] == 'mounted by ':
@@ -180,4 +180,14 @@ def load_mountpoints():
 
         mountpoints.append(entry)
 
-        return mountpoints
+    try:
+        stdout, stderr = parser.execute('df -k')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
+
+    for mountpoint in mountpoints:
+        for line in stdout.splitlines():
+            if line.split()[0] == mountpoint.device:
+                mountpoint.update_usage(line)
+
+    return mountpoints

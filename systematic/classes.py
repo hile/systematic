@@ -59,7 +59,6 @@ class SortableContainer(object):
     comparison will fail.
 
     """
-
     compare_fields = ()
 
     def __cmp_fields__(self, other):
@@ -139,17 +138,22 @@ class MountPoint(SortableContainer):
     """
     Abstract class for device mountpoints implemented in OS specific code.
     """
-    compare_fields = ('mountpoint', 'device')
+    compare_fields = ( 'mountpoint', 'device', )
 
     def __init__(self, device, mountpoint, filesystem, flags={}):
         self.log = Logger('filesystems').default_stream
         self.device = device
-        self.mountpoint = mountpoint
+        self.mountpoint = mountpoint.decode('utf-8')
         self.filesystem = filesystem
         self.flags = FileSystemFlags(flags=flags)
+        self.usage = {}
 
     def __repr__(self):
         return '{0} mounted on {1}'.format(self.device,self.path)
+
+    @property
+    def is_virtual(self):
+        raise NotImplementedError('Implement is_virtual() is child class')
 
     @property
     def name(self):
@@ -160,6 +164,53 @@ class MountPoint(SortableContainer):
         return self.mountpoint
 
     @property
-    def usage(self):
-        raise NotImplementedError('Implement usage() is child class')
+    def size(self):
+        try:
+            return self.usage['size']
+        except KeyError:
+            return 0
 
+    @property
+    def used(self):
+        try:
+            return self.usage['used']
+        except KeyError:
+            return 0
+
+    @property
+    def available(self):
+        try:
+            return self.usage['available']
+        except KeyError:
+            return 0
+
+    @property
+    def free(self):
+        try:
+            return self.usage['free']
+        except KeyError:
+            return 0
+
+    @property
+    def percent(self):
+        try:
+            return self.usage['percent']
+        except KeyError:
+            return 0
+
+    def as_dict(self, verbose=False):
+        """Return data as dict
+
+        """
+        data = {
+            'device': self.device,
+            'mountpoint': self.mountpoint,
+            'filesystem': self.filesystem,
+            'size': self.size,
+            'available': self.free,
+            'used': self.used,
+            'percent': self.percent,
+        }
+        if verbose:
+            data['flags'] = self.flags
+        return data

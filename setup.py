@@ -1,7 +1,5 @@
 
 import glob
-import sys
-import os
 from setuptools import setup, find_packages
 from systematic import __version__
 
@@ -19,5 +17,11 @@ setup(
     install_requires = (
         'configobj',
     ),
+    setup_requires = (
+        'pytest-runner',
+    ),
+    tests_require = (
+        'pytest',
+        'pytest-datafiles',
+    ),
 )
-

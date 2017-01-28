@@ -24,3 +24,7 @@ endif
 register:
 	python setup.py register sdist upload
 
+test:
+	python setup.py test
+
+.PHONY: test

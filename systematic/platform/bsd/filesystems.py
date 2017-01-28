@@ -5,10 +5,10 @@ Implementation of FreeBSD filesystem mount point parsing
 
 import os
 import re
-from systematic.classes import check_output, CalledProcessError
 
 from systematic.log import Logger, LoggerError
 from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
+from systematic.shell import ShellCommandParser, ShellCommandParserError
 
 PSEUDO_FILESYSTEMS = [
     'procfs',
@@ -31,29 +31,34 @@ class BSDMountPoint(MountPoint):
     def is_virtual(self):
         return self.filesystem in PSEUDO_FILESYSTEMS
 
-    @property
-    def usage(self):
-        """
-        Check usage percentage for this mountpoint.
+    def update_usage(self, line=None):
+        """Update usage percentage for this mountpoint
+
+        If line is provided, it's expected to be output from df -k. Otherwise df -k is called explicitly.
+
         Returns dictionary with usage details.
         """
         if self.filesystem in PSEUDO_FILESYSTEMS:
             return {}
 
-        try:
-            output = check_output(['df','-k',self.mountpoint])
-        except CalledProcessError:
-            raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
+        if line is None:
+            parser = ShellCommandParser()
+            try:
+                stdout, stderr = parser.execute( ('df', '-k', self.mountpoint) )
+            except ShellCommandParserError as e:
+                raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
-        header, usage = output.split('\n', 1)
-        try:
-            usage = ' '.join(usage.split('\n'))
-        except ValueError:
-            pass
+            header, usage = stdout.split('\n', 1)
+            try:
+                usage = ' '.join(usage.split('\n'))
+            except ValueError:
+                pass
+        else:
+            usage = ' '.join(line.split('\n'))
 
         fs, size, used, free, percent, mp = [x.strip() for x in usage.split()]
         percent = percent.rstrip('%')
-        return {
+        self.usage = {
             'mountpoint': self.mountpoint,
             'size': long(size),
             'used': long(used),
@@ -61,18 +66,20 @@ class BSDMountPoint(MountPoint):
             'percent': int(percent)
         }
 
+
 def load_mountpoints():
     """
     Update list of FreeBSD mountpoints based on /sbin/mount output
     """
     mountpoints = []
 
+    parser = ShellCommandParser()
     try:
-        output = check_output(['/sbin/mount'])
-    except CalledProcessError:
-        raise FileSystemError('Error running /sbin/mount')
+        stdout, stderr = parser.execute('mount')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
 
-    for l in [l for l in output.split('\n') if l.strip()!='']:
+    for l in [l for l in stdout.split('\n') if l.strip() != '']:
         if l[:4] == 'map ':
             continue
 
@@ -87,9 +94,22 @@ def load_mountpoints():
         flags = flags[1:]
 
         entry = BSDMountPoint(device, mountpoint, filesystem)
+        if entry.is_virtual:
+            continue
+
         for f in flags:
             entry.flags.set(f,True)
 
         mountpoints.append(entry)
+
+    try:
+        stdout, stderr = parser.execute('df -k')
+    except ShellCommandParserError as e:
+        raise FileSystemError('Error running mount: {0}'.format(e))
+
+    for mountpoint in mountpoints:
+        for line in stdout.splitlines():
+            if line.split()[0] == mountpoint.device:
+                mountpoint.update_usage(line)
 
     return mountpoints

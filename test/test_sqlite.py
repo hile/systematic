@@ -1,92 +1,60 @@
 """
-Unit tests for sqlite wrapper
+Test sqlite database wrapper
 """
 
+import pytest
 import os
-import sys
 import sqlite3
-import unittest
+import tempfile
 
-from systematic.sqlite import SQLiteDatabase, SQLiteError
+TEST_DB_SIMPLE = (
+    """CREATE TABLE test ( key integer primary key )""",
+)
 
-test_data_path = os.path.join(os.sep.join(os.path.realpath(__file__).split(os.sep)[:-1]), 'data')
+def test_sqlite_create_database_relative_filename(tmpdir):
+    """Create simple database
 
-class test_sqlite(unittest.TestCase):
+    """
+    from systematic.sqlite import SQLiteDatabase
 
-    def test_create_new_database_without_foreign_keys_pragma(self):
-        test_db_path = os.path.join(test_data_path, 'test_no_foreign_keys.sqlite')
-        if os.path.isfile(test_db_path):
-            os.unlink(test_db_path)
-        db = SQLiteDatabase(test_db_path, foreign_keys=False)
-        del db
-        self.assertTrue(os.path.isfile(test_db_path))
+    # DB without path: create empty database to current directory. Remove afterwards
+    tmpfile = tempfile.NamedTemporaryFile(suffix='.sqlite', prefix='unittests', dir=os.getcwd())
+    filename = os.path.basename(tmpfile.name)
+    db = SQLiteDatabase(filename)
+    assert os.path.isfile(filename)
+    os.unlink(filename)
 
-    def test_create_new_database_with_foreign_keys_pragma(self):
-        test_db_path = os.path.join(test_data_path, 'test_foreign_keys.sqlite')
-        if os.path.isfile(test_db_path):
-            os.unlink(test_db_path)
-        db = SQLiteDatabase(test_db_path, foreign_keys=True)
-        del db
-        self.assertTrue(os.path.isfile(test_db_path))
+def test_sqlite_create_database_with_path(tmpdir):
+    """Create simple database
 
-    def test_create_new_database_with_sql_no_foreign_keys(self):
-        test_db_path = os.path.join(test_data_path, 'test_no_foreign_keys.sqlite')
-        test_sql = [
-            """CREATE TABLE test ( id INT PRIMARY KEY, name TEXT );""",
-            """CREATE TABLE IF NOT EXISTS testref ( id INT PRIMARY KEY, test INT, FOREIGN KEY (test) REFERENCES test(id) );""",
-            """INSERT INTO test (id,name) VALUES (2,"test1")""",
-            """INSERT INTO testref (id,test) VALUES (1,2)""",
-        ]
-        if os.path.isfile(test_db_path):
-            os.unlink(test_db_path)
-        db = SQLiteDatabase(test_db_path, tables_sql=test_sql, foreign_keys=False)
+    """
+    from systematic.sqlite import SQLiteDatabase
 
+    # DB with path: Create empty test database
+    filename = '{0}/createdb_empty.sqlite'.format(tmpdir)
+    db = SQLiteDatabase(filename)
+    assert os.path.isfile(filename)
+
+def test_sqlite_operations(tmpdir):
+    """Basic sqlite operations
+
+    Create trivial database with tables_sql argument, test basic operations
+    """
+    from systematic.sqlite import SQLiteDatabase
+
+    # DB with tables: Create database with one table
+    filename = '{0}/createdb_simple.sqlite'.format(tmpdir)
+    db = SQLiteDatabase(filename, TEST_DB_SIMPLE)
+    assert os.path.isfile(filename)
+
+    c = db.cursor
+    c.execute("""SELECT * FROM test""")
+    c.fetchall()
+
+    c = db.cursor
+    c.execute("""DROP TABLE test""")
+
+    with pytest.raises(sqlite3.OperationalError):
         c = db.cursor
-        with self.assertRaises(sqlite3.IntegrityError):
-            c.execute("""INSERT INTO testref (id, test) VALUES (1, 3)""")
-
-        # Must no raise exception
-        c.execute("""INSERT INTO testref (id, test) VALUES (123, 223)""")
-
-        c.execute("""SELECT id, name FROM test WHERE name="test1" """)
-        res = c.fetchone()
-        self.assertIsInstance(res, tuple)
-        self.assertIsInstance(db.as_dict(c, res), dict)
-
-        del db
-        self.assertTrue(os.path.isfile(test_db_path))
-        os.unlink(test_db_path)
-
-    def test_create_new_database_with_sql_with_foreign_keys(self):
-        test_db_path = os.path.join(test_data_path, 'test_no_foreign_keys.sqlite')
-        test_sql = [
-            """CREATE TABLE test ( id INT PRIMARY KEY,  name TEXT );""",
-            """CREATE TABLE IF NOT EXISTS testref ( id INT PRIMARY KEY, test TEXT, FOREIGN KEY (test) REFERENCES test(id) );""",
-            """INSERT INTO test (id, name) VALUES (2, "test1")""",
-            """INSERT INTO testref (id, test) VALUES (1, 2)""",
-        ]
-        if os.path.isfile(test_db_path):
-            os.unlink(test_db_path)
-        db = SQLiteDatabase(test_db_path, tables_sql=test_sql, foreign_keys=True)
-
-        c = db.cursor
-        with self.assertRaises(sqlite3.IntegrityError):
-            c.execute("""INSERT INTO testref (id, test) VALUES (1, 3)""")
-
-        # Must raise exception
-        with self.assertRaises(sqlite3.IntegrityError):
-            c.execute("""INSERT INTO testref (id, test) VALUES (123, 223)""")
-
-        c.execute("""SELECT id, name FROM test WHERE name="test1" """)
-        res = c.fetchone()
-        self.assertIsInstance(res, tuple)
-        self.assertIsInstance(db.as_dict(c, res),dict)
-
-        del db
-        self.assertTrue(os.path.isfile(test_db_path))
-        os.unlink(test_db_path)
-
-
-
-
-
+        c.execute("""SELECT * FROM test""")
+        c.fetchall()

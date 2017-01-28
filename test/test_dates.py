@@ -2,72 +2,61 @@
 Unit tests for dates parsers
 """
 
-import sys,unittest,time
-from datetime import datetime,date
+import pytest
 
-from systematic.dates import Day,Week,Month,DatesError
+from datetime import datetime, timedelta
+from systematic.dates import Day, Week, Month
 
-VALID_DATE_FORMATS = (
-    ('2012-02-29', None),
-    ('2012-02-28', '%Y-%m-%d'),
-    ('1.2.2012', '%d.%m.%Y'),
-    (long(time.mktime(time.localtime())), None),
-    (time.mktime(time.localtime()), None),
-    (time.localtime(), None),
-    (datetime.now(), None),
-    (date(*time.localtime()[:3]), None),
-    ('', None),
-)
+def test_day_date():
+    """Check Day value
 
-INVALID_DATE_FORMATS = (
-    ('1024-13-13', None),
-    ('2013-02-29', None),
-    ('abcd', None),
-    ('', '')
-)
+    """
+    today = datetime.now().date()
+    day = Day()
+    assert type(day.value) == type(today)
+    assert day.value == today
+    value = datetime.strptime(day.__repr__(), '%Y-%m-%d')
 
-class test_dates(unittest.TestCase):
+def test_day_add_substract():
+    """Check Day operations
 
-    def test_day_arguments(self):
-        for value, date_format in VALID_DATE_FORMATS:
-            try:
-                Day(value=value, input_format=date_format)
-            except DatesError as e:
-                raise AssertionError('format {0}: {1}'.format(date_format, e))
+    """
+    today = datetime.now().date()
+    day = Day()
 
-        for value, date_format in INVALID_DATE_FORMATS:
-            with self.assertRaisesRegexp(DatesError, 'Error parsing date: {0}'.format(value)):
-                Day(value=value, input_format=date_format)
+    tomorrow = day + 1
+    assert isinstance(tomorrow, Day)
+    assert tomorrow.value == today + timedelta(days=1)
 
-    def test_week_operators(self):
-        self.assertEquals(len(list(Week())), 7)
+    yesterday = day - 1
+    assert isinstance(yesterday, Day)
+    assert yesterday.value == today - timedelta(days=1)
 
-        previous = Week('2012-01-05')-1
-        self.assertEquals(previous.first.year, 2011)
-        self.assertEquals(previous.first.weekday, 1)
-        self.assertEquals(previous.last.year, 2012)
-        self.assertEquals(previous.last.weekday, 7)
+def test_week_dates():
+    """Test Week object
 
-        next = Week('2011-02-25')+1
-        self.assertEquals(next.last.month, 3)
-        self.assertEquals(next.last.weekday, 7)
+    """
+    week = Week()
+    assert isinstance(week.first, Day)
+    assert isinstance(week.last, Day)
 
-    def test_month_operations(self):
-        self.assertEquals(len(list(Month('2012-12-12'))), 31)
-        self.assertEquals(len(list(Month('2012-12-12').weeks)), 6)
+def test_week_add_substract():
+    """Check Week operations
 
-        previous = Month('2012-01-05')-1
-        self.assertEquals(previous.first.year, 2011)
-        self.assertEquals(previous.first.weekday, 4)
-        self.assertEquals(previous.last.year, 2011)
-        self.assertEquals(previous.last.weekday, 6)
+    """
+    today = datetime.now().date()
+    week = Week()
 
-        next = Month('2011-02-25')+1
-        self.assertEquals(next.last.month, 3)
-        self.assertEquals(next.last.weekday, 4)
+    previos_week = week - 10
+    assert isinstance(previos_week, Week)
 
+    next_week = week + 10
+    assert isinstance(next_week, Week)
 
+def test_month_dates():
+    """Test Month object
 
-
-
-
+    """
+    month = Month()
+    assert isinstance(month.first, Day)
+    assert isinstance(month.last, Day)

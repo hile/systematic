@@ -8,7 +8,7 @@ import fnmatch
 import os
 
 from systematic.shell import Script, ScriptCommand
-from systematic.smart import SmartCtlClient, SmartError, ATTRIBUTE_COMMON_FIELDS
+from systematic.stats.hardware.smart import SmartCtlClient, SmartError, ATTRIBUTE_COMMON_FIELDS
 
 
 class SmartCommand(ScriptCommand):
@@ -32,7 +32,7 @@ class SmartCommand(ScriptCommand):
                         break
 
         else:
-            self.drives = self.client.drives
+            self.drives = [drive for drive in self.client.drives if drive.is_supported]
 
         return args
 

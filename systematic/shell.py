@@ -73,6 +73,9 @@ class CommandPathCache(list):
     def __init__(self):
         self.update()
 
+    def __repr__(self):
+        return '{0}'.format(type(self))
+
     def update(self):
         """
         Updates the commands available on user's PATH
@@ -449,3 +452,46 @@ class ScriptCommand(argparse.ArgumentParser):
 
         """
         sys.stderr.write('Subcommand {0} has no run method implemented\n'.format(self.name))
+
+
+class ShellCommandParserError(Exception):
+    """Errors raised by ShellCommandParser
+
+    """
+    pass
+
+
+class ShellCommandParser(object):
+    """Parser class for shell commands
+
+    Run shell commands and parse output.
+
+    This class is used by platform and stats parsers that use cli commands.
+    """
+    def __init__(self):
+        self.__command_cache__ = CommandPathCache()
+
+    def execute(self, args):
+        """Run shell command
+
+        Run a shell command with subprocess
+        """
+
+        if not hasattr(self, '__command_cache__'):
+            self.__command_cache__ = CommandPathCache()
+
+        if isinstance(args, str):
+            args = args.split()
+
+        if self.__command_cache__.which(args[0]) is None:
+            raise ShellCommandParserError('Command not found: {0}'.format(args[0]))
+
+        p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        if p.returncode != 0:
+            raise ShellCommandParserError('Error running {0}: {1}'.format(' '.join(args), stderr))
+
+        stdout = stdout.decode('utf-8')
+        stderr = stderr.decode('utf-8')
+
+        return stdout, stderr
