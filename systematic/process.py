@@ -117,6 +117,14 @@ class Process(SortableContainer):
         return None
 
     @property
+    def basename(self):
+        """Executable basename
+
+        Returns name of executable without path
+        """
+        return os.path.basename(self.command)
+
+    @property
     def realpath(self):
         """Executable real path
 
