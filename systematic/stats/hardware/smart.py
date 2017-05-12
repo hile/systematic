@@ -128,6 +128,9 @@ PLATFORM_IGNORED_DEVICE_MATCHES = {
     ],
 }
 
+RE_SECTOR_SIZE = re.compile('(?P<size>\d+) bytes logical/physical')
+RE_SECTOR_SIZES = re.compile('(?P<logical>\d+) bytes logical, (?P<physical>\d+) bytes physical')
+
 
 class SmartError(Exception):
     pass
@@ -332,6 +335,20 @@ class SmartDrive(object):
 
         Returns all known info fields
         """
+        def parse_sector_sizes(value):
+            """Parse different sector size presentations
+
+            """
+            m = RE_SECTOR_SIZE.match(value)
+            if m:
+                return {
+                    'logical': int(m.groupdict()['size']),
+                    'physical': int(m.groupdict()['size']),
+                }
+            m = RE_SECTOR_SIZES.match(value)
+            if m:
+                return dict((k,int(v)) for k,v in m.groupdict().items())
+            return value
 
         re_result = re.compile('^(?P<field>[^:]+):\s+(?P<value>.*)$')
         details = {}
@@ -357,7 +374,11 @@ class SmartDrive(object):
             else:
                 value = m['value']
 
-            details[name] = SmartInfoField(self, name, value)
+            if name in ( 'Sector size', 'Sector sizes', ):
+                value = parse_sector_sizes(value)
+                details['Sector sizes'] = SmartInfoField(self, 'Sector sizes', value)
+            else:
+                details[name] = SmartInfoField(self, name, value)
 
         return details
 
