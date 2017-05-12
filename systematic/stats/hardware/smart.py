@@ -2,6 +2,8 @@
 Parsing of smartctl command output information
 """
 
+import configobj
+import fnmatch
 import json
 import os
 import re
@@ -10,6 +12,7 @@ import sys
 from datetime import datetime,timedelta
 from systematic.classes import check_output, CalledProcessError
 from systematic.stats import StatsParser, StatsParserError
+from systematic.shell import CONFIG_PATH
 
 HEADERS = {
     'version': re.compile('^smartctl\s+(?P<version>[^\s]+)\s+(?P<date>[0-9-]+)\s+(?P<release>[^\s]+)\s+(?P<build>.*)$'),
@@ -78,6 +81,7 @@ ATTRIBUTE_FIELD_NAME_MAP = {
     'start_stop_count':             'Start-stop count',
     'temperature_celsius':          'Temperature',
     'total_lbas_written':           'Total LBAs written',
+    'total_lbas_read':              'Total LBAs read',
     'udma_crc_error_count':         'UDMA CRC errors',
     'uncorrectable_error_cnt':      'Uncorrectable errors',
     'unexpect_power_loss_ct':       'Unexpected power losses',
@@ -96,8 +100,11 @@ ATTRIBUTE_FIELD_MAP_PARSERS = {
 ATTRIBUTE_COMMON_FIELDS = (
     'power_on_hours',
     'total_lbas_written',
+    'total_lbas_read',
     'airflow_temperature_cel',
     'temperature_celsius',
+
+    'raw_read_error_rate',
     'seek_error_rate',
     'uncorrectable_error_cnt',
     'crc_error_count',
@@ -161,6 +168,7 @@ class SmartDrive(object):
     def __init__(self, client, device, flags=[]):
         self.client = client
         self.device = device.decode('utf-8')
+        self.driver = self.client.config.get_driver(self.device)
         self.name = os.path.basename(device)
         self.flags = flags
 
@@ -231,7 +239,11 @@ class SmartDrive(object):
 
         re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
         try:
-            matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--health', self.device ]))
+            if self.driver:
+                cmd = ( 'smartctl', '-d', self.driver, '--health', self.device )
+            else:
+                cmd = ( 'smartctl', '--health', self.device )
+            matches = self.__re_line_matches__(re_result, self.client.execute(cmd))
         except SmartError:
             return False
 
@@ -262,9 +274,11 @@ class SmartDrive(object):
         ])))
 
         try:
-            matches = self.__re_line_matches__(re_match,
-                self.client.execute([ 'smartctl', '--format=hex', '--attributes', self.device ])
-            )
+            if self.driver:
+                cmd = ( 'smartctl', '-d', self.driver, '--format=hex', '--attributes', self.device )
+            else:
+                cmd = ( 'smartctl', '--format=hex', '--attributes', self.device )
+            matches = self.__re_line_matches__(re_match, self.client.execute(cmd) )
         except SmartError:
             return attributes
 
@@ -276,7 +290,7 @@ class SmartDrive(object):
             name = m['attribute_name']
             del m['attribute_name']
             try:
-                description = ATTRIBUTE_FIELD_NAME_MAP[m['attribute_name'].lower()]
+                description = ATTRIBUTE_FIELD_NAME_MAP[name.lower()]
             except KeyError:
                 description = name
 
@@ -320,7 +334,11 @@ class SmartDrive(object):
         details = {}
 
         try:
-            matches = self.__re_line_matches__(re_result, self.client.execute([ 'smartctl', '--info', self.device ]))
+            if self.driver:
+                cmd = ( 'smartctl', '-d', self.driver, '--info', self.device )
+            else:
+                cmd = ( 'smartctl', '--info', self.device )
+            matches = self.__re_line_matches__(re_result, self.client.execute(cmd))
         except SmartError:
             return details
 
@@ -345,21 +363,33 @@ class SmartDrive(object):
 
         Enable or disable SMART on drive
         """
-        self.client.execute( [ 'smartctl', '--smart={0}'.format(enabled and 'on' or 'off', self.device) ] )
+        if self.driver:
+            cmd = ( 'smartctl', '-d', self.driver, '--smart={0}'.format(enabled and 'on' or 'off', self.device) )
+        else:
+            cmd = ( 'smartctl', '--smart={0}'.format(enabled and 'on' or 'off', self.device) )
+        self.client.execute(cmd)
 
     def set_offline_testing(self, enabled):
         """Set SMART offline testing status
 
         Enable or disable SMART offline testing on drive
         """
-        execute( [ 'smartctl', '--offlineauto={0}'.format(enabled and 'on' or 'off', self.device) ] )
+        if self.driver:
+            cmd = ( 'smartctl', '-d', self.driver, '--offlineauto={0}'.format(enabled and 'on' or 'off', self.device) )
+        else:
+            cmd = ( 'smartctl', '--offlineauto={0}'.format(enabled and 'on' or 'off', self.device) )
+        execute( cmd )
 
     def set_attribute_autosave(self, enabled):
         """Set SMART attribute autosave
 
         Enable or disable SMART attribute autosave on drive
         """
-        execute( [ 'smartctl', '--saveauto={0}'.format(enabled and 'on' or 'off', self.device) ] )
+        if self.driver:
+            cmd = ( 'smartctl', '-d', self.driver, '--saveauto={0}'.format(enabled and 'on' or 'off', self.device) )
+        else:
+            cmd = ( 'smartctl', '--saveauto={0}'.format(enabled and 'on' or 'off', self.device) )
+        execute(cmd)
 
     def as_dict(self, verbose=False):
         """Return drive status as dict
@@ -383,6 +413,46 @@ class SmartDrive(object):
         return data
 
 
+class SmartCtlConfig(object):
+    """Configuration for SmartCtlClient
+
+    Parse configuration smartdevices.conf for SmartCtlClient.
+
+    This is used to set explicit driver for certain devices.
+    """
+    def __init__(self, path=None):
+        self.drivers = {}
+        self.path = path is not None and path or os.path.join(CONFIG_PATH, 'smartdevices.conf')
+        if os.path.isfile(os.path.realpath(self.path)):
+            self.load(self.path)
+
+    def __repr__(self):
+        return '{0}'.format(self.path)
+
+    def load(self, path):
+        """Load configuration
+
+        Raises SmartError if configuration could not be loaded.
+        """
+        try:
+            data = configobj.ConfigObj(path)
+        except Exception as e:
+            raise SmartError('Error reading {0}: {1}'.format(path, e))
+
+        if 'drivers' in data:
+            self.drivers.update(data['drivers'])
+
+    def get_driver(self, device):
+        """Get driver for device
+
+        Return driver matching device path or None if not configured
+        """
+        for key in self.drivers:
+            if fnmatch.fnmatch(device, key):
+                return self.drivers[key]
+        return None
+
+
 class SmartCtlClient(StatsParser):
     """Client for smartctl
 
@@ -391,8 +461,13 @@ class SmartCtlClient(StatsParser):
     parser_name = 'smart'
 
     def __init__(self, *args, **kwargs):
-        super(SmartCtlClient, self).__init__(*args, **kwargs)
         self.drives = []
+        if 'config' in kwargs:
+            self.config = SmartCtlConfig(path=kwargs['config'])
+            del kwargs['config']
+        else:
+            self.config = SmartCtlConfig()
+        super(SmartCtlClient, self).__init__(*args, **kwargs)
 
     def execute(self, args):
         """Execute smartctl commands
@@ -482,6 +557,10 @@ class SmartCtlClient(StatsParser):
 
             except ValueError:
                 raise SmartError('Error parsing line from output: {0}'.format(line))
+
+        # Add explicitly configured drives
+        for device, driver in self.config.drivers.items():
+            self.drives.append(SmartDrive(self, device, flags=[]))
 
         self.drives.sort()
         return self.update_timestamp()

@@ -58,8 +58,8 @@ class InfoCommand(SmartCommand):
                 continue
 
             for info in details:
-                self.message('  {0:20} {1}'.format(info.field, info.value))
-            self.message('  {0:20} {1}'.format('Drive health', drive.is_healthy and 'Healthy' or 'FAILING'))
+                self.message('  {0:25} {1}'.format(info.field, info.value))
+            self.message('  {0:25} {1}'.format('Drive health', drive.is_healthy and 'Healthy' or 'FAILING'))
 
             try:
                 attributes = drive.get_attributes()
@@ -72,7 +72,7 @@ class InfoCommand(SmartCommand):
                     attribute = attributes[key]
                 except KeyError:
                     continue
-                script.message('  {0:20} {1}'.format(attribute.description, attribute['raw_value']))
+                script.message('  {0:25} {1}'.format(attribute.description, attribute['raw_value']))
 
 
 script = Script()
