@@ -59,10 +59,13 @@ class Process(SortableContainer):
             self.started = None
 
         for key in keys:
-            if key == 'command':
-                value = ' '.join(fields[keys.index(key):])
-            else:
-                value = fields[keys.index(key)]
+            try:
+                if key == 'command':
+                    value = ' '.join(fields[keys.index(key):])
+                else:
+                    value = fields[keys.index(key)]
+            except IndexError as e:
+                value = None
 
             if key not in ( 'ruser', 'user', 'time', 'tdev', 'state', 'command', ):
                 try:
@@ -116,6 +119,14 @@ class Process(SortableContainer):
             if hasattr(self, key):
                 return getattr(self, key)
         return None
+
+    @property
+    def basename(self):
+        """Executable basename
+
+        Returns name of executable without path
+        """
+        return os.path.basename(self.command)
 
     @property
     def realpath(self):

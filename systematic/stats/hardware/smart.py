@@ -14,6 +14,11 @@ from systematic.classes import check_output, CalledProcessError
 from systematic.stats import StatsParser, StatsParserError
 from systematic.shell import CONFIG_PATH
 
+SYSTEM_CONFIG_PATHS = (
+    '/etc/systematic/smartdevices.conf',
+    '/usr/local/etc/systematic/smartdevices.conf',
+)
+
 HEADERS = {
     'version': re.compile('^smartctl\s+(?P<version>[^\s]+)\s+(?P<date>[0-9-]+)\s+(?P<release>[^\s]+)\s+(?P<build>.*)$'),
     'copyright': re.compile('^Copyright\s+\(C\)\s+(?P<copyright>.*)$'),
@@ -446,12 +451,14 @@ class SmartCtlConfig(object):
     """
     def __init__(self, path=None):
         self.drivers = {}
-        self.path = path is not None and path or os.path.join(CONFIG_PATH, 'smartdevices.conf')
-        if os.path.isfile(os.path.realpath(self.path)):
-            self.load(self.path)
 
-    def __repr__(self):
-        return '{0}'.format(self.path)
+        for filename in SYSTEM_CONFIG_PATHS:
+            if os.path.isfile(filename):
+                self.load(filename)
+
+        path = path is not None and path or os.path.join(CONFIG_PATH, 'smartdevices.conf')
+        if os.path.isfile(os.path.realpath(path)):
+            self.load(path)
 
     def load(self, path):
         """Load configuration
