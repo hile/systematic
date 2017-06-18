@@ -4,6 +4,7 @@ Process lists.
 Uses custom flags for ps command to get similar output for all supported platforms.
 """
 
+import re
 import os
 import sys
 
@@ -179,9 +180,8 @@ class Processes(list):
         - dictionary with valid keys
         """
         filters = []
-
         try:
-            filters = [(k,v) for x in args for k,v in x.split('=', 1)]
+            filters = [(key, pattern) for x in args for key, pattern in x.split('=', 1)]
         except ValueError as e:
             raise ProcessError('Invalid filter list: {0}: {1}'.format(args, e))
         filters.extend(kwargs.items())
@@ -189,10 +189,10 @@ class Processes(list):
         filtered = []
         for entry in self:
             matches = True
-            for k,v in filters:
-                if not hasattr(entry, k):
-                    raise ProcessError('Invalid filter key: {0}'.format(k))
-                if getattr(entry, k) != v:
+            for key, pattern in filters:
+                if not hasattr(entry, key):
+                    raise ProcessError('Invalid filter key: {0}'.format(key))
+                if not re.compile('{0}'.format(pattern)).match('{0}'.format(getattr(entry, key))):
                     matches = False
                     break
 
