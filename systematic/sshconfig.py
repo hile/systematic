@@ -376,7 +376,7 @@ class OpenSSHPublicKey(dict):
     def __repr__(self):
         return self.line
 
-    def fingerprint(self, fingerprint_hash='md5'):
+    def fingerprint(self, fingerprint_hash=None):
         """Key fingerprint
 
         Return key fingerprint with ssh-keygen
@@ -385,7 +385,10 @@ class OpenSSHPublicKey(dict):
             fd, name = tempfile.mkstemp(prefix='sshkey-')
             with open(name, 'w') as fd:
                 fd.write('{0}'.format(self.line))
-            p = Popen(('ssh-keygen', '-E', fingerprint_hash, '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            if fingerprint_hash:
+                p = Popen(('ssh-keygen', '-E', fingerprint_hash, '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            else:
+                p = Popen(('ssh-keygen', '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
             stdout, stderr = p.communicate()
             os.unlink(name)
             return stdout.rstrip()
@@ -397,7 +400,7 @@ class AuthorizedKeys(list):
     """
     Parser for OpenSSH authorized_keys file contents
     """
-    def __init__(self, path=DEFAULT_AUTHORIZED_KEYS, fingerprint_hash='md5'):
+    def __init__(self, path=DEFAULT_AUTHORIZED_KEYS, fingerprint_hash=None):
         self.log = Logger().default_stream
         self.path = path
         self.fingerprint_hash = fingerprint_hash
