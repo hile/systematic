@@ -8,6 +8,7 @@ import pwd
 import stat
 import re
 import string
+import tempfile
 
 from subprocess import Popen, PIPE
 from systematic.log import Logger
@@ -375,15 +376,39 @@ class OpenSSHPublicKey(dict):
     def __repr__(self):
         return self.line
 
+    def fingerprint(self, fingerprint_hash='md5'):
+        """Key fingerprint
+
+        Return key fingerprint with ssh-keygen
+        """
+        try:
+            fd, name = tempfile.mkstemp(prefix='sshkey-')
+            with open(name, 'w') as fd:
+                fd.write('{0}'.format(self.line))
+            p = Popen(('ssh-keygen', '-E', fingerprint_hash, '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
+            stdout, stderr = p.communicate()
+            os.unlink(name)
+            return stdout.rstrip()
+        except Exception as e:
+            raise SSHKeyError('Error getting fingerprint for {0}: {1}'.format(self.line, e))
+
 
 class AuthorizedKeys(list):
     """
     Parser for OpenSSH authorized_keys file contents
     """
-    def __init__(self, path=DEFAULT_AUTHORIZED_KEYS):
+    def __init__(self, path=DEFAULT_AUTHORIZED_KEYS, fingerprint_hash='md5'):
         self.log = Logger().default_stream
         self.path = path
+        self.fingerprint_hash = fingerprint_hash
         self.load()
+
+    @property
+    def fingerprints(self):
+        """Return key fingerprints
+
+        """
+        return [key.fingerprint(self.fingerprint_hash) for key in self]
 
     def load(self):
         """

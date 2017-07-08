@@ -495,3 +495,4 @@ class ShellCommandParser(object):
         stderr = stderr.decode('utf-8')
 
         return stdout, stderr
+
