@@ -67,7 +67,7 @@ class SortableContainer(object):
                 a = getattr(self, field)
                 b = getattr(other, field)
                 if a != b:
-                    return cmp(a, b)
+                    return (a > b) - (a < b)
 
             return 0
 

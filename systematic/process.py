@@ -49,7 +49,7 @@ class Process(SortableContainer):
 
         keys = [x for x in keys]
         lstart_index = keys.index('lstart')
-        fields = line.split()
+        fields = line.decode('utf-8').split()
 
         if lstart_index != -1:
             self.started = self.__parse_date__(' '.join(fields[lstart_index:lstart_index+5]))
@@ -69,7 +69,7 @@ class Process(SortableContainer):
 
             if key not in ( 'ruser', 'user', 'time', 'tdev', 'state', 'command', ):
                 try:
-                    value = long(value)
+                    value = int(value)
                 except ValueError:
                     pass
 
@@ -178,7 +178,7 @@ class Processes(list):
 
         If reverse is True, the in-line ordering is reversed after sorting.
         """
-        results = [entry for entry in sorted(lambda x, y: cmp(getattr(x, field), getattr(y, field)))]
+        results =  [entry for entry in sorted(key=field)]
         if reverse:
             results.reverse()
         return results
