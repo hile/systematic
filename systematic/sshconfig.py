@@ -328,6 +328,7 @@ class UserSSHKeys(dict):
         else:
             self.log.debug('All SSH keys were already loaded to SSH agent')
 
+
 class OpenSSHPublicKey(dict):
     def __init__(self, line):
         self.line = line
@@ -438,13 +439,16 @@ class AuthorizedKeys(list):
                 pass
 
 
-class SSHConfigHost(dict):
-    def __init__(self, config, name):
+class SSHConfigHostPattern(dict):
+    """
+    Host entry pattern in SSH configuration
+    """
+    def __init__(self, config, patterns):
         self.config = config
-        self.name = name
+        self.patterns = patterns.split(' ')
 
     def __repr__(self):
-        return self.name
+        return 'Host {0}'.format(' '.join(self.patterns))
 
     def parse(self, line):
         try:
@@ -467,8 +471,8 @@ class SSHConfigHost(dict):
         raise AttributeError
 
     def __getitem__(self, item):
-        if item in super(SSHConfigHost, self).keys():
-            return super(SSHConfigHost, self).__getitem__(item)
+        if item in super(SSHConfigHostPattern, self).keys():
+            return super(SSHConfigHostPattern, self).__getitem__(item)
         else:
             return self.config.defaults[item]
 
@@ -505,12 +509,12 @@ class SSHConfigHost(dict):
             return False
 
     def keys(self):
-        return sorted(list(super(SSHConfigHost, self).keys()) + list(self.config.defaults.keys()))
+        return sorted(list(super(SSHConfigHostPattern, self).keys()) + list(self.config.defaults.keys()))
 
     def items(self):
         items = []
         for key in self.keys():
-            if key in super(SSHConfigHost, self).keys():
+            if key in super(SSHConfigHostPattern, self).keys():
                 items.append((key, self[key]))
             else:
                 items.append((key, self.config.defaults[key]))
@@ -520,7 +524,7 @@ class SSHConfigHost(dict):
     def values(self):
         items = []
         for key in self.keys():
-            if key in super(SSHConfigHost, self).keys():
+            if key in super(SSHConfigHostPattern, self).keys():
                 items.append(self[key])
             else:
                 items.append(self.config.defaults[key])
@@ -531,6 +535,7 @@ class SSHConfigHost(dict):
 class SSHConfig(dict):
     def __init__(self, path=None):
         self.defaults = {}
+        self.patterns = []
         self.log = Logger().default_stream
         self.path = path is not None and path or os.path.expanduser('~/.ssh/config')
         self.reload()
@@ -548,8 +553,10 @@ class SSHConfig(dict):
                     continue
 
                 if l[:5]=='Host ':
-                    host = SSHConfigHost(self, l[5:])
-                    self[host.name] = host
+                    host = SSHConfigHostPattern(self, l[5:])
+                    for pattern in host.patterns:
+                        self[pattern] = host
+                    self.patterns.append(host)
 
                 else:
                     host.parse(l)
