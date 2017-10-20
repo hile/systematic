@@ -16,6 +16,7 @@ from systematic.log import Logger
 SSH_CONFIG_FILES = ( 'authorized_keys', 'config', 'known_hosts', 'sshkeys.conf', )
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 DEFAULT_AUTHORIZED_KEYS = os.path.expanduser('~/.ssh/authorized_keys')
+DEFAULT_KNOWN_HOSTS = os.path.expanduser('~/.ssh/known_hosts')
 
 SSH_DIR_PERMS = '0700'
 SSH_FILE_PERMS = '0600'
@@ -365,7 +366,6 @@ class OpenSSHPublicKey(dict):
 
             elif parts[0] in string.digits:
                 self['keyformat'] = 1
-                self['keyformat'] = 1
                 self['bits'] = int(parts[0])
                 self['exponent'] = parts[1]
                 self['modulus'] = parts[2]
@@ -373,6 +373,18 @@ class OpenSSHPublicKey(dict):
 
         if not self.keys():
             raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
+
+    def __eq__(self, other):
+        for attr in ( 'keyformat', 'keytype' 'bits', 'exponent', 'modulus', 'key_base64', ):
+            a = self.get(attr, None)
+            b = other.get(attr, None)
+            if a is None and b is None:
+                continue
+            if (a is not None and b is None) or (a is None and b is not None):
+                return False
+            if a != b:
+                return False
+        return True
 
     def __repr__(self):
         return self.line
@@ -395,6 +407,247 @@ class OpenSSHPublicKey(dict):
             return stdout.rstrip()
         except Exception as e:
             raise SSHKeyError('Error getting fingerprint for {0}: {1}'.format(self.line, e))
+
+
+class KnownHostsHost(object):
+    """
+    Host in known hosts file
+    """
+    def __init__(self, host):
+        self.host = host
+        self.type_sort_key, self.sort_value, self.type = self.__detect_type__(host)
+
+    def __detect_type__(self, value):
+        """
+        Detect host type (hostname, ipv4_address, ipv6_address)
+        """
+        def is_ipv6_address(value):
+            try:
+                value,interface = value.split('%', 1)
+            except:
+                pass
+            try:
+                parts = value.split(':')
+                for part in parts:
+                    if part == '':
+                        continue
+                    part = int(part, 16)
+                    if part < 0:
+                        raise ValueError
+                return True
+            except Exception as e:
+                return False
+
+        def is_ipv4_address(value):
+            try:
+                value, interface = value.split('%', 1)
+            except:
+                pass
+            try:
+                parts = value.split('.', 3)
+                for part in parts:
+                    part = int(part)
+                    if part < 0 or part > 255:
+                        raise ValueError
+                return True
+            except:
+                return False
+
+        # Strip port
+        if value.startswith('['):
+            value = value[1:]
+            try:
+                value, port = value.split(':', 1)
+            except:
+                pass
+
+        if value.endswith(']'):
+            value = value[:-1]
+
+        if is_ipv4_address(value):
+            return 1, value, 'ipv4_address'
+
+        elif is_ipv6_address(value):
+            return 2, value, 'ipv6_address'
+
+        else:
+            return 0, value, 'hostname'
+
+    def __repr__(self):
+        return '{0} {1}'.format(self.type, self.host)
+
+    def __str__(self):
+        return self.host
+
+    def __eq__(self, other):
+        if isinstance(other, str):
+            return self.host == other
+        for attr in ('type_sort_key', 'sort_value', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __lt__(self, other):
+        if isinstance(other, str):
+            return self.host < other
+        for attr in ('type_sort_key', 'sort_value', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a < b
+        return True
+
+    def __gt__(self, other):
+        if isinstance(other, str):
+            return self.host > other
+        for attr in ('type_sort_key', 'sort_value', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a > b
+        return True
+
+    def __le__(self, other):
+        if isinstance(other, str):
+            return self.host <= other
+        for attr in ('type_sort_key', 'sort_value', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a <= b
+        return True
+
+    def __ge__(self, other):
+        if isinstance(other, str):
+            return self.host >= other
+        for attr in ('type_sort_key', 'sort_value', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a >= b
+        return True
+
+
+class KnownHostsEntry(object):
+    """
+    Key entry in known_hosts file. Merges unique key to hostnames.
+    """
+    def __init__(self, line):
+        self.__hosts__ = []
+        self.keytype, self.fingerprint = line.split(None, 1)
+
+    def __str__(self):
+        return '{0} {1} {2}'.format(
+            self.hosts,
+            self.keytype,
+            self.fingerprint
+        )
+
+    def __repr__(self):
+        return '{0} {1}'.format(self.keytype, self.fingerprint)
+
+    def __eq__(self, other):
+        for attr in ( 'keytype', 'fingerprint', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return False
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __gt__(self, other):
+        for attr in ( 'keytype', 'fingerprint', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a > b
+        return 0
+
+    def __lt__(self, other):
+        for attr in ( 'keytype', 'fingerprint', ):
+            a = getattr(self, attr)
+            b = getattr(other, attr)
+            if a != b:
+                return a < b
+
+    @property
+    def hosts(self):
+        return ','.join('{0}'.format(host) for host in sorted(self.__hosts__))
+
+    def add_hosts(self, hosts):
+        """Add hosts to key
+
+        """
+        for host in hosts:
+            if host not in self.__hosts__:
+                self.__hosts__.append(KnownHostsHost(host))
+
+
+class KnownHosts(list):
+    """
+    Parser for OpenSSH known_hosts file contents
+    """
+    def __init__(self, path=DEFAULT_KNOWN_HOSTS, fingerprint_hash=None):
+        self.log = Logger().default_stream
+        self.path = path
+        self.fingerprint_hash = fingerprint_hash
+        self.load()
+
+    def load(self):
+        """
+        Load known hosts file, discarding earlier data in the object.
+        """
+        del self[0:len(self)]
+
+        if not os.path.isfile(self.path):
+            self.log.debug('No such file: {0}'.format(self.path))
+            return
+
+        for line in [l.rstrip() for l in open(self.path, 'r').readlines()]:
+            if line.startswith('#') or line.strip() == '':
+                continue
+
+            # Strip list of hosts from line
+            hosts, key = line.split(None, 1)
+            hosts = hosts.split(',')
+
+            try:
+                key = KnownHostsEntry(key)
+                if key not in self:
+                    self.append(key)
+                else:
+                    key = self[self.index(key)]
+                key.add_hosts(hosts)
+            except SSHKeyError:
+                pass
+
+    def save(self, path=None):
+        """Save known hosts
+
+        Saves known hosts file, merging same keys to single line
+        """
+        try:
+            with open(path, 'w') as fd:
+                for entry in self:
+                    fd.write('{0}\n'.format(entry))
+        except Exception as e:
+            raise SSHKeyError('Error writing {0}: {1}'.format(path, e))
+
+    def find_host_key(self, value):
+        """Find key for hostname
+
+        """
+        for key in self:
+            if value in key.hosts:
+                return key
+        return None
 
 
 class AuthorizedKeys(list):
