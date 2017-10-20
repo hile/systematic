@@ -633,6 +633,8 @@ class KnownHosts(list):
 
         Saves known hosts file, merging same keys to single line
         """
+        if path is None:
+            path = self.path
         try:
             with open(path, 'w') as fd:
                 for entry in self:
