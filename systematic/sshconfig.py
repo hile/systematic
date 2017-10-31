@@ -403,8 +403,10 @@ class OpenSSHPublicKey(dict):
             else:
                 p = Popen(('ssh-keygen', '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
             stdout, stderr = p.communicate()
+            if p.returncode != 0:
+                raise SSHKeyError('Error running ssh-keygen: returns {0}'.format(p.returncode))
             os.unlink(name)
-            return stdout.rstrip()
+            return stdout.rstrip().split()[1].split(':', 1)[1]
         except Exception as e:
             raise SSHKeyError('Error getting fingerprint for {0}: {1}'.format(self.line, e))
 
