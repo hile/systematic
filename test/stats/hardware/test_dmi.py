@@ -2,9 +2,15 @@
 Test dmidecode parser
 """
 
-from datetime import datetime
 import pytest
+import sys
 
+if sys.version_info.major == 2:
+    strtype = unicode
+else:
+    strtype = str
+
+from datetime import datetime
 from systematic.stats import StatsParserError
 
 def test_dmi_parser(platform_freebsd, platform_linux):
@@ -19,7 +25,7 @@ def test_dmi_parser(platform_freebsd, platform_linux):
     assert dmi.tables == []
 
     dmi.update()
-    assert isinstance(dmi.version, str) or isinstance(dmi.version, unicode)
+    assert isinstance(dmi.version, strtype) or isinstance(dmi.version, unicode)
     assert isinstance(dmi.updated, float)
 
     assert len(dmi.tables) > 0

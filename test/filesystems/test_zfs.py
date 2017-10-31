@@ -6,6 +6,11 @@ import json
 import pytest
 import sys
 
+if sys.version_info.major == 2:
+    strtype = unicode
+else:
+    strtype = str
+
 from datetime import datetime
 
 TEST_ZPOOL_COUNT = 2
@@ -27,23 +32,23 @@ def test_zfs_list(platform_freebsd):
     assert len(client.volumes) == TEST_VOLUME_COUNT
 
     for volume in client.volumes:
-    	assert isinstance(volume.name, unicode)
-        assert isinstance(volume.fstype, unicode)
-        assert isinstance(volume.used_gb, unicode)
-        assert isinstance(volume.available_gb, unicode)
+        assert isinstance(volume.name, strtype)
+        assert isinstance(volume.fstype, strtype)
+        assert isinstance(volume.used_gb, strtype)
+        assert isinstance(volume.available_gb, strtype)
 
-    	assert isinstance(volume.available, int)
-    	assert isinstance(volume.used, int)
+        assert isinstance(volume.available, int)
+        assert isinstance(volume.used, int)
 
-    	assert isinstance(volume.as_dict(), dict)
+        assert isinstance(volume.as_dict(), dict)
 
     client.load_snapshots()
     assert len(client.snapshots) == TEST_SNAPSHOT_COUNT
 
     for snapshot in client.snapshots:
-        assert isinstance(snapshot.name, unicode)
-        assert isinstance(snapshot.volume, unicode)
+        assert isinstance(snapshot.name, strtype)
+        assert isinstance(snapshot.volume, strtype)
 
-        assert isinstance(snapshot.fstype, str)
+        assert isinstance(snapshot.fstype, strtype)
 
         assert isinstance(snapshot.as_dict(), dict)
