@@ -256,7 +256,7 @@ class ZFSSnapshot(ZFS):
     """
     def __init__(self, client, name, used, available, references, mountpoint):
         super(ZFSSnapshot, self).__init__(client, name, used, available, references, mountpoint)
-        self.fstype = 'snapshot'
+        self.fstype = u'snapshot'
         self.mountpoint = mountpoint != '-' and mountpoint or None
 
     @property
