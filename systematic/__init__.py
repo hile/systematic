@@ -2,5 +2,5 @@
 Common system management and other generic tasks
 """
 
-__version__ = '4.7.17'
+__version__ = '4.7.18'
 
