@@ -53,6 +53,7 @@ class Group(object):
     def __init__(self, db, gr_ent):
         self.db = db
         self.gid = gr_ent.gr_gid
+        self.password = gr_ent.gr_passwd
         self.name = gr_ent.gr_name
         self.member_uids = gr_ent.gr_mem
 
