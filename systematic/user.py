@@ -28,6 +28,7 @@ class User(object):
     def __init__(self, db, pwent):
         self.db = db
         self.username = pwent.pw_name
+        self.password = pwent.pw_passwd
         self.gecos = pwent.pw_gecos
         self.uid = pwent.pw_uid
         self.gid = pwent.pw_gid
