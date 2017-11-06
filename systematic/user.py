@@ -101,8 +101,30 @@ class DatabaseEntryMap(object):
         self.db = db
         self.cache_seconds = cache_seconds
         self.__updated__ = None
+        self.__items__ = []
         self.__id_map__ = {}
         self.__name_map__ = {}
+
+        self.__iter_index__ = None
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.__updated__ is None:
+            self.load()
+        if self.__iter_index__ is None:
+            self.__iter_index__ = 0
+        try:
+            entry = self.__items__[self.__iter_index__]
+            self.__iter_index__ += 1
+            return entry
+        except IndexError:
+            self.__iter_index__ = None
+            raise StopIteration
+
+    def next(self):
+        return self.__next__()
 
     def __load_entry__(self, entry):
         """Add entry
@@ -110,6 +132,7 @@ class DatabaseEntryMap(object):
         """
         self.__id_map__[getattr(entry, entry.idattr)] = entry
         self.__name_map__[getattr(entry, entry.nameattr)] = entry
+        self.__items__.append(entry)
 
     @property
     def __is_cached_data_valid__(self):
@@ -123,6 +146,16 @@ class DatabaseEntryMap(object):
             return (time.time() - self.__updated__) <= self.cache_seconds
         except:
             return False
+
+    def load(self):
+        """Load all entries
+
+        Load all entries from backend for
+        """
+        if not self.__is_cached_data_valid__:
+            for entry in self.__get_all_entries__():
+                self.__load_entry__(self.__create_object__(entry))
+            self.__updated__ = time.time()
 
     def lookup_id(self, attr):
         """Lookup entry by gid/uid
@@ -145,21 +178,25 @@ class UserMap(DatabaseEntryMap):
     """User map
 
     """
-    def load(self):
-        """Load password database
+
+    def __get_all_entries__(self):
+        """Return all entries
 
         """
-        if not self.__is_cached_data_valid__:
-            for pwent in sorted(pwd.getpwall(), key=attrgetter('pw_uid')):
-                self.__load_entry__(User(self.db, pwent))
-            self.__updated__ = time.time()
+        return sorted(pwd.getpwall(), key=attrgetter('pw_uid'))
+
+    def __create_object__(self, data):
+        """Create user object
+
+        """
+        return User(self.db, data)
 
     def __load_by_id__(self, uid):
         """Load single user by UID
 
         """
         try:
-            self.__load_entry__(User(self.db, pwd.getpwuid(uid)))
+            self.__load_entry__(self.__create_object__(pwd.getpwuid(uid)))
         except:
             raise DatabaseError('No such uid: {0}'.format(uid))
 
@@ -168,7 +205,7 @@ class UserMap(DatabaseEntryMap):
 
         """
         try:
-            self.__load_entry__(User(self.sb, pwd.getpwnam(name)))
+            self.__load_entry__(self.__create_object__(pwd.getpwnam(name)))
         except:
             raise DatabaseError('No such user: {0}'.format(name))
 
@@ -177,21 +214,25 @@ class GroupMap(DatabaseEntryMap):
     """User map
 
     """
-    def load(self):
-        """Load group database
+
+    def __get_all_entries__(self):
+        """Return all entries
 
         """
-        if not self.__is_cached_data_valid__:
-            for grent in sorted(grp.getgrall(), key=attrgetter('gr_gid')):
-                self.__load_entry__(Group(self.db, grent))
-            self.__updated__ = time.time()
+        return sorted(grp.getgrall(), key=attrgetter('gr_gid'))
+
+    def __create_object__(self, data):
+        """Create group object
+
+        """
+        return Group(self.db, data)
 
     def __load_by_id__(self, gid):
         """Load group by GID
 
         """
         try:
-            self.__load_entry__(Group(self.db, grp.getgrgid(gid)))
+            self.__load_entry__(self.__create_object__(grp.getgrgid(gid)))
         except:
             raise DatabaseError('No such uid: {0}'.format(gid))
 
@@ -200,7 +241,7 @@ class GroupMap(DatabaseEntryMap):
 
         """
         try:
-            self.__load_entry__(Group(self.db, grp.getgrnam(name)))
+            self.__load_entry__(self.__create_object__(grp.getgrnam(name)))
         except:
             raise DatabaseError('No such user: {0}'.format(name))
 
