@@ -17,11 +17,9 @@ setup(
     install_requires = (
         'configobj',
     ),
-    setup_requires = (
-        'pytest-runner',
-    ),
     tests_require = (
         'pytest',
+        'pytest-runner',
         'pytest-datafiles',
     ),
 )
