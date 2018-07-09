@@ -1,13 +1,14 @@
-#!/usr/bin/env python
 """
 Implementation of FreeBSD filesystem mount point parsing
 """
 
-import os
+from __future__ import unicode_literals
+
 import re
 
-from systematic.log import Logger, LoggerError
-from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
+from builtins import int, str
+
+from systematic.classes import MountPoint, FileSystemError
 from systematic.shell import ShellCommandParser, ShellCommandParserError
 
 PSEUDO_FILESYSTEMS = [
@@ -44,7 +45,7 @@ class BSDMountPoint(MountPoint):
         if line is None:
             parser = ShellCommandParser()
             try:
-                stdout, stderr = parser.execute( ('df', '-k', self.mountpoint) )
+                stdout, stderr = parser.execute(('df', '-k', self.mountpoint))
             except ShellCommandParserError as e:
                 raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
@@ -56,13 +57,13 @@ class BSDMountPoint(MountPoint):
         else:
             usage = ' '.join(line.split('\n'))
 
-        fs, size, used, free, percent, mp = [x.strip() for x in usage.split()]
+        fs, size, used, free, percent, mp = [str(x.strip()) for x in usage.split()]
         percent = percent.rstrip('%')
         self.usage = {
             'mountpoint': self.mountpoint,
-            'size': long(size),
-            'used': long(used),
-            'free': long(free),
+            'size': int(size),
+            'used': int(used),
+            'free': int(free),
             'percent': int(percent)
         }
 
@@ -87,9 +88,9 @@ def load_mountpoints():
         if not m:
             continue
 
-        device = m.group(1)
-        mountpoint = m.group(2)
-        flags = [x.strip() for x in m.group(3).split(',')]
+        device = str(m.group(1))
+        mountpoint = str(m.group(2))
+        flags = [str(x.strip()) for x in m.group(3).split(',')]
         filesystem = flags[0]
         flags = flags[1:]
 
@@ -98,7 +99,7 @@ def load_mountpoints():
             continue
 
         for f in flags:
-            entry.flags.set(f,True)
+            entry.flags.set(f, True)
 
         mountpoints.append(entry)
 

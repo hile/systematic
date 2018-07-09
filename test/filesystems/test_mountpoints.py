@@ -1,13 +1,14 @@
 """
 Test filesystem mountpoints
 """
+from __future__ import unicode_literals
 
-from datetime import datetime
+from builtins import int, str
 
 import json
-import pytest
 
-def test_mountpoint_attributes(platform_darwin, platform_freebsd, platform_linux):
+
+def test_mountpoint_attributes(platform_mock_binaries):
     """Test mountpoint attributes
 
     """
@@ -21,8 +22,8 @@ def test_mountpoint_attributes(platform_darwin, platform_freebsd, platform_linux
     for mp in mounts:
         assert isinstance(mp, MountPoint)
 
-        assert isinstance(mp.path, unicode)
-        assert isinstance(mp.name, unicode)
+        assert isinstance(mp.path, str)
+        assert isinstance(mp.name, str)
 
         assert isinstance(mp.usage, dict)
         assert isinstance(mp.flags, dict)
@@ -33,18 +34,18 @@ def test_mountpoint_attributes(platform_darwin, platform_freebsd, platform_linux
         assert isinstance(mp.free, int)
         assert isinstance(mp.percent, int)
 
-        if platform_darwin:
-            assert isinstance(mp.blocksize, int)
-            assert isinstance(mp.internal, bool)
-            assert isinstance(mp.writable, bool)
-            assert isinstance(mp.bootable, bool)
-            assert isinstance(mp.ejectable, bool)
-            assert isinstance(mp.removable, bool)
-
         assert isinstance(mp.as_dict(), dict)
         json.dumps(mp.as_dict())
 
-def test_mountpoint_sorting(platform_darwin, platform_freebsd, platform_linux):
+        # Only available with MacOS (darwin) ps output
+        if hasattr(mp, 'blocksize'):
+            assert isinstance(mp.blocksize, int)
+        for attr in ('internal', 'writable', 'bootable', 'ejectable', 'removable'):
+            if hasattr(mp, attr):
+                assert isinstance(getattr(mp, attr), bool)
+
+
+def test_mountpoint_sorting(platform_mock_binaries):
     """Test sorting of mountpoints
 
     """
@@ -57,4 +58,3 @@ def test_mountpoint_sorting(platform_darwin, platform_freebsd, platform_linux):
     mounts.sort()
     for i, mp in enumerate(mounts):
         assert mp == values[i]
-

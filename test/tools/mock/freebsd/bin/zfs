@@ -24,5 +24,5 @@ try:
     sys.stdout.write(open(filename, 'r').read())
     sys.exit(0)
 except Exception as e:
-    print e
+    print(e)
     sys.exit(1)

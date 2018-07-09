@@ -76,12 +76,13 @@ UNIT_MULTIPLIERS = {
     'Z':    2**70,
 }
 
+
 class ZPoolIostatCounters(dict):
     """Zpool device iostat counters
 
     """
     def __init__(self, parent, name, alloc, free, read_ops, write_ops, read_bw, write_bw):
-        self['name']  = name.strip()
+        self['name'] = name.strip()
         self['allocated'] = alloc != '-' and self.__parse_counter_value__(alloc) or None
         self['free'] = free != '-' and self.__parse_counter_value__(free) or None
         self['operations'] = {
@@ -133,7 +134,7 @@ class ZPoolIostat(ShellCommandParser):
             count = 0
             for c in line:
                 if c == ' ':
-                    count +=1
+                    count += 1
                 else:
                     break
             return count
@@ -143,7 +144,7 @@ class ZPoolIostat(ShellCommandParser):
         parent = None
         previous = None
 
-        stdout, stderr = self.execute( ( 'zpool', 'iostat', '-v', self.zpool ) )
+        stdout, stderr = self.execute(('zpool', 'iostat', '-v', self.zpool))
         for line in stdout.splitlines()[2:]:
 
             if line.startswith('-'):
@@ -155,7 +156,16 @@ class ZPoolIostat(ShellCommandParser):
                 break
 
             device, alloc, free, read_ops, write_ops, read_bw, write_bw = line.split()
-            counters = ZPoolIostatCounters(parent, device, alloc, free, read_ops, write_ops, read_bw, write_bw)
+            counters = ZPoolIostatCounters(
+                parent,
+                device,
+                alloc,
+                free,
+                read_ops,
+                write_ops,
+                read_bw,
+                write_bw
+            )
             lineprefix = prefixlen(line)
 
             if parent is None:
@@ -177,19 +187,20 @@ class ZPool(ShellCommandParser):
 
     ZFS pool linked to ZFSPools.zpools
     """
-    def __init__(self, name, size, used, available, expandsize, fragmentation, capacity, deduplication, health, altroot):
+    def __init__(self, name, size, used, available, expandsize, fragmentation,
+                 capacity, deduplication, health, altroot):
         super(ZPool, self).__init__()
         self.iostat = ZPoolIostat(name)
-        self.name = name.decode('utf-8')
+        self.name = name
         self.size = int(size)
         self.used = int(used)
         self.available = int(available)
-        self.expandsize = expandsize.decode('utf-8')
+        self.expandsize = expandsize
         self.fragmentation = int(fragmentation.replace('%', ''))
         self.capacity = int(capacity)
         self.deduplication = float(deduplication.replace('x', ''))
-        self.health = health.decode('utf-8')
-        self.altroot = altroot.decode('utf-8')
+        self.health = health
+        self.altroot = altroot
 
     def __repr__(self):
         return '{0} {1:8} {2}/{3} GB'.format(
@@ -204,21 +215,21 @@ class ZPool(ShellCommandParser):
         """Used size in GB
 
         """
-        return u'{0:d}'.format(self.used / 1024 / 1024 / 1024)
+        return u'{0:d}'.format(int(self.used / 1024 / 1024 / 1024))
 
     @property
     def available_gb(self):
         """Available size in GB
 
         """
-        return u'{0:d}'.format(self.available / 1024 / 1024 / 1024)
+        return u'{0:d}'.format(int(self.available / 1024 / 1024 / 1024))
 
     @property
     def size_gb(self):
         """Total size in GB
 
         """
-        return u'{0:d}'.format(self.size / 1024 / 1024 / 1024)
+        return u'{0:d}'.format(int(self.size / 1024 / 1024 / 1024))
 
     @property
     def features(self):
@@ -244,7 +255,7 @@ class ZPool(ShellCommandParser):
         try:
             stdout, stderr = self.execute(('zpool', 'get', '-H', name, self.name))
         except ShellCommandParserError as e:
-            raise FilesystemError('zpool {0}: error getting property {1}: {2}'.format(self.name, feature, e))
+            raise FilesystemError('zpool {0}: error getting property {1}: {2}'.format(self.name, name, e))
 
         try:
             fields = stdout.splitlines()[0].split('\t')
@@ -319,12 +330,14 @@ class ZPoolClient(ShellCommandParser):
 
         """
         self.zpools = []
-        cmd = ( 'zpool', 'list', '-Hp' )
+        cmd = ('zpool', 'list', '-Hp')
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
             raise FilesystemError('Error listing zfs pools: {0}'.format(e))
 
         for line in stdout.splitlines():
-            self.zpools.append(ZPool(**dict((ZPOOL_LIST_FIELDS[i], v) for i,v in enumerate(line.split('\t')))))
-
+            self.zpools.append(ZPool(**dict(
+                (ZPOOL_LIST_FIELDS[i], v)
+                for i, v in enumerate(line.split('\t'))
+            )))

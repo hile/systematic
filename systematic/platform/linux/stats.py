@@ -4,7 +4,7 @@ Counters from vmstat for linux
 
 from collections import OrderedDict
 
-from systematic.platform import SystemStatsParser, SystemStatsCounter, SystemStatsCounterGroup
+from systematic.platform import SystemStatsParser
 
 
 VMSTAT_FIELD_MAP = {
@@ -96,7 +96,7 @@ class LinuxVMStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'vmstat', '-aw', ) )
+        stdout, stderr = self.execute(('vmstat', '-aw'))
         data = stdout.splitlines()[-1].split()
         for i, field in enumerate(VMSTAT_VM_MODE_FIELDS):
             group, name = self.__find_counter_group__(field)
@@ -116,7 +116,7 @@ class LinuxDiskStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'vmstat', '-dw', ) )
+        stdout, stderr = self.execute(('vmstat', '-dw'))
         for line in stdout.splitlines()[2:]:
             data = line.split()
             group = self.__get_or_add_counter_group__(data[0])

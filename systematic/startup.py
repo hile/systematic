@@ -16,8 +16,10 @@ LOGGING_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 logger = logging.getLogger(__file__)
 
+
 class InitScriptError(Exception):
     pass
+
 
 class InitScript(object):
     """Init script
@@ -113,14 +115,14 @@ class InitScript(object):
             return False
 
         p = Popen(['pgrep', '-F', self.pidfile], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout,sterr) = p.communicate()
+        stdout, sterr = p.communicate()
         if p.returncode != 0:
             return None
 
         try:
             return int(stdout.strip())
         except ValueError:
-            raise InitScriptError('invalid pidfile contents: {0}'.format(pidfile))
+            raise InitScriptError('invalid pidfile contents: {0}'.format(self.pidfile))
 
     @property
     def is_running(self):

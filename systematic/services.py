@@ -46,18 +46,18 @@ class ServiceList(dict):
         except OSError as e:
             raise ServiceError('Error reading {0}: {1}'.format(path, e))
 
-        for l in [l for l in lines if not l.startswith('#')]:
+        for line in [line for line in lines if not line.startswith('#')]:
             try:
-                l = l[:l.index('#')]
+                line = line[:line.index('#')]
             except ValueError:
                 pass
 
             try:
-                name, target, aliases =  [x.strip() for x in l.split(None, 2)]
+                name, target, aliases = [x.strip() for x in line.split(None, 2)]
                 names = [name] + aliases.split()
             except ValueError:
                 try:
-                    name, target = [x.strip() for x in l.split(None, 1)]
+                    name, target = [x.strip() for x in line.split(None, 1)]
                 except ValueError:
                     continue
                 names = [name]
@@ -142,4 +142,3 @@ class ServiceList(dict):
             return entries
         else:
             raise ValueError('No search terms given')
-

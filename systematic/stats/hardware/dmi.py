@@ -8,17 +8,20 @@ dmi = DMI()
 print(dmi.to_json())
 
 """
+from __future__ import unicode_literals
 
 import json
-import os
 import re
-import sys
+
+from builtins import int, str  # noqa
 
 from systematic.stats import StatsParser, StatsParserError
 
 RE_VERSION = re.compile('^#\s+dmidecode\s+(?P<version>.*)$')
 RE_TABLE_START = re.compile('^Table at (?P<address>.*).')
-RE_HANDLE_START = re.compile('^Handle\s+(?P<offset>[x0-9a-fA-F]+),\s+DMI\s+type\s+(?P<handle_type>\d+),\s+(?P<handle_bytes>\d+) bytes$')
+RE_HANDLE_START = re.compile(
+    '^Handle\s+(?P<offset>[x0-9a-fA-F]+),\s+DMI\s+type\s+(?P<handle_type>\d+),\s+(?P<handle_bytes>\d+) bytes$'
+)
 
 # DMI handle type mapping
 DMI_HANDLE_TYPE_MAP = {
@@ -78,15 +81,15 @@ class DMIProperty(dict):
     """
     def __init__(self, handle, name, value=''):
         self.handle = handle
-        self.name = name.decode('utf-8')
-        self.value = value.decode('utf-8')
+        self.name = name
+        self.value = value
         self.options = []
 
     def __repr__(self):
         return '{0}={1}'.format(self.name, self.value)
 
     def add_option(self, value):
-        self.options.append(value.decode('utf-8'))
+        self.options.append(value)
 
     def as_dict(self):
         """Format property as dict
@@ -124,7 +127,7 @@ class DMIHandle(object):
 
         """
         try:
-            return DMI_HANDLE_TYPE_MAP[self.handle_type].decode('utf-8')
+            return DMI_HANDLE_TYPE_MAP[self.handle_type]
         except KeyError:
             return u'UNKNOWN'
 
@@ -182,7 +185,7 @@ class DMI(StatsParser):
     def __init__(self):
         super(DMI, self).__init__()
         self.version = None
-        self.tables  = []
+        self.tables = []
 
     def __parse_lines__(self, lines):
         """Iterator to yield parsed lines
@@ -223,8 +226,8 @@ class DMI(StatsParser):
 
                 if line.count('\t') == 1:
                     try:
-                        prop = handle.add_property(*line.lstrip('\t').split(': ' , 1))
-                    except:
+                        prop = handle.add_property(*line.lstrip('\t').split(': ', 1))
+                    except:  # noqa
                         prop = handle.add_property(line.lstrip('\t'))
 
                 elif line.count('\t') == 2:
@@ -268,7 +271,7 @@ class DMI(StatsParser):
         Find properties by handle name and property name
         """
         properties = []
-        for handle in self.find_handles(group_name):
+        for handle in self.find_handles(handle_name):
             for prop in handle.properties:
                 if prop.name == property_name:
                     properties.append(prop)
@@ -280,7 +283,7 @@ class DMI(StatsParser):
         Run dmidecode and parse output
         """
         self.version = None
-        self.tables  = []
+        self.tables = []
         try:
             stdout, stderr = self.execute('dmidecode')
         except StatsParserError as e:

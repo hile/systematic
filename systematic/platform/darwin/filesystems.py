@@ -1,15 +1,17 @@
-#!/usr/bin/env python
 """
 Abstraction of filesystem mount points for OS X
 """
 
+from __future__ import unicode_literals
+
 import os
 import re
 
+from builtins import int, str
 from mactypes import Alias
 
-from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
-from systematic.platform.darwin.diskutil import DiskInfo, DiskUtilError
+from systematic.classes import MountPoint, FileSystemError
+from systematic.platform.darwin.diskutil import DiskInfo
 from systematic.shell import ShellCommandParser, ShellCommandParserError
 
 RE_MOUNTPOINT = re.compile(r'([^\s]*) on (.*) \(([^\)]*)\)$')
@@ -18,6 +20,7 @@ RE_DF = re.compile(r'^([^\s]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)%\s+(.*)$')
 PSEUDO_FILESYSTEMS = (
     'devfs',
 )
+
 
 class DarwinMountPoint(MountPoint):
     """
@@ -30,7 +33,7 @@ class DarwinMountPoint(MountPoint):
         super(DarwinMountPoint, self).__init__(device, mountpoint, filesystem)
 
         try:
-            self.hfspath = Alias(self.mountpoint).hfspath
+            self.hfspath = str(Alias(self.mountpoint).hfspath)
         except ValueError:
             self.hfspath = None
 
@@ -51,7 +54,7 @@ class DarwinMountPoint(MountPoint):
         if line is None:
             parser = ShellCommandParser()
             try:
-                stdout, stderr = parser.execute( ('df', '-k', self.mountpoint) )
+                stdout, stderr = parser.execute(('df', '-k', self.mountpoint))
             except ShellCommandParserError as e:
                 raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
 
@@ -75,7 +78,7 @@ class DarwinMountPoint(MountPoint):
     @property
     def name(self):
         if 'VolumeName' in self.diskinfo:
-            return self.diskinfo['VolumeName'].decode('utf-8')
+            return self.diskinfo['VolumeName']
         return super(DarwinMountPoint, self).name
 
     @property
@@ -162,9 +165,9 @@ def load_mountpoints():
         if not m:
             continue
 
-        device = m.group(1)
-        mountpoint = m.group(2)
-        flags = [x.strip() for x in m.group(3).split(',')]
+        device = str(m.group(1))
+        mountpoint = str(m.group(2))
+        flags = [str(x.strip()) for x in m.group(3).split(',')]
         filesystem = flags[0]
         flags = flags[1:]
 

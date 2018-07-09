@@ -3,12 +3,14 @@ Process lists.
 
 Uses custom flags for ps command to get similar output for all supported platforms.
 """
+from __future__ import unicode_literals
 
 import re
 import os
 import sys
 
-from datetime import datetime, timedelta
+from builtins import str
+from datetime import datetime
 from subprocess import Popen, PIPE
 from systematic.classes import SortableContainer
 
@@ -43,13 +45,13 @@ class Process(SortableContainer):
 
     To sort these properly, keys must include at least 'pid' and 'ruser' or 'user'
     """
-    compare_fields = ( 'userid', 'username', 'started', 'pid', )
+    compare_fields = ('userid', 'username', 'started', 'pid')
 
     def __init__(self, keys, line):
 
         keys = [x for x in keys]
         lstart_index = keys.index('lstart')
-        fields = line.decode('utf-8').split()
+        fields = line.split()
 
         if lstart_index != -1:
             self.started = self.__parse_date__(' '.join(fields[lstart_index:lstart_index+5]))
@@ -67,7 +69,7 @@ class Process(SortableContainer):
             except IndexError as e:
                 value = None
 
-            if key not in ( 'ruser', 'user', 'time', 'tdev', 'state', 'command', ):
+            if key not in ('ruser', 'user', 'time', 'tdev', 'state', 'command'):
                 try:
                     value = int(value)
                 except ValueError:
@@ -145,7 +147,7 @@ class Process(SortableContainer):
 
         try:
             return os.path.realpath(exe)
-        except:
+        except:  # noqa
             return None
 
 
@@ -160,9 +162,9 @@ class Processes(list):
         del self[0:len(self)]
 
         try:
-            cmd =  [ 'ps', '-wwaxo', ','.join(fields) ]
+            cmd = ['ps', '-wwaxo', ','.join(fields)]
             p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = p.communicate()
+            stdout, stderr = [str(x, 'utf-8') for x in p.communicate()]
             if p.returncode != 0:
                 raise ProcessError('Error running ps: {0}'.format(stderr))
         except OSError as e:
@@ -178,7 +180,7 @@ class Processes(list):
 
         If reverse is True, the in-line ordering is reversed after sorting.
         """
-        results =  [entry for entry in sorted(key=field)]
+        results = [entry for entry in sorted(key=field)]
         if reverse:
             results.reverse()
         return results

@@ -13,7 +13,7 @@ import tempfile
 from subprocess import Popen, PIPE
 from systematic.log import Logger
 
-SSH_CONFIG_FILES = ( 'authorized_keys', 'config', 'known_hosts', 'sshkeys.conf', )
+SSH_CONFIG_FILES = ('authorized_keys', 'config', 'known_hosts', 'sshkeys.conf')
 DEFAULT_CONFIG = os.path.expanduser('~/.ssh/sshkeys.conf')
 DEFAULT_AUTHORIZED_KEYS = os.path.expanduser('~/.ssh/authorized_keys')
 DEFAULT_KNOWN_HOSTS = os.path.expanduser('~/.ssh/known_hosts')
@@ -26,11 +26,12 @@ RE_PUBLIC_KEY_PATTERNS = (
     re.compile('^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$'),
 )
 
+
 class SSHKeyError(Exception):
     pass
 
 
-def  parse_public_key_line_pattern(line):
+def parse_public_key_line_pattern(line):
     """Match public key lines to patterns
 
     Returns the match pattern as dict or None
@@ -58,24 +59,24 @@ class SSHKeyFile(dict):
         self.available = os.access(path, os.R_OK) and True or False
 
         self.autoload = False
-        self.update({ 'bits': None, 'fingerprint': None, 'path': None, 'algorithm': None, })
+        self.update({'bits': None, 'fingerprint': None, 'path': None, 'algorithm': None})
 
         public_key = '{0}.pub'.format(self.path)
         if not os.path.isfile(public_key):
             self.available = False
             return
 
-        cmd = ( 'ssh-keygen', '-l', '-f',  public_key )
+        cmd = ('ssh-keygen', '-l', '-f',  public_key)
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = [x.decode('utf-8') for x in p.communicate()]
-        l = stdout.split('\n')[0].rstrip()
+        (stdout, stderr) = [str(x, 'utf-8') for x in p.communicate()]
+        line = stdout.split('\n')[0].rstrip()
 
         if p.returncode != 0:
             raise SSHKeyError('ERROR parsing public key: {0}'.format(public_key))
 
-        data = parse_public_key_line_pattern(l)
+        data = parse_public_key_line_pattern(line)
         if not data:
-            raise SSHKeyError('Unsupported public key output: {0}'.format(l))
+            raise SSHKeyError('Unsupported public key output: {0}'.format(line))
 
         for k, v in data.items():
             if k == 'path':
@@ -89,7 +90,7 @@ class SSHKeyFile(dict):
         if isinstance(other, str):
             return self['fingerprint'] == other
 
-        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+        for key in ('bits', 'fingerprint', 'algorithm'):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
@@ -104,7 +105,7 @@ class SSHKeyFile(dict):
         if isinstance(other, str):
             return self['fingerprint'] < other
 
-        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+        for key in ('bits', 'fingerprint', 'algorithm'):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
@@ -116,7 +117,7 @@ class SSHKeyFile(dict):
         if isinstance(other, str):
             return self['fingerprint'] > other
 
-        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+        for key in ('bits', 'fingerprint', 'algorithm'):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
@@ -128,7 +129,7 @@ class SSHKeyFile(dict):
         if isinstance(other, str):
             return self['fingerprint'] <= other
 
-        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+        for key in ('bits', 'fingerprint', 'algorithm'):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
@@ -140,7 +141,7 @@ class SSHKeyFile(dict):
         if isinstance(other, str):
             return self['fingerprint'] >= other
 
-        for key in ( 'bits', 'fingerprint', 'algorithm', ):
+        for key in ('bits', 'fingerprint', 'algorithm'):
             a = getattr(self, key)
             b = getattr(other, key)
             if a != b:
@@ -157,7 +158,7 @@ class SSHKeyFile(dict):
         """
         Unload this key from ssh-agent
         """
-        cmd = ( 'ssh-add', '-d', self.path )
+        cmd = ('ssh-add', '-d', self.path)
         p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
 
@@ -166,7 +167,7 @@ class SSHKeyFile(dict):
         Load this key to ssh-agent. If passwords are requested, they are read
         from sys.stdin. Output is redirected to sys.stdout and sys.stderr.
         """
-        cmd = ( 'ssh-add', self.path )
+        cmd = ('ssh-add', self.path)
         p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
         p.wait()
 
@@ -240,20 +241,20 @@ class UserSSHKeys(dict):
 
         cmd = ['ssh-add', '-l']
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = [x.decode('utf-8') for x in p.communicate()]
+        (stdout, stderr) = [str(x, 'utf-8') for x in p.communicate()]
 
         if p.returncode == 1:
-            l = stdout.split('\n')[0].strip()
-            if l == 'The agent has no identities.':
+            line = stdout.split('\n')[0].strip()
+            if line == 'The agent has no identities.':
                 return keys
 
         if p.returncode != 0:
             raise SSHKeyError('Error listing loaded SSH agent keys')
 
-        for l in [l.rstrip() for l in stdout.split('\n')[:-1]]:
-            data = parse_public_key_line_pattern(l)
+        for line in [line.rstrip() for line in stdout.split('\n')[:-1]]:
+            data = parse_public_key_line_pattern(line)
             if not data:
-                raise SSHKeyError('Error parsing agent key list line {0}'.format(l))
+                raise SSHKeyError('Error parsing agent key list line {0}'.format(line))
             keys[data['fingerprint']] = data
 
         return keys
@@ -323,7 +324,7 @@ class UserSSHKeys(dict):
 
         if paths:
             self.log.debug('Loading {0:d} keys to SSH agent'.format(len(paths)))
-            cmd = [ 'ssh-add'] + paths
+            cmd = ['ssh-add'] + paths
             p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
             p.wait()
         else:
@@ -344,7 +345,7 @@ class OpenSSHPublicKey(dict):
             self['comment'] = parts[3]
             self['options'] = None
 
-        elif parts[0] in ( 'ssh-dsa', 'ssh-rsa', ):
+        elif parts[0] in ('ssh-dsa', 'ssh-rsa'):
             self['keyformat'] = 2
             self['keytype'] = parts[0]
             self['key_base64'] = parts[1]
@@ -358,7 +359,7 @@ class OpenSSHPublicKey(dict):
             if not parts:
                 raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
 
-            if parts[0] in ( 'ssh-dsa', 'ssh-rsa', ) and len(parts) ==  3:
+            if parts[0] in ('ssh-dsa', 'ssh-rsa') and len(parts) == 3:
                 self['keyformat'] = 2
                 self['keytype'] = parts[0]
                 self['key_base64'] = parts[1]
@@ -375,7 +376,7 @@ class OpenSSHPublicKey(dict):
             raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
 
     def __eq__(self, other):
-        for attr in ( 'keyformat', 'keytype' 'bits', 'exponent', 'modulus', 'key_base64', ):
+        for attr in ('keyformat', 'keytype' 'bits', 'exponent', 'modulus', 'key_base64'):
             a = self.get(attr, None)
             b = other.get(attr, None)
             if a is None and b is None:
@@ -425,8 +426,8 @@ class KnownHostsHost(object):
         """
         def is_ipv6_address(value):
             try:
-                value,interface = value.split('%', 1)
-            except:
+                value, interface = value.split('%', 1)
+            except:  # noqa
                 pass
             try:
                 parts = value.split(':')
@@ -443,7 +444,7 @@ class KnownHostsHost(object):
         def is_ipv4_address(value):
             try:
                 value, interface = value.split('%', 1)
-            except:
+            except:  # noqa
                 pass
             try:
                 parts = value.split('.', 3)
@@ -452,7 +453,7 @@ class KnownHostsHost(object):
                     if part < 0 or part > 255:
                         raise ValueError
                 return True
-            except:
+            except:  # noqa
                 return False
 
         # Strip port
@@ -460,7 +461,7 @@ class KnownHostsHost(object):
             value = value[1:]
             try:
                 value, port = value.split(':', 1)
-            except:
+            except:  # noqa
                 pass
 
         if value.endswith(']'):
@@ -554,7 +555,7 @@ class KnownHostsEntry(object):
         return '{0} {1}'.format(self.keytype, self.fingerprint)
 
     def __eq__(self, other):
-        for attr in ( 'keytype', 'fingerprint', ):
+        for attr in ('keytype', 'fingerprint'):
             a = getattr(self, attr)
             b = getattr(other, attr)
             if a != b:
@@ -565,7 +566,7 @@ class KnownHostsEntry(object):
         return not self.__eq__(other)
 
     def __gt__(self, other):
-        for attr in ( 'keytype', 'fingerprint', ):
+        for attr in ('keytype', 'fingerprint'):
             a = getattr(self, attr)
             b = getattr(other, attr)
             if a != b:
@@ -573,7 +574,7 @@ class KnownHostsEntry(object):
         return 0
 
     def __lt__(self, other):
-        for attr in ( 'keytype', 'fingerprint', ):
+        for attr in ('keytype', 'fingerprint'):
             a = getattr(self, attr)
             b = getattr(other, attr)
             if a != b:
@@ -710,7 +711,7 @@ class SSHConfigHostPattern(dict):
     def parse(self, line):
         try:
             key, value = [x.strip() for x in line.split(None, 1)]
-            if key in ( 'Compression',  'ForwardAgent',  'ForwardX11',  'TCPKeepAlive', ):
+            if key in ('Compression',  'ForwardAgent',  'ForwardX11',  'TCPKeepAlive'):
                 value = value == 'yes' and True or False
 
             if key in ('ServerAliveInterval', ):
@@ -805,18 +806,18 @@ class SSHConfig(dict):
 
         with open(self.path, 'r') as fd:
             host = None
-            for l in [x.strip() for x in fd.readlines()]:
-                if l=='' or l.startswith('#'):
+            for line in [x.strip() for x in fd.readlines()]:
+                if line == '' or line.startswith('#'):
                     continue
 
-                if l[:5]=='Host ':
-                    host = SSHConfigHostPattern(self, l[5:])
+                if line[:5] == 'Host ':
+                    host = SSHConfigHostPattern(self, line[5:])
                     for pattern in host.patterns:
                         self[pattern] = host
                     self.patterns.append(host)
 
                 else:
-                    host.parse(l)
+                    host.parse(line)
 
         if '*' in self.keys():
             self.defaults.update(self.pop('*').items())

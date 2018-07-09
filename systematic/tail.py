@@ -11,6 +11,7 @@ INTERVAL = 0.01
 # Retry fast but not as fast as as polling
 OPEN_RETRY_INTERVAL = 0.2
 
+
 class TailReaderError(Exception):
     pass
 

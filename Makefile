@@ -2,11 +2,11 @@
 # Install the scrips, configs and python modules
 #
 
-all: build
+all:
+	flake8 | sort
 
 clean:
-	@rm -rf build
-	@rm -rf dist
+	@rm -rf build dist .DS_Store .cache .eggs
 	@find . -name '*.egg-info' -print0|xargs -0 rm -rf
 	@find . -name '*.pyc' -print0|xargs -0 rm -rf
 
@@ -27,4 +27,4 @@ register:
 test:
 	python setup.py test
 
-.PHONY: test
+.PHONY: all test

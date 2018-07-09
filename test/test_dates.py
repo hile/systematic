@@ -2,10 +2,9 @@
 Unit tests for dates parsers
 """
 
-import pytest
-
 from datetime import datetime, timedelta
 from systematic.dates import Day, Week, Month
+
 
 def test_day_date():
     """Check Day value
@@ -15,7 +14,8 @@ def test_day_date():
     day = Day()
     assert type(day.value) == type(today)
     assert day.value == today
-    value = datetime.strptime(day.__repr__(), '%Y-%m-%d')
+    datetime.strptime(day.__repr__(), '%Y-%m-%d')
+
 
 def test_day_add_substract():
     """Check Day operations
@@ -32,6 +32,7 @@ def test_day_add_substract():
     assert isinstance(yesterday, Day)
     assert yesterday.value == today - timedelta(days=1)
 
+
 def test_week_dates():
     """Test Week object
 
@@ -40,11 +41,11 @@ def test_week_dates():
     assert isinstance(week.first, Day)
     assert isinstance(week.last, Day)
 
+
 def test_week_add_substract():
     """Check Week operations
 
     """
-    today = datetime.now().date()
     week = Week()
 
     previos_week = week - 10
@@ -52,6 +53,7 @@ def test_week_add_substract():
 
     next_week = week + 10
     assert isinstance(next_week, Week)
+
 
 def test_month_dates():
     """Test Month object

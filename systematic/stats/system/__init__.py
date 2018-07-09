@@ -5,7 +5,6 @@ Loads platform specific implementations transparently.
 """
 
 import fnmatch
-import json
 import sys
 
 

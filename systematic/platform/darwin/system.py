@@ -10,6 +10,7 @@ import plistlib
 import time
 
 from systematic.platform import SystemInformationParser
+from systematic.shell import ShellCommandParserError
 
 RE_BOOTTIME = re.compile('^{ sec = (?P<seconds>\d+), usec = (?P<microseconds>\d+) } .*$')
 
@@ -24,6 +25,7 @@ SYSTEM_INFO_KEYS = (
     'boot_mode',
 )
 
+
 class SystemInformation(SystemInformationParser):
     """Basic MacOS system information
 
@@ -33,7 +35,7 @@ class SystemInformation(SystemInformationParser):
         super(SystemInformation, self).__init__()
         self.hardware_information = {}
         self.system_information = {}
-        self.memory_information = { 'banks': [] }
+        self.memory_information = {'banks': []}
         self.sysctl.get("kern")
         self.update()
 
@@ -73,10 +75,10 @@ class SystemInformation(SystemInformationParser):
         """
         self.hardware_information = {}
         self.system_information = {}
-        self.memory_information = { 'banks': [] }
+        self.memory_information = {'banks': []}
 
         try:
-            stdout, stderr = self.execute( ('system_profiler', '-xml', 'SPHardwareDataType') )
+            stdout, stderr = self.execute(('system_profiler', '-xml', 'SPHardwareDataType'))
             data = plistlib.readPlistFromString(stdout)
             data = data[0]['_items'][0]
             for key, value in data.items():
@@ -85,11 +87,11 @@ class SystemInformation(SystemInformationParser):
             pass
 
         try:
-            stdout, stderr = self.execute( ('system_profiler', '-xml', 'SPMemoryDataType') )
+            stdout, stderr = self.execute(('system_profiler', '-xml', 'SPMemoryDataType'))
             data = plistlib.readPlistFromString(stdout)
             data = data[0]['_items'][0]
             self.memory_information['memory_upgradeable'] = data['is_memory_upgradeable'] == 'Yes'
-            for key in ( 'global_ecc_state', ):
+            for key in ('global_ecc_state',):
                 self.memory_information[key] = data[key]
             for bank in data['_items']:
                 self.memory_information['banks'].append(dict(bank.items()))
@@ -97,13 +99,13 @@ class SystemInformation(SystemInformationParser):
             pass
 
         try:
-            stdout, stderr = self.execute( ('system_profiler', '-xml', 'SPSoftwareDataType') )
+            stdout, stderr = self.execute(('system_profiler', '-xml', 'SPSoftwareDataType'))
             data = plistlib.readPlistFromString(stdout)
             data = data[0]['_items'][0]
             for key in SYSTEM_INFO_KEYS:
                 try:
                     self.system_information[key] = data[key]
-                except:
+                except KeyError:
                     self.system_information[key] = None
         except ShellCommandParserError as e:
             pass

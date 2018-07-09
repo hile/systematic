@@ -4,9 +4,13 @@ Wrapper for OS/X diskutil command for python
 
 import os
 import plistlib
-import StringIO
 from xml.parsers.expat import ExpatError
 from subprocess import Popen, PIPE
+
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 INFO_FIELD_MAP = {
     'DeviceNode':       {'name': 'Device', 'value': lambda x: str(x)},
@@ -28,8 +32,10 @@ INFO_FIELD_ORDER = [
     'TotalSize'
 ]
 
+
 class DiskUtilError(Exception):
     pass
+
 
 class DiskInfo(dict):
 

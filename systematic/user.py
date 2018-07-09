@@ -3,11 +3,9 @@ Caching and object based wrapper for pwd/grp system calls
 """
 
 import grp
-import os
 import pwd
 import time
 
-from collections import OrderedDict
 from operator import attrgetter
 
 # How long to cache the user and group details
@@ -144,7 +142,7 @@ class DatabaseEntryMap(object):
 
         try:
             return (time.time() - self.__updated__) <= self.cache_seconds
-        except:
+        except:  # noqa
             return False
 
     def load(self):
@@ -197,7 +195,7 @@ class UserMap(DatabaseEntryMap):
         """
         try:
             self.__load_entry__(self.__create_object__(pwd.getpwuid(uid)))
-        except:
+        except:  # noqa
             raise DatabaseError('No such uid: {0}'.format(uid))
 
     def __load_by_name__(self, name):
@@ -206,7 +204,7 @@ class UserMap(DatabaseEntryMap):
         """
         try:
             self.__load_entry__(self.__create_object__(pwd.getpwnam(name)))
-        except:
+        except:  # noqa
             raise DatabaseError('No such user: {0}'.format(name))
 
 
@@ -233,7 +231,7 @@ class GroupMap(DatabaseEntryMap):
         """
         try:
             self.__load_entry__(self.__create_object__(grp.getgrgid(gid)))
-        except:
+        except:  # noqa
             raise DatabaseError('No such uid: {0}'.format(gid))
 
     def __load_by_name__(self, name):
@@ -242,7 +240,7 @@ class GroupMap(DatabaseEntryMap):
         """
         try:
             self.__load_entry__(self.__create_object__(grp.getgrnam(name)))
-        except:
+        except:  # noqa
             raise DatabaseError('No such user: {0}'.format(name))
 
 
@@ -312,7 +310,7 @@ class UnixPasswordDB(object):
         Return groups where user is member
         """
         user = self.users.lookup_name(username)
-        groups = [ user.group ]
+        groups = [user.group]
         for gid in self.groups.__id_map__:
             group = self.groups.__id_map__[gid]
             if user.username in group.member_uids:

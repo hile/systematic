@@ -1,30 +1,33 @@
 """
 Test zfs volume/snapshot status parsers
 """
+from __future__ import unicode_literals
 
-import json
 import pytest
 import sys
 
-if sys.version_info.major == 2:
-    strtype = unicode
-else:
-    strtype = str
-
-from datetime import datetime
+from builtins import str
 
 TEST_ZPOOL_COUNT = 2
 TEST_VOLUME_COUNT = 14
 TEST_SNAPSHOT_COUNT = 2
 
-def test_zpool_list(platform_freebsd):
+SUPPORTED_PLATFORMS = (
+    'freebsd10',
+    'freebsd11',
+)
+
+
+@pytest.mark.skipif(sys.platform not in SUPPORTED_PLATFORMS, reason='Platform not supported')
+def test_zpool_list(platform_mock_binaries):
     from systematic.filesystems.zfs import ZPoolClient
     client = ZPoolClient()
     client.load_zpools()
     assert len(client.zpools) == TEST_ZPOOL_COUNT
 
 
-def test_zfs_list(platform_freebsd):
+@pytest.mark.skipif(sys.platform not in SUPPORTED_PLATFORMS, reason='Platform not supported')
+def test_zfs_list(platform_mock_binaries):
     from systematic.filesystems.zfs import ZfsClient
     client = ZfsClient()
 
@@ -32,10 +35,10 @@ def test_zfs_list(platform_freebsd):
     assert len(client.volumes) == TEST_VOLUME_COUNT
 
     for volume in client.volumes:
-        assert isinstance(volume.name, strtype)
-        assert isinstance(volume.fstype, strtype)
-        assert isinstance(volume.used_gb, strtype)
-        assert isinstance(volume.available_gb, strtype)
+        assert isinstance(volume.name, str)
+        assert isinstance(volume.fstype, str)
+        assert isinstance(volume.used_gb, str)
+        assert isinstance(volume.available_gb, str)
 
         assert isinstance(volume.available, int)
         assert isinstance(volume.used, int)
@@ -46,9 +49,9 @@ def test_zfs_list(platform_freebsd):
     assert len(client.snapshots) == TEST_SNAPSHOT_COUNT
 
     for snapshot in client.snapshots:
-        assert isinstance(snapshot.name, strtype)
-        assert isinstance(snapshot.volume, strtype)
+        assert isinstance(snapshot.name, str)
+        assert isinstance(snapshot.volume, str)
 
-        assert isinstance(snapshot.fstype, strtype)
+        assert isinstance(snapshot.fstype, str)
 
         assert isinstance(snapshot.as_dict(), dict)

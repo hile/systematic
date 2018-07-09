@@ -4,14 +4,16 @@ Class to parse and represent local calendar.
 Suited for walking weeks and months and to get working days for
 certain calendar date week easily.
 """
+from __future__ import unicode_literals
 
 import time
 import calendar
+import collections
 
-from time import localtime, struct_time
+from builtins import int
 from datetime import datetime, date, timedelta
 
-from systematic.log import Logger, LoggerError
+from systematic.log import Logger
 
 DEFAULT_DATE_FORMAT = '%Y-%m-%d'
 
@@ -58,10 +60,10 @@ class Day(object):
         elif isinstance(value, datetime):
             self.value = value.date()
 
-        elif isinstance(value, struct_time):
+        elif isinstance(value, time.struct_time):
             self.value = date(*value[:3])
 
-        elif isinstance(value, str) and input_format is None and value=='':
+        elif isinstance(value, str) and input_format is None and value == '':
             self.value = datetime.now().date()
 
         else:
@@ -85,29 +87,29 @@ class Day(object):
     def __repr__(self):
         return self.__str__()
 
-    def __long__(self):
-        return long(self.value.strftime('%s'))
+    def __int__(self):
+        return int(self.value.strftime('%s'))
 
     def __hash__(self):
-        return long(self)
+        return int(self)
 
     def __eq__(self, value):
-        return long(self) == long(value)
+        return int(self) == int(value)
 
     def __ne__(self, value):
-        return long(self) != long(value)
+        return int(self) != int(value)
 
     def __gt__(self, value):
-        return long(self) > long(value)
+        return int(self) > int(value)
 
     def __lt__(self, value):
-        return long(self) < long(value)
+        return int(self) < int(value)
 
     def __le__(self, value):
-        return long(self) <= long(value)
+        return int(self) <= int(value)
 
     def __ge__(self, value):
-        return long(self) >= long(value)
+        return int(self) >= int(value)
 
     def __sub__(self, value):
         try:
@@ -143,33 +145,33 @@ class Week(object):
         else:
             try:
                 self.firstweekday = int(firstweekday)
-                if self.firstweekday<0 or self.firstweekday>6:
+                if self.firstweekday < 0 or self.firstweekday > 6:
                     raise ValueError
             except ValueError:
                 raise ValueError('Invalid first week day index: {0}'.format(firstweekday))
         wday = (day.value.isoweekday()+(7-self.firstweekday)) % 7
 
         self.first = day - wday
-        self.last  = self.first + 6
+        self.last = self.first + 6
         self.weeknumber = int(self.first.value.strftime('%U'))
 
         self.workdays = []
         if workdays is not None:
-            if not isinstance(workdays, iterable):
+            if not isinstance(workdays, collections.Iterable):
                 raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
             for i in workdays:
                 try:
                     i = int(i)
-                    if i<0 or i>6:
+                    if i < 0 or i > 6:
                         raise ValueError
-                    self.workdays.append(self.first+i)
+                    self.workdays.append(self.first + i)
                 except ValueError:
                     raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
 
         else:
             try:
                 workdays_per_week = int(workdays_per_week)
-                if workdays_per_week<0 or workdays_per_week>7:
+                if workdays_per_week < 0 or workdays_per_week > 7:
                     raise ValueError
             except ValueError:
                 raise ValueError('Invalid value for workdays_per_week: {0}'.format(workdays_per_week))
@@ -187,7 +189,7 @@ class Week(object):
         return 'Week {0} {1} - {2}'.format(self.first.strftime('%U'), self.first, self.last)
 
     def __hash__(self):
-        return long(self.first)
+        return (self.first)
 
     def __int__(self):
         self.first.strftime('%U')
@@ -248,26 +250,27 @@ class Month(object):
     Month instance supporting iteration
     """
     def __init__(self, value=None, input_format=DEFAULT_DATE_FORMAT,
-                firstweekday=WEEK_START_DEFAULT):
+                 firstweekday=WEEK_START_DEFAULT):
+
         self.__next = 0
         self.log = Logger('dates').default_stream
 
         self.first = Day(Day(value=value, input_format=input_format).value.replace(day=1))
         self.days = calendar.monthrange(self.first.value.year, self.first.value.month)[1]
-        self.last  = self.first+(self.days-1)
+        self.last = self.first+(self.days-1)
 
         self.firstweekday = firstweekday
         self.weeks = []
         week = Week(self.first, None, firstweekday=self.firstweekday)
         while week.first <= self.last:
             self.weeks.append(week)
-            week+=1
+            week += 1
 
     def __repr__(self):
-         return self.first.strftime('%B %Y')
+        return self.first.strftime('%B %Y')
 
     def __hash__(self):
-        return long(self.first)
+        return (self.first)
 
     def __getitem__(self, attr):
         try:

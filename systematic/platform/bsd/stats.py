@@ -3,7 +3,7 @@ Counters from vmstat for BSD
 """
 
 from collections import OrderedDict
-from systematic.platform import SystemStatsParser, SystemStatsCounter, SystemStatsCounterGroup
+from systematic.platform import SystemStatsParser
 
 VMSTAT_FIELD_MAP = {
     'process': {
@@ -78,7 +78,7 @@ class BSDVMStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'vmstat', '-Hn0' ) )
+        stdout, stderr = self.execute(('vmstat', '-Hn0'))
         data = stdout.splitlines()[-1].split()
         for i, field in enumerate(VMSTAT_FIELDS):
             group, name = self.__find_counter_group__(field)
@@ -98,7 +98,7 @@ class BSDDiskStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'iostat', '-dn20', ) )
+        stdout, stderr = self.execute(('iostat', '-dn20'))
         disks = stdout.splitlines()[0].split()
         for line in stdout.splitlines()[2:]:
             data = line.split()
@@ -135,4 +135,3 @@ class BSDSystemStats(SystemStatsParser):
             'disk': self.disk_stats.as_dict(),
             'vm': self.vm_stats.as_dict(),
         }
-

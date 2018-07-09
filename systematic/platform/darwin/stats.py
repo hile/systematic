@@ -3,7 +3,7 @@ Counters from vmstat for Darwin
 """
 
 from collections import OrderedDict
-from systematic.platform import SystemStatsParser, SystemStatsCounter, SystemStatsCounterGroup
+from systematic.platform import SystemStatsParser
 
 VMSTAT_FIELD_MAP = {
     'Pages free':                   'pages_free',
@@ -52,7 +52,7 @@ class DarwinVMStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'vm_stat' ) )
+        stdout, stderr = self.execute(('vm_stat'))
         group = self.__get_or_add_counter_group__('mach_vm_stats')
         for line in stdout.splitlines()[1:]:
             key, value = [v.strip() for v in line.split(':', 1)]
@@ -72,7 +72,7 @@ class DarwinDiskStats(SystemStatsParser):
 
         """
         self.counters = OrderedDict()
-        stdout, stderr = self.execute( ( 'iostat', '-dn20', ) )
+        stdout, stderr = self.execute(('iostat', '-dn20'))
         disks = stdout.splitlines()[0].split()
         for line in stdout.splitlines()[2:]:
             data = line.split()
@@ -109,4 +109,3 @@ class DarwinSystemStats(SystemStatsParser):
             'disk': self.disk_stats.as_dict(),
             'vm': self.vm_stats.as_dict(),
         }
-

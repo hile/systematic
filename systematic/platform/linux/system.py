@@ -4,7 +4,6 @@ Basic linux system information
 """
 
 import json
-import os
 
 from systematic.platform import SystemInformationParser
 
@@ -61,7 +60,7 @@ class CPUInfo(dict):
 
     def __setitem__(self, key, value):
         if key in CPUINFO_BOOLEAN_FIELDS:
-            value = value in ( 'yes', 'on', )
+            value = value in ('yes', 'on')
         elif key in CPUINFO_INTEGER_FIELDS:
             value = int(value)
         elif key in CPUINFO_FLOAT_FIELDS:
@@ -132,7 +131,7 @@ class SystemInformation(SystemInformationParser):
                         key, value = line.split('=')
                         value = value.strip('"')
                         self.os_details[key] = value
-                    except:
+                    except:  # noqa
                         pass
         except Exception as e:
             pass
@@ -148,13 +147,12 @@ class SystemInformation(SystemInformationParser):
                     try:
                         key, value = [v.strip() for v in line.split(':', 1)]
                         self.meminfo[key] = value
-                    except:
+                    except:  # noqa
                         pass
         except OSError:
             pass
         except IOError:
             pass
-
 
     def parse_cpuinfo(self):
         """CPU info
@@ -174,7 +172,7 @@ class SystemInformation(SystemInformationParser):
                             self.cpuinfo.append(processor)
                         elif processor is not None:
                             processor[key] = value
-                    except:
+                    except:  # noqa
                         pass
         except OSError:
             pass

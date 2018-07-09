@@ -11,10 +11,10 @@ import os
 from subprocess import Popen, PIPE
 from configobj import ConfigObj
 
-from systematic.log import Logger, LoggerError
+from systematic.log import Logger
 
 DEFAULT_COMMAND_SEPARATOR = ' && '
-DEFAULT_CONNECT_COMMAND = [ 'ssh', '-qt', 'SERVER' ]
+DEFAULT_CONNECT_COMMAND = ['ssh', '-qt', 'SERVER']
 
 SERVERINFO_FIELDS = (
     'hostname',
@@ -70,7 +70,7 @@ class Server(object):
 
     @property
     def connect_command(self):
-        return [x=='SERVER' and self.name or x for x in self.osgroup.connect_command]
+        return [x == 'SERVER' and self.name or x for x in self.osgroup.connect_command]
 
     def check_output(self, command):
         """
@@ -134,6 +134,7 @@ class Server(object):
         """
         return self.osgroup.remove_server(self)
 
+
 class OperatingSystemGroup(object):
     """
     Group of operating systems in configuration file
@@ -148,7 +149,7 @@ class OperatingSystemGroup(object):
         self.update_commands = []
         self.servers = []
 
-        for k in ( 'description', 'command_separator', ):
+        for k in ('description', 'command_separator'):
             if k in kwargs:
                 setattr(self, k, kwargs[k])
 
@@ -174,6 +175,7 @@ class OperatingSystemGroup(object):
     @property
     def command_separator(self):
         return self._command_separator
+
     @command_separator.setter
     def command_separator(self, value):
         self._command_separator = value
@@ -182,6 +184,7 @@ class OperatingSystemGroup(object):
     @property
     def connect_command(self):
         return self._connect_command
+
     @connect_command.setter
     def connect_command(self, value):
         if isinstance(value, str):
@@ -192,6 +195,7 @@ class OperatingSystemGroup(object):
     @property
     def update_command(self):
         return self._update_commands
+
     @update_command.setter
     def update_commands(self, value):
         if isinstance(value, str):
@@ -202,6 +206,7 @@ class OperatingSystemGroup(object):
     @property
     def descripion(self):
         return self._descripion
+
     @descripion.setter
     def descripion(self, value):
         self._descripion = value
@@ -217,7 +222,7 @@ class OperatingSystemGroup(object):
 
     def remove_server(self, name):
         try:
-            server = [s for s in self.servers if s.name==name][0]
+            server = [s for s in self.servers if s.name == name][0]
             self.servers.remove(server)
             self.modified = True
         except IndexError:
@@ -248,7 +253,7 @@ class ServerConfigFile(object):
         self.servers = []
 
         try:
-            config  = ConfigObj(self.path)
+            config = ConfigObj(self.path)
         except ValueError as e:
             raise ValueError('Error parsing {0}: {1}'.format(self.path, e))
 
@@ -298,8 +303,8 @@ class ServerConfigFile(object):
         config.write(outfile=open(self.path, 'w'))
 
     def match_os(self, name):
-        for os in self.operating_systems:
-            if os.name == name:
-                return os
+        for operating_system in self.operating_systems:
+            if operating_system.name == name:
+                return operating_system
 
         raise ValueError('Unknown OS: {0}'.format(name))

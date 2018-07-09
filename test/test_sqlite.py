@@ -11,6 +11,7 @@ TEST_DB_SIMPLE = (
     """CREATE TABLE test ( key integer primary key )""",
 )
 
+
 def test_sqlite_create_database_relative_filename(tmpdir):
     """Create simple database
 
@@ -20,9 +21,10 @@ def test_sqlite_create_database_relative_filename(tmpdir):
     # DB without path: create empty database to current directory. Remove afterwards
     tmpfile = tempfile.NamedTemporaryFile(suffix='.sqlite', prefix='unittests', dir=os.getcwd())
     filename = os.path.basename(tmpfile.name)
-    db = SQLiteDatabase(filename)
+    SQLiteDatabase(filename)
     assert os.path.isfile(filename)
     os.unlink(filename)
+
 
 def test_sqlite_create_database_with_path(tmpdir):
     """Create simple database
@@ -32,8 +34,9 @@ def test_sqlite_create_database_with_path(tmpdir):
 
     # DB with path: Create empty test database
     filename = '{0}/createdb_empty.sqlite'.format(tmpdir)
-    db = SQLiteDatabase(filename)
+    SQLiteDatabase(filename)
     assert os.path.isfile(filename)
+
 
 def test_sqlite_operations(tmpdir):
     """Basic sqlite operations

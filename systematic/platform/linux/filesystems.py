@@ -1,13 +1,14 @@
-#!/usr/bin/env python
 """
 Implementation of linux filesystem mount point parsing
 """
+from __future__ import unicode_literals
 
 import os
 import re
-import logging
 
-from systematic.classes import MountPoint, FileSystemFlags, FileSystemError
+from builtins import int, str
+
+from systematic.classes import MountPoint, FileSystemError
 from systematic.shell import ShellCommandParser, ShellCommandParserError
 
 PSEUDO_FILESYSTEMS = (
@@ -40,6 +41,7 @@ LABEL_PATH = '/dev/disk/by-label'
 
 RE_MOUNT = re.compile(r'([^\s]*) on (.*) type ([^\s]+) \(([^\)]*)\)$')
 
+
 class LinuxMountPoint(MountPoint):
     """
     One linux mountpoint based on /bin/mount output line
@@ -47,7 +49,7 @@ class LinuxMountPoint(MountPoint):
     uuid        Filesystem uuid
     label       Filesystem label
     """
-    def __init__(self,device,mountpoint,filesystem):
+    def __init__(self, device, mountpoint, filesystem):
         super(LinuxMountPoint, self).__init__(device, mountpoint, filesystem)
 
         if self.device[:len(DM_PREFIX)] == DM_PREFIX:
@@ -61,7 +63,7 @@ class LinuxMountPoint(MountPoint):
         for uuid in os.listdir(UUID_PATH):
             dev = os.path.realpath(os.path.join(UUID_PATH, uuid))
             if dev == self.device:
-                self.uuid = uuid
+                self.uuid = str(uuid)
                 break
 
         self.label = None
@@ -69,7 +71,7 @@ class LinuxMountPoint(MountPoint):
             for label in os.listdir(LABEL_PATH):
                 dev = os.path.realpath(os.path.join(LABEL_PATH, label))
                 if dev == self.device:
-                    self.label = label
+                    self.label = str(label)
                     break
 
     @property
@@ -84,16 +86,14 @@ class LinuxMountPoint(MountPoint):
         if self.filesystem in PSEUDO_FILESYSTEMS:
             return {}
 
-
         if line is None:
             parser = ShellCommandParser()
             try:
-                stdout, stderr = parser.execute( ('df', '-Pk', self.mountpoint) )
+                stdout, stderr = parser.execute(('df', '-Pk', self.mountpoint))
             except ShellCommandParserError as e:
                 raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
-            (header,usage) = stdout.split('\n', 1)
-
+            header, usage = stdout.split('\n', 1)
             try:
                 usage = ' '.join(usage.split('\n'))
             except ValueError:
@@ -107,9 +107,9 @@ class LinuxMountPoint(MountPoint):
 
         self.usage = {
             'mountpoint': self.mountpoint,
-            'size': long(size),
-            'used': long(used),
-            'free': long(free),
+            'size': int(size),
+            'used': int(used),
+            'free': int(free),
             'percent': int(percent),
         }
 
@@ -134,17 +134,17 @@ def load_mountpoints():
         if not m:
             continue
 
-        device = m.group(1)
-        mountpoint = m.group(2)
-        filesystem = m.group(3)
-        flags = [x.strip() for x in m.group(4).split(',')]
+        device = str(m.group(1))
+        mountpoint = str(m.group(2))
+        filesystem = str(m.group(3))
+        flags = [str(x.strip()) for x in m.group(4).split(',')]
 
-        entry = LinuxMountPoint(device,mountpoint,filesystem)
+        entry = LinuxMountPoint(device, mountpoint, filesystem)
         if entry.is_virtual:
             continue
 
         for f in flags:
-            entry.flags.set(f,True)
+            entry.flags.set(f, True)
 
         mountpoints.append(entry)
 

@@ -1,42 +1,51 @@
 """
 Test smartctl status parser
 """
+from __future__ import unicode_literals
 
-from datetime import datetime
 import pytest
+import sys
 
-from systematic.stats import StatsParserError
+from builtins import int, str
 
 TEST_UNSUPPORTED_DEVICES = (
     '/dev/ses0',
 )
 
-def test_smartctl_parser(platform_freebsd): #, platform_linux):
+SUPPORTED_PLATFORMS = (
+    'freebsd10',
+    'freebsd11',
+)
+
+
+@pytest.mark.skipif(sys.platform not in SUPPORTED_PLATFORMS, reason='Platform not supported')
+def test_smartctl_parser(platform_mock_binaries):
     """Test DMI
 
     Test smart data parser contents
     """
-    from systematic.stats.hardware.smart import SmartCtlClient, SmartDrive, SmartAttribute, SmartInfoField
 
-    client = SmartCtlClient()
+    from systematic.stats.hardware.smart import SmartCtlClient, SmartDrive, SmartAttribute
+
+    client = SmartCtlClient(load_system_config=False)
     assert len(client.drives) == 0
 
     client.update()
-    assert len(client.drives) == 4
+    assert len(client.drives) > 0
 
     for drive in client.drives:
         assert isinstance(drive, SmartDrive)
         assert drive.client == client
 
-        assert isinstance(drive.device, unicode)
-        assert isinstance(drive.name, unicode)
+        assert isinstance(drive.device, str)
+        assert isinstance(drive.name, str)
         assert isinstance(drive.flags, list)
 
         # Test for unsupported devices as well
 
         if drive.device not in TEST_UNSUPPORTED_DEVICES:
-            assert drive.is_supported == True
-            assert drive.is_healthy == True
+            assert drive.is_supported is True
+            assert drive.is_healthy is True
 
             attributes = drive.get_attributes()
             assert isinstance(attributes, dict)
@@ -44,18 +53,16 @@ def test_smartctl_parser(platform_freebsd): #, platform_linux):
                 assert attr.drive == drive
 
                 assert isinstance(attr, SmartAttribute)
-                assert isinstance(attr.description, unicode)
+                assert isinstance(attr.description, str)
 
-                assert isinstance(attr.items(), list)
                 for key, value in attr.items():
-                    if key in ( 'updated', 'type', ):
-                        assert isinstance(value, unicode)
-                    elif key in ( 'failed', ):
+                    if key in ('updated', 'type'):
+                        assert isinstance(value, str)
+                    elif key in ('failed',):
                         assert isinstance(value, bool)
                     else:
                         assert isinstance(value, int)
 
         else:
-            assert drive.is_supported == False
-            assert drive.is_healthy == False
-
+            assert drive.is_supported is False
+            assert drive.is_healthy is False

@@ -126,7 +126,7 @@ class ZFS(ShellCommandParser):
     def __init__(self, client, name, used, available, references, mountpoint):
         super(ZFS, self).__init__()
         self.client = client
-        self.name = name.decode('utf-8')
+        self.name = name
         self.used = int(used)
         self.available = available != '-' and int(available) or None
         self.references = int(references)
@@ -137,7 +137,6 @@ class ZFS(ShellCommandParser):
         else:
             self.fstype = u'zfs'
             self.mountpoint = mountpoint is not None and mountpoint or None
-
 
     def __repr__(self):
         return '{0} {1} {2} GB'.format(
@@ -159,11 +158,11 @@ class ZFS(ShellCommandParser):
         """Used size in GB
 
         """
-        return u'{0:d}'.format(self.used / 1024 / 1024 / 1024)
+        return u'{0:d}'.format(int(self.used / 1024 / 1024 / 1024))
 
     @property
     def available_gb(self):
-        return u'{0:d}'.format(self.available / 1024 / 1024 / 1024)
+        return u'{0:d}'.format(int(self.available / 1024 / 1024 / 1024))
 
     @property
     def created(self):
@@ -215,7 +214,7 @@ class ZFS(ShellCommandParser):
 
         value = fields[2]
         if name in ZFS_INTEGER_PROPERTIES:
-            if value in ( 'none', '-', ):
+            if value in ('none', '-'):
                 return None
             return int(value)
         elif name in ZFS_BOOLEAN_PROPERTIES:
@@ -297,25 +296,31 @@ class ZfsClient(ShellCommandParser):
 
         """
         self.volumes = []
-        cmd = ( 'zfs', 'list', '-Hp' )
+        cmd = ('zfs', 'list', '-Hp')
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
             raise FilesystemError('Error listing zfs volumes: {0}'.format(e))
 
         for line in stdout.splitlines():
-            self.volumes.append(ZFSVolume(self, **dict((ZFS_LIST_FIELDS[i], v) for i,v in enumerate(line.split('\t')))))
+            self.volumes.append(ZFSVolume(
+                self,
+                **dict((ZFS_LIST_FIELDS[i], v) for i, v in enumerate(line.split('\t')))
+            ))
 
     def load_snapshots(self):
         """Update ZFS snapshots
 
         """
         self.snapshots = []
-        cmd = ( 'zfs', 'list', '-Hpt', 'snapshot' )
+        cmd = ('zfs', 'list', '-Hpt', 'snapshot')
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
             raise FilesystemError('Error listing zfs snapshots: {0}'.format(e))
 
         for line in stdout.splitlines():
-            self.snapshots.append(ZFSSnapshot(self, **dict((ZFS_LIST_FIELDS[i], v) for i,v in enumerate(line.split('\t')))))
+            self.snapshots.append(ZFSSnapshot(
+                self,
+                **dict((ZFS_LIST_FIELDS[i], v) for i, v in enumerate(line.split('\t')))
+            ))

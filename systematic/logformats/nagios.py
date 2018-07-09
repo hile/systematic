@@ -2,9 +2,8 @@
 Parser for nagios/icinga log entries
 """
 
-import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from systematic.log import LogEntry, LogFile, LogFileError
 
@@ -41,4 +40,3 @@ class IcingaLogEntry(LogEntry):
 
 class IcingaLog(LogFile):
     lineloader = IcingaLogEntry
-

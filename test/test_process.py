@@ -2,15 +2,8 @@
 Test systematic.process module
 """
 
-import pytest
-import sys
-
+from builtins import str
 from datetime import datetime
-
-if sys.version_info.major == 2:
-    strtype = unicode
-else:
-    strtype = str
 
 
 def test_ps_fields():
@@ -23,7 +16,8 @@ def test_ps_fields():
     for key in PS_FIELDS:
         assert isinstance(key, str)
 
-def test_processes(platform_darwin, platform_freebsd, platform_linux):
+
+def test_processes(platform_mock_binaries):
     from systematic.process import Processes, Process
     ps = Processes()
     assert len(ps) > 0
@@ -32,10 +26,14 @@ def test_processes(platform_darwin, platform_freebsd, platform_linux):
         assert isinstance(process, Process)
         assert isinstance(process.started, datetime)
 
-        for attr in ( 'command', 'ruser', 'state', 'time', 'tdev', ):
+        for attr in ('command', 'ruser', 'state', 'time', 'tdev'):
             value = getattr(process, attr)
-            assert isinstance(value,  strtype), 'Attribute {0} value {1} is not string: {2}'.format(attr, value, type(value))
+            assert isinstance(value,  str), 'Attribute {0} value {1} is not string: {2}'.format(
+                attr,
+                value,
+                type(value)
+            )
 
-        for attr in ( 'pid', 'ppid', 'ruid', 'rgid', 'rss', 'vsz', ):
+        for attr in ('pid', 'ppid', 'ruid', 'rgid', 'rss', 'vsz'):
             value = getattr(process, attr)
-            assert isinstance(value, int) or isinstance(value, long)
+            assert isinstance(value, int)

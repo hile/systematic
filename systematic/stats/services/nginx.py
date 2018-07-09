@@ -58,7 +58,8 @@ class NginxStats(StatsParser):
     """
     parser_name = 'nginx'
 
-    def __init__(self, host=DEFAULT_HOST, path=DEFAULT_REQUEST_PATH, schema='http', port=DEFAULT_STATS_PORT, minimum_interval=DEFAULT_MINIMUM_INTERVAL):
+    def __init__(self, host=DEFAULT_HOST, path=DEFAULT_REQUEST_PATH, schema='http',
+                 port=DEFAULT_STATS_PORT, minimum_interval=DEFAULT_MINIMUM_INTERVAL):
         super(NginxStats, self).__init__('nginx')
         self.host = host
         self.path = path
@@ -195,7 +196,7 @@ class NginxStats(StatsParser):
 
         Trigger self.data property call to make sure we have current data
         """
-        data = self.data
+        self.data
         return self.update_timestamp()
 
     def as_dict(self, verbose=False):
@@ -225,13 +226,8 @@ class NginxStats(StatsParser):
             },
         }
 
-
     def to_json(self, verbose=False):
         """Return data as JSON
 
         """
         return json.dumps(self.as_dict(verbose=verbose), indent=2)
-
-
-
-

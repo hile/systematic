@@ -5,6 +5,6 @@ Use systematic.stats.hardware.dmi in new code
 """
 
 from warnings import warn
-warn('Warning: systematic.dmi is deprecated. Use systematic.stats.hardware.dmi', FutureWarning)
+from systematic.stats.hardware.dmi import *  # noqa
 
-from systematic.stats.hardware.dmi import *
+warn('Warning: systematic.dmi is deprecated. Use systematic.stats.hardware.dmi', FutureWarning)

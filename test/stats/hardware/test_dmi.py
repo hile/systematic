@@ -1,38 +1,43 @@
 """
 Test dmidecode parser
 """
+from __future__ import unicode_literals
 
 import pytest
 import sys
 
-if sys.version_info.major == 2:
-    strtype = unicode
-else:
-    strtype = str
+from builtins import int, str  # noqa: 401
 
-from datetime import datetime
-from systematic.stats import StatsParserError
+SUPPORTED_PLATFORMS = (
+    'freebsd10',
+    'freebsd11',
+    'linux',
+    'linux2',
+)
 
-def test_dmi_parser(platform_freebsd, platform_linux):
+
+@pytest.mark.skipif(sys.platform not in SUPPORTED_PLATFORMS, reason='Platform not supported')
+def test_dmi_parser(platform_mock_binaries):
     """Test DMI
 
     """
+
     from systematic.stats.hardware.dmi import DMI, DMITable, DMIHandle, DMIProperty
     dmi = DMI()
 
-    assert dmi.version == None
-    assert dmi.updated == None
+    assert dmi.version is None
+    assert dmi.updated is None
     assert dmi.tables == []
 
     dmi.update()
-    assert isinstance(dmi.version, strtype) or isinstance(dmi.version, unicode)
+    assert isinstance(dmi.version, str)
     assert isinstance(dmi.updated, float)
 
     assert len(dmi.tables) > 0
     for table in dmi.tables:
         assert isinstance(table, DMITable)
 
-        assert isinstance(table.address, unicode)
+        assert isinstance(table.address, str)
         int(table.address, 16)
         assert len(table.handles) > 0
 
@@ -40,15 +45,15 @@ def test_dmi_parser(platform_freebsd, platform_linux):
             assert isinstance(handle, DMIHandle)
             assert handle.table == table
 
-            assert isinstance(handle.name, unicode)
+            assert isinstance(handle.name, str)
             assert isinstance(handle.offset, int)
             assert isinstance(handle.handle_type, int)
             assert isinstance(handle.handle_bytes, int)
 
             for prop in handle.properties:
                 assert isinstance(prop, DMIProperty)
-                assert isinstance(prop.name, unicode)
-                assert isinstance(prop.value, unicode)
+                assert isinstance(prop.name, str)
+                assert isinstance(prop.value, str)
 
                 for option in prop.options:
-                    assert isinstance(option, unicode)
+                    assert isinstance(option, str)

@@ -5,7 +5,8 @@ Common abstraction class for sqlite databases
 import os
 import sqlite3
 
-from systematic.log import Logger, LoggerError
+from systematic.log import Logger
+
 
 class SQLiteError(Exception):
     pass

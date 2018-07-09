@@ -6,8 +6,9 @@ import json
 
 from systematic.filesystems.zfs.zfs import ZfsClient
 from systematic.filesystems.zfs.zpool import ZPoolClient
-from systematic.stats import StatsParser, StatsParserError
+from systematic.stats import StatsParser
 from systematic.platform import JSONEncoder
+
 
 class ZFSStats(StatsParser):
     """ZFS status

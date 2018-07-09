@@ -2,22 +2,25 @@
 Utility functions for python in unix shell.
 """
 
+from __future__ import unicode_literals
+
 import sys
 import os
 import time
 import signal
-import socket
 import argparse
 import threading
 import unicodedata
+
+from builtins import int, str
+from subprocess import Popen, PIPE, CalledProcessError, check_output
+
+from systematic.log import Logger
 
 if sys.version_info.major < 3:
     from Queue import Queue, Empty
 else:
     from queue import Queue, Empty
-
-from systematic.classes import check_output, CalledProcessError
-from subprocess import Popen, PIPE
 
 try:
     from setproctitle import setproctitle
@@ -25,15 +28,13 @@ try:
 except ImportError:
     has_setproctitle = False
 
-from systematic.log import Logger
-
-if sys.platform=='darwin':
+if sys.platform == 'darwin':
     CONFIG_PATH = os.path.expanduser('~/Library/Application Support/Systematic')
 else:
     CONFIG_PATH = os.path.expanduser('~/.config/systematic')
 
 # Values for TERM environment variable which support setting title
-TERM_TITLE_SUPPORTED = ( 'xterm', 'xterm-debian' )
+TERM_TITLE_SUPPORTED = ('xterm', 'xterm-debian')
 
 
 def xterm_title(value, max_length=74, bypass_term_check=False):
@@ -41,12 +42,10 @@ def xterm_title(value, max_length=74, bypass_term_check=False):
     Set title in xterm titlebar to given value, clip the title text to
     max_length characters.
     """
-    #if not os.isatty(1): return
-
-    TERM=os.getenv('TERM')
+    TERM = os.getenv('TERM')
     if not bypass_term_check and TERM not in TERM_TITLE_SUPPORTED:
         return
-    sys.stderr.write('\033]2;'+value[:max_length]+'', )
+    sys.stderr.write('\033]2;'+value[:max_length]+'')
     sys.stderr.flush()
 
 
@@ -56,9 +55,9 @@ def normalized(path, normalization='NFC'):
     on other platform return the original string as unicode
     """
     if sys.platform != 'darwin':
-        return type(path)==unicode and path or unicode(path, 'utf-8')
-    if not isinstance(path, unicode):
-        path = unicode(path, 'utf-8')
+        return path if type(path) == str else str(path, 'utf-8')
+    if not isinstance(path, str):
+        path = str(path, 'utf-8')
     return unicodedata.normalize(normalization, path)
 
 
@@ -137,7 +136,7 @@ class ScriptThread(threading.Thread):
         return self._stop_event.isSet()
 
     def execute(self, command, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr):
-        p = subprocess.Popen(command, stdin=stdin, stdout=stdout, stderr=stderr)
+        p = Popen(command, stdin=stdin, stdout=stdout, stderr=stderr)
         p.wait()
         return p.returncode
 
@@ -162,8 +161,6 @@ class ScriptThreadManager(list):
                 sys.stdout.write('{0}\n'.format(line))
 
     def run(self):
-        total = len(self)
-
         while len(self) > 0:
             self.process_messages()
 
@@ -491,8 +488,7 @@ class ShellCommandParser(object):
         if p.returncode != 0:
             raise ShellCommandParserError('Error running {0}: {1}'.format(' '.join(args), stderr))
 
-        stdout = stdout.decode('utf-8')
-        stderr = stderr.decode('utf-8')
+        stdout = str(stdout, 'utf-8')
+        stderr = str(stderr, 'utf-8')
 
         return stdout, stderr
-

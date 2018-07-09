@@ -4,7 +4,7 @@ Network services by lsof
 
 import json
 
-from systematic.stats import StatsParser, StatsParserError
+from systematic.stats import StatsParser
 
 LSOF_FIELDS = (
     'command',
@@ -49,7 +49,7 @@ class LsofStats(StatsParser):
 
         """
         self.stats = []
-        stdout, stderr = self.execute( ('lsof', '+c0', '-nPi', ))
+        stdout, stderr = self.execute(('lsof', '+c0', '-nPi', ))
         for line in stdout.splitlines()[1:]:
             fields = line.split(None, len(LSOF_FIELDS) - 1)
             entry = LsofStatEntry(**dict((key, fields[i]) for i, key in enumerate(LSOF_FIELDS)))

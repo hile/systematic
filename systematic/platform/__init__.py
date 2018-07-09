@@ -10,19 +10,31 @@ import time
 from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
-from systematic.shell import ShellCommandParser, ShellCommandParserError
-from systematic.stats.hardware.dmi import DMI, DMIError
+from systematic.shell import ShellCommandParser
+from systematic.stats.hardware.dmi import DMI
 
-if sys.platform in  ( 'linux2', ):
+if sys.platform[:5] == 'linux':
     SYSCTL_SEPARATOR = '='
 else:
     SYSCTL_SEPARATOR = ':'
 
 RE_UPTIME_PATTERNS = (
-    re.compile('^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) user,\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'),
-    re.compile('^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) users,\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'),
-    re.compile('^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users, load averages: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'),
-    re.compile('^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users, load averages: (?P<load_avg_1>[\d.]+) (?P<load_avg_5>[\d.]+) (?P<load_avg_15>[\d.]+)$'),
+    re.compile(
+        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) user,' +
+        '\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+    ),
+    re.compile(
+        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) users,' +
+        '\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+    ),
+    re.compile(
+        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
+        ' load averages: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+    ),
+    re.compile(
+        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
+        'load averages: (?P<load_avg_1>[\d.]+) (?P<load_avg_5>[\d.]+) (?P<load_avg_15>[\d.]+)$'
+    ),
 )
 
 
@@ -35,7 +47,7 @@ class JSONEncoder(json.JSONEncoder):
         elif isinstance(obj, SystemStatsCounter):
             encoded_object = obj.value
         else:
-            encoded_object =json.JSONEncoder.default(self, obj)
+            encoded_object = json.JSONEncoder.default(self, obj)
         return encoded_object
 
 
@@ -66,7 +78,7 @@ class SysCtlParser(dict, ShellCommandParser):
         """Get current value
 
         """
-        stdout, stderr = self.execute( ('sysctl', key) )
+        stdout, stderr = self.execute(('sysctl', key))
 
         sysctl = None
         for line in stdout.splitlines():

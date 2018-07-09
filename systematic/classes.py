@@ -3,50 +3,8 @@ Common wrapper classes
 """
 
 import os
-import pwd
 
-# Make sure we have check_output in subprocess module for python 2.6 (RHEL6 compatibility)
-try:
-    from subprocess import STDOUT, check_output, CalledProcessError
-except ImportError:
-    import subprocess
-    STDOUT = subprocess.STDOUT
-
-    def check_output(*popenargs, **kwargs):
-        if 'stdout' in kwargs:  # pragma: no cover
-            raise ValueError('stdout argument not allowed, '
-                             'it will be overridden.')
-        process = subprocess.Popen(stdout=subprocess.PIPE,
-                                   *popenargs, **kwargs)
-        output, _ = process.communicate()
-        retcode = process.poll()
-        if retcode:
-            cmd = kwargs.get("args")
-            if cmd is None:
-                cmd = popenargs[0]
-            raise subprocess.CalledProcessError(retcode, cmd,
-                                                output=output)
-        return output
-    subprocess.check_output = check_output
-
-    # overwrite CalledProcessError due to `output`
-    # keyword not being available (in 2.6)
-    class CalledProcessError(Exception):
-
-        def __init__(self, returncode, cmd, output=None):
-            self.returncode = returncode
-            self.cmd = cmd
-            self.output = output
-
-        def __str__(self):
-            return "Command '%s' returned non-zero exit status %d" % (
-                self.cmd, self.returncode)
-    subprocess.CalledProcessError = CalledProcessError
-
-    # Finally import these to module namespace
-    from subprocess import STDOUT, check_output, CalledProcessError
-
-from systematic.log import Logger, LoggerError
+from systematic.log import Logger
 
 
 class SortableContainer(object):
@@ -68,10 +26,12 @@ class SortableContainer(object):
                 b = getattr(other, field)
                 if a != b:
                     return (a > b) - (a < b)
-
             return 0
-
-        return cmp(self, other)
+        else:
+            if self != other:
+                return (self > other) - (self < other)
+            else:
+                return 0
 
     def __eq__(self, other):
         return self.__cmp_fields__(other) == 0
@@ -100,7 +60,7 @@ class FileSystemFlags(dict):
     """
     Dictionary wrapper to represent mount point mount flags
     """
-    def __init__(self,flags=[]):
+    def __init__(self, flags=[]):
         self.log = Logger('filesystems').default_stream
 
         if isinstance(flags, list):
@@ -118,13 +78,13 @@ class FileSystemFlags(dict):
         """
         return 'owner' in self and self['owner'] or None
 
-    def get(self,flag):
+    def get(self, flag):
         """
         Return False for nonexisting flags, otherwise return flag value
         """
         return flag in self and self[flag] or False
 
-    def set(self,flag,value=True):
+    def set(self, flag, value=True):
         """
         Set a filesystem flag
         """
@@ -138,18 +98,18 @@ class MountPoint(SortableContainer):
     """
     Abstract class for device mountpoints implemented in OS specific code.
     """
-    compare_fields = ( 'mountpoint', 'device', )
+    compare_fields = ('mountpoint', 'device')
 
     def __init__(self, device, mountpoint, filesystem, flags={}):
         self.log = Logger('filesystems').default_stream
         self.device = device
-        self.mountpoint = mountpoint.decode('utf-8')
+        self.mountpoint = mountpoint
         self.filesystem = filesystem
         self.flags = FileSystemFlags(flags=flags)
         self.usage = {}
 
     def __repr__(self):
-        return '{0} mounted on {1}'.format(self.device,self.path)
+        return '{0} mounted on {1}'.format(self.device, self.path)
 
     @property
     def is_virtual(self):

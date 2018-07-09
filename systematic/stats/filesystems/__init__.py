@@ -5,7 +5,7 @@ Filesystem status parsers
 import json
 
 from systematic.filesystems import MountPoints
-from systematic.stats import StatsParser, StatsParserError
+from systematic.stats import StatsParser
 
 
 class FilesystemStatsError(Exception):
@@ -20,7 +20,7 @@ class MountpointStats(StatsParser):
     parser_name = 'filesystems'
 
     def __init__(self):
-        super(FilesystemStats, self).__init__()
+        super(MountpointStats, self).__init__()
         self.mountpoints = MountPoints()
         self.update_timestamp()
 

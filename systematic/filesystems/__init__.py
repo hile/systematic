@@ -8,11 +8,8 @@ mp = MountPoints()
 
 """
 
-import os
 import sys
 import fnmatch
-
-from systematic.log import Logger, LoggerError
 
 
 class FilesystemError(Exception):
@@ -39,7 +36,7 @@ class MountPoints(list):
             self.loader = load_mountpoints
 
         else:
-            raise FileSystemError('MountPoints loader for OS not available: {0}'.format(sys.platform))
+            raise FilesystemError('MountPoints loader for OS not available: {0}'.format(sys.platform))
 
         self.update()
 
@@ -90,4 +87,3 @@ class MountPoints(list):
         Return mountpoints matching a callback function
         """
         return [mountpoint for mountpoint in self if callback(mountpoint)]
-

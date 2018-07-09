@@ -14,9 +14,10 @@ import threading
 import logging
 import logging.handlers
 
-from datetime import datetime, timedelta
+from builtins import int
+from datetime import datetime
 
-from systematic.tail import TailReader, TailReaderError
+from systematic.tail import TailReader
 
 DEFAULT_LOGFORMAT = '%(module)s %(levelname)s %(message)s'
 DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -25,11 +26,11 @@ DEFAULT_LOGSIZE_LIMIT = 2**20
 DEFAULT_LOG_BACKUPS = 10
 
 DEFAULT_SYSLOG_FORMAT = '%(message)s'
-DEFAULT_SYSLOG_LEVEL =  logging.handlers.SysLogHandler.LOG_WARNING
+DEFAULT_SYSLOG_LEVEL = logging.handlers.SysLogHandler.LOG_WARNING
 DEFAULT_SYSLOG_FACILITY = logging.handlers.SysLogHandler.LOG_USER
 
 # Mapping to set syslog handler levels via same classes as normal handlers
-LOGGING_LEVEL_NAMES = ( 'DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL')
+LOGGING_LEVEL_NAMES = ('DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL')
 SYSLOG_LEVEL_MAP = {
     logging.handlers.SysLogHandler.LOG_DEBUG:   logging.DEBUG,
     logging.handlers.SysLogHandler.LOG_NOTICE:  logging.INFO,
@@ -40,12 +41,12 @@ SYSLOG_LEVEL_MAP = {
 }
 
 # Local syslog device varies by platform
-if sys.platform == 'linux2' or fnmatch.fnmatch(sys.platform, '*bsd*'):
+if sys.platform[:5] == 'linux' or fnmatch.fnmatch(sys.platform, '*bsd*'):
     DEFAULT_SYSLOG_ADDRESS = '/dev/log'
 elif sys.platform == 'darwin':
     DEFAULT_SYSLOG_ADDRESS = '/var/run/syslog'
 else:
-    DEFAULT_SYSLOG_ADDRESS = ( 'localhost', 514 )
+    DEFAULT_SYSLOG_ADDRESS = ('localhost', 514)
 
 
 # Default matchers for syslog entry 'host, program, pid' parts
@@ -70,7 +71,9 @@ class Logger(object):
     """
     Singleton class for common logging tasks.
     """
+
     __instances = {}
+
     def __init__(self, name=None, logformat=DEFAULT_LOGFORMAT, timeformat=DEFAULT_TIME_FORMAT):
         name = name is not None and name or self.__class__.__name__
         thread_id = threading.current_thread().ident
@@ -100,7 +103,7 @@ class Logger(object):
         def __get_or_create_logger__(self, name):
             if name not in self.keys():
                 for logging_manager in logging.Logger.manager.loggerDict.values():
-                    if hasattr(logging_manager, 'name') and logging_manager.name==name:
+                    if hasattr(logging_manager, 'name') and logging_manager.name == name:
                         self[name] = logging.getLogger(name)
                         break
 
@@ -115,19 +118,19 @@ class Logger(object):
                     return False
 
                 if isinstance(a, logging.StreamHandler):
-                    for k in ('stream', 'name',):
+                    for k in ('stream', 'name'):
                         if getattr(a, k) != getattr(b, k):
                             return False
                     return True
 
                 if isinstance(a, logging.handlers.SysLogHandler):
-                    for k in ( 'address', 'facility', ):
+                    for k in ('address', 'facility'):
                         if getattr(a, k) != getattr(b, k):
                             return False
                     return True
 
                 if isinstance(a, logging.handlers.HTTPHandler):
-                    for k in ( 'host', 'url', 'method', ):
+                    for k in ('host', 'url', 'method'):
                         if getattr(a, k) != getattr(b, k):
                             return False
                     return True
@@ -164,12 +167,11 @@ class Logger(object):
             return logger
 
         def register_syslog_handler(self, name,
-                address=DEFAULT_SYSLOG_ADDRESS,
-                facility=DEFAULT_SYSLOG_FACILITY,
-                default_level=DEFAULT_SYSLOG_LEVEL,
-                socktype=None,
-                logformat=None,
-            ):
+                                    address=DEFAULT_SYSLOG_ADDRESS,
+                                    facility=DEFAULT_SYSLOG_FACILITY,
+                                    default_level=DEFAULT_SYSLOG_LEVEL,
+                                    socktype=None,
+                                    logformat=None):
 
             if logformat is None:
                 logformat = DEFAULT_SYSLOG_FORMAT
@@ -202,11 +204,11 @@ class Logger(object):
             return logger
 
         def register_file_handler(self, name, directory,
-                         filename=None,
-                         logformat=None,
-                         timeformat=None,
-                         maxBytes=DEFAULT_LOGSIZE_LIMIT,
-                         backupCount=DEFAULT_LOG_BACKUPS):
+                                  filename=None,
+                                  logformat=None,
+                                  timeformat=None,
+                                  maxBytes=DEFAULT_LOGSIZE_LIMIT,
+                                  backupCount=DEFAULT_LOG_BACKUPS):
 
             if filename is None:
                 filename = '{0}.log'.format(name)
@@ -239,6 +241,7 @@ class Logger(object):
         @property
         def level(self):
             return self._level
+
         @level.setter
         def level(self, value):
             if not isinstance(value, int):
@@ -260,6 +263,7 @@ class Logger(object):
         @property
         def loglevel(self):
             return self.level
+
         @loglevel.setter
         def loglevel(self, value):
             self.level = value
@@ -289,12 +293,12 @@ class Logger(object):
         )
 
     def register_syslog_handler(self, name,
-            address=DEFAULT_SYSLOG_ADDRESS,
-            facility=DEFAULT_SYSLOG_FACILITY,
-            default_level=DEFAULT_SYSLOG_LEVEL,
-            socktype=None,
-            logformat=None,
-        ):
+                                address=DEFAULT_SYSLOG_ADDRESS,
+                                facility=DEFAULT_SYSLOG_FACILITY,
+                                default_level=DEFAULT_SYSLOG_LEVEL,
+                                socktype=None,
+                                logformat=None):
+
         """Register syslog handler
 
         Register handler for syslog messages
@@ -315,11 +319,12 @@ class Logger(object):
         )
 
     def register_file_handler(self, name, directory,
-                     filename=None,
-                     logformat=None,
-                     timeformat=None,
-                     maxBytes=DEFAULT_LOGSIZE_LIMIT,
-                     backupCount=DEFAULT_LOG_BACKUPS):
+                              filename=None,
+                              logformat=None,
+                              timeformat=None,
+                              maxBytes=DEFAULT_LOGSIZE_LIMIT,
+                              backupCount=DEFAULT_LOG_BACKUPS):
+
         """Register log file handler
 
         Register a common log file handler for rotating file based logs
@@ -398,7 +403,9 @@ class LogFile(list):
 
     default lineloader is systematic.log.LogEntry
     """
+
     lineloader = LogEntry
+
     def __init__(self, path, source_formats=SOURCE_FORMATS):
         if isinstance(path, str):
             self.path = os.path.expanduser(os.path.expandvars(path))
@@ -504,8 +511,8 @@ class LogFile(list):
             raise LogFileError('Unknown iterator: {0}'.format(iterator))
 
         if not self.__loaded:
-            if self.fd == None:
-                if isinstance(self.path, file):
+            if self.fd is not None:
+                if hasattr(self.path, 'readline'):
                     self.fd = self.path
                     self.mtime = datetime.now()
                 else:
@@ -599,7 +606,7 @@ class LogFile(list):
         self.__loaded = False
         while True:
             try:
-                entry = self.next()
+                return self.next()
             except StopIteration:
                 break
 
@@ -666,6 +673,7 @@ class LogFileCollection(object):
     """
 
     loader = LogFile
+
     def __init__(self, logfiles, source_formats=SOURCE_FORMATS):
         self.source_formats = source_formats
         self.logfiles = []
@@ -676,7 +684,7 @@ class LogFileCollection(object):
         for path in logfiles:
             try:
                 st = os.stat(path)
-                ts = long(st.st_mtime)
+                ts = int(st.st_mtime)
 
                 if ts not in stats.keys():
                     stats[ts] = []
