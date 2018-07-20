@@ -10,6 +10,7 @@ import re
 import string
 import tempfile
 
+from builtins import str
 from subprocess import Popen, PIPE
 from systematic.log import Logger
 
