@@ -320,6 +320,9 @@ class Script(object):
         self.subcommands[command.name] = command
         command.script = self
 
+        if callable(getattr(command, '__register_arguments__', None)):
+            command.__register_arguments__(parser)
+
         return parser
 
     def usage_error(self, *args, **kwargs):
