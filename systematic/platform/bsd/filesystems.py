@@ -25,8 +25,8 @@ class BSDMountPoint(MountPoint):
     One BSD mountpoint based on /sbin/mount output line
     Additional attributes:
     """
-    def __init__(self, device, mountpoint, filesystem):
-        super(BSDMountPoint, self).__init__(device, mountpoint, filesystem)
+    def __init__(self, mountpoints, device, mountpoint, filesystem):
+        super(BSDMountPoint, self).__init__(mountpoints, device, mountpoint, filesystem)
 
     @property
     def is_virtual(self):
@@ -68,7 +68,7 @@ class BSDMountPoint(MountPoint):
         }
 
 
-def load_mountpoints():
+def load_mountpoints(self):
     """
     Update list of FreeBSD mountpoints based on /sbin/mount output
     """
@@ -94,7 +94,7 @@ def load_mountpoints():
         filesystem = flags[0]
         flags = flags[1:]
 
-        entry = BSDMountPoint(device, mountpoint, filesystem)
+        entry = BSDMountPoint(self, device, mountpoint, filesystem)
         if entry.is_virtual:
             continue
 

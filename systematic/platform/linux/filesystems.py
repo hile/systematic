@@ -49,8 +49,8 @@ class LinuxMountPoint(MountPoint):
     uuid        Filesystem uuid
     label       Filesystem label
     """
-    def __init__(self, device, mountpoint, filesystem):
-        super(LinuxMountPoint, self).__init__(device, mountpoint, filesystem)
+    def __init__(self, mountpoints, device, mountpoint, filesystem):
+        super(LinuxMountPoint, self).__init__(mountpoints, device, mountpoint, filesystem)
 
         if self.device[:len(DM_PREFIX)] == DM_PREFIX:
             for name in os.listdir(MAPPER_PATH):
@@ -114,7 +114,7 @@ class LinuxMountPoint(MountPoint):
         }
 
 
-def load_mountpoints():
+def load_mountpoints(self):
     """
     Update list of linux mountpoints based on /bin/mount output
     """
@@ -139,7 +139,7 @@ def load_mountpoints():
         filesystem = str(m.group(3))
         flags = [str(x.strip()) for x in m.group(4).split(',')]
 
-        entry = LinuxMountPoint(device, mountpoint, filesystem)
+        entry = LinuxMountPoint(self, device, mountpoint, filesystem)
         if entry.is_virtual:
             continue
 

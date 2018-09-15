@@ -9,6 +9,7 @@ import re
 
 from builtins import int, str
 from mactypes import Alias
+from subprocess import Popen, PIPE
 
 from systematic.classes import MountPoint, FileSystemError
 from systematic.platform.darwin.diskutil import DiskInfo
@@ -29,8 +30,8 @@ class DarwinMountPoint(MountPoint):
     Extra attributes:
     hfspath     Returns OS X 'hfs path' or None
     """
-    def __init__(self, mountpoint, device=None, filesystem=None):
-        super(DarwinMountPoint, self).__init__(device, mountpoint, filesystem)
+    def __init__(self, mountpoints, mountpoint, device=None, filesystem=None):
+        super(DarwinMountPoint, self).__init__(mountpoints, device, mountpoint, filesystem)
 
         try:
             self.hfspath = str(Alias(self.mountpoint).hfspath)
@@ -144,8 +145,24 @@ class DarwinMountPoint(MountPoint):
 
         return data
 
+    def detach(self):
+        """
+        Detach mountpoint with hdiutil
+        """
+        cmd = ['hdiutil', 'detach', self.path]
+        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        stdout, stderr = p.communicate()
+        if p.returncode != 0:
+            raise FileSystemError('Error detaching {}: {}'.format(
+                self.path,
+                stderr.rstrip(),
+            ))
 
-def load_mountpoints():
+        self.mountpoints.update()
+        return self.path
+
+
+def load_mountpoints(self):
     """
     Update mount points from /sbin/mount output
     """
@@ -171,7 +188,7 @@ def load_mountpoints():
         filesystem = flags[0]
         flags = flags[1:]
 
-        entry = DarwinMountPoint(mountpoint, device, filesystem)
+        entry = DarwinMountPoint(self, mountpoint, device, filesystem)
         if entry.is_virtual:
             continue
 

@@ -64,8 +64,9 @@ class MountPoints(list):
 
         """
         del self[0:len(self)]
-        self.extend(self.loader())
+        self.extend(self.loader(self))
         self.sort()
+        return self
 
     @property
     def devices(self):

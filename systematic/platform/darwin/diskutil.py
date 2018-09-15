@@ -2,15 +2,20 @@
 Wrapper for OS/X diskutil command for python
 """
 
+from __future__ import unicode_literals
+
+
 import os
 import plistlib
-from xml.parsers.expat import ExpatError
+
+from builtins import str
 from subprocess import Popen, PIPE
+from xml.parsers.expat import ExpatError
 
 try:
-    from StringIO import StringIO
+    from io import BytesIO as IOWrapper
 except ImportError:
-    from io import StringIO
+    from StringIO import StringIO as IOWrapper
 
 INFO_FIELD_MAP = {
     'DeviceNode':       {'name': 'Device', 'value': lambda x: str(x)},
@@ -50,10 +55,9 @@ class DiskInfo(dict):
 
         cmd = ['diskutil', 'info', '-plist', device]
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-        (stdout, stderr) = p.communicate()
+        stdout, stderr = p.communicate()
         try:
-            plist = StringIO.StringIO(stdout)
-            self.update(plistlib.readPlist(plist))
+            self.update(plistlib.load(IOWrapper(stdout)))
         except ExpatError as e:
             raise DiskUtilError('Error parsing plist: {0}'.format(stdout))
 

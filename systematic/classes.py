@@ -100,8 +100,9 @@ class MountPoint(SortableContainer):
     """
     compare_fields = ('mountpoint', 'device')
 
-    def __init__(self, device, mountpoint, filesystem, flags={}):
+    def __init__(self, mountpoints, device, mountpoint, filesystem, flags={}):
         self.log = Logger('filesystems').default_stream
+        self.mountpoints = mountpoints
         self.device = device
         self.mountpoint = mountpoint
         self.filesystem = filesystem
