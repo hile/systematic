@@ -31,6 +31,7 @@ class SSHConfigCommand(ScriptCommand):
 
 
 class ListCommand(SSHConfigCommand):
+
     def run(self, args):
         args = SSHConfigCommand.parse_args(self, args)
 

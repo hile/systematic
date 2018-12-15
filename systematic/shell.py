@@ -417,13 +417,13 @@ class ScriptCommand(argparse.ArgumentParser):
     """
     def __init__(self, name=None, short_description='', description='', epilog=''):
         self.script = None
-        name = name if name is not None \
+        self.name = name if name is not None \
             else getattr(self, 'name', None)
-        short_description = short_description if short_description is not None \
+        self.short_description = short_description if short_description is not None \
             else getattr(self, 'short_description', '', None)
-        description = short_description if description is not None \
+        self.description = short_description if description is not None \
             else getattr(self, 'description', '', None)
-        epilog = epilog if epilog is not None \
+        self.epilog = epilog if epilog is not None \
             else getattr(self, 'epilog', '', None)
 
     @property
