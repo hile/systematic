@@ -338,16 +338,18 @@ class Script(object):
         """Process args
         Process args from parse_*args CalledProcessError
         """
-        if hasattr(args, 'debug') and getattr(args, 'debug'):
+        if getattr(args, 'debug', None):
             self.logger.set_level('DEBUG')
 
-        elif hasattr(args, 'quiet') and getattr(args, 'quiet'):
+        elif getattr(args, 'quiet', None):
             self.silent = True
 
-        elif hasattr(args, 'verbose') and getattr(args, 'verbose'):
+        elif getattr(args, 'verbose', None):
             self.logger.set_level('INFO')
 
         if self.subcommand_parser is not None and args.command is not None:
+            if hasattr(self.subcommands[args.command], 'parse_args'):
+                args = self.subcommands[args.command].parse_args(args)
             self.subcommands[args.command].run(args)
 
         return args
@@ -413,12 +415,16 @@ class ScriptCommand(argparse.ArgumentParser):
     parse_args to call these methods as required
 
     """
-    def __init__(self, name, short_description='', description='', epilog=''):
+    def __init__(self, name=None, short_description='', description='', epilog=''):
         self.script = None
-        self.name = name
-        self.short_description = short_description
-        self.description = description
-        self.epilog = epilog
+        name = name if name is not None \
+            else getattr(self, 'name', None)
+        short_description = short_description if short_description is not None \
+            else getattr(self, 'short_description', '', None)
+        description = short_description if description is not None \
+            else getattr(self, 'description', '', None)
+        epilog = epilog if epilog is not None \
+            else getattr(self, 'epilog', '', None)
 
     @property
     def log(self):
