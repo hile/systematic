@@ -17,10 +17,10 @@ from builtins import int, str  # noqa
 
 from systematic.stats import StatsParser, StatsParserError
 
-RE_VERSION = re.compile('^#\s+dmidecode\s+(?P<version>.*)$')
-RE_TABLE_START = re.compile('^Table at (?P<address>.*).')
+RE_VERSION = re.compile(r'^#\s+dmidecode\s+(?P<version>.*)$')
+RE_TABLE_START = re.compile(r'^Table at (?P<address>.*).')
 RE_HANDLE_START = re.compile(
-    '^Handle\s+(?P<offset>[x0-9a-fA-F]+),\s+DMI\s+type\s+(?P<handle_type>\d+),\s+(?P<handle_bytes>\d+) bytes$'
+    r'^Handle\s+(?P<offset>[x0-9a-fA-F]+),\s+DMI\s+type\s+(?P<handle_type>\d+),\s+(?P<handle_bytes>\d+) bytes$'
 )
 
 # DMI handle type mapping

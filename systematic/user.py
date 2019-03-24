@@ -8,6 +8,8 @@ import time
 
 from operator import attrgetter
 
+from .classes import SortableContainer
+
 # How long to cache the user and group details
 DEFAULT_CACHE_SECONDS = 300
 
@@ -16,10 +18,12 @@ class DatabaseError(Exception):
     pass
 
 
-class User(object):
+class User(SortableContainer):
     """
     User from pwd api
     """
+    compare_fields = ('username', 'uid', 'gid', 'directory', 'gecos', 'shell')
+
     idattr = 'uid'
     nameattr = 'username'
 
@@ -41,10 +45,12 @@ class User(object):
         return self.db.groups.lookup_id(self.gid)
 
 
-class Group(object):
+class Group(SortableContainer):
     """
     Group from grp api
     """
+    compare_fields = ('name', 'gid', 'member_uids')
+
     idattr = 'gid'
     nameattr = 'name'
 
@@ -56,7 +62,7 @@ class Group(object):
         self.member_uids = gr_ent.gr_mem
 
     def __repr__(self):
-        return '{0} {1}'.format(self.__class__, self.name)
+        return '{} {}'.format(self.__class__, self.name)
 
     def validate_members(self):
         """Validate members
@@ -71,9 +77,7 @@ class Group(object):
             except DatabaseError:
                 notfound.append(name)
         if notfound:
-            raise DatabaseError('Error looking up users: {0}'.format(
-                ' '.join(notfound)
-            ))
+            raise DatabaseError('Error looking up users: {}'.format(' '.join(notfound)))
 
     @property
     def members(self):
@@ -91,10 +95,12 @@ class Group(object):
 
 
 class DatabaseEntryMap(object):
-    """Entry map
+    """
+    Entry map
 
     Maps entry objects by uid/gid and name
     """
+
     def __init__(self, db, cache_seconds=DEFAULT_CACHE_SECONDS):
         self.db = db
         self.cache_seconds = cache_seconds
@@ -104,6 +110,18 @@ class DatabaseEntryMap(object):
         self.__name_map__ = {}
 
         self.__iter_index__ = None
+
+    def __create_object__(self, entry):
+        return NotImplementedError
+
+    def __get_all_entries__(self):
+        return NotImplementedError
+
+    def __load_by_id__(self, id):
+        return NotImplementedError
+
+    def __load_by_name__(self, name):
+        return NotImplementedError
 
     def __iter__(self):
         return self
@@ -142,30 +160,29 @@ class DatabaseEntryMap(object):
 
         try:
             return (time.time() - self.__updated__) <= self.cache_seconds
-        except:  # noqa
+        except Exception:
             return False
 
     def load(self):
-        """Load all entries
-
-        Load all entries from backend for
+        """
+        Load all entries from backend
         """
         if not self.__is_cached_data_valid__:
             for entry in self.__get_all_entries__():
                 self.__load_entry__(self.__create_object__(entry))
             self.__updated__ = time.time()
 
-    def lookup_id(self, attr):
-        """Lookup entry by gid/uid
-
+    def lookup_id(self, id_attr):
         """
-        if attr not in self.__id_map__:
-            self.__load_by_id__(attr)
-        return self.__id_map__[attr]
+        Lookup entry by id attribute
+        """
+        if id_attr not in self.__id_map__:
+            self.__load_by_id__(id_attr)
+        return self.__id_map__[id_attr]
 
     def lookup_name(self, name):
-        """Lookup entry by gid/uid
-
+        """
+        Lookup entry by name attribute
         """
         if name not in self.__name_map__:
             self.__load_by_name__(name)
@@ -173,80 +190,100 @@ class DatabaseEntryMap(object):
 
 
 class UserMap(DatabaseEntryMap):
-    """User map
+    """
+    User map
 
+    User mappings for account database
     """
 
     def __get_all_entries__(self):
-        """Return all entries
-
         """
-        return sorted(pwd.getpwall(), key=attrgetter('pw_uid'))
+        Return all entries
+
+        Remove duplicate entries returned sometimes
+        """
+        users = []
+        for entry in sorted(pwd.getpwall(), key=attrgetter('pw_uid')):
+            if entry not in users:
+                users.append(entry)
+        return users
 
     def __create_object__(self, data):
-        """Create user object
-
         """
+        Create user object
+        """
+
         return User(self.db, data)
 
     def __load_by_id__(self, uid):
-        """Load single user by UID
-
         """
+        Load single user by UID
+        """
+
         try:
             self.__load_entry__(self.__create_object__(pwd.getpwuid(uid)))
-        except:  # noqa
-            raise DatabaseError('No such uid: {0}'.format(uid))
+        except Exception as e:
+            raise DatabaseError('Error loading user by UID {}: {}'.format(uid, e))
 
     def __load_by_name__(self, name):
-        """Load by user name
-
         """
+        Load by user name
+        """
+
         try:
             self.__load_entry__(self.__create_object__(pwd.getpwnam(name)))
-        except:  # noqa
-            raise DatabaseError('No such user: {0}'.format(name))
+        except Exception as e:
+            raise DatabaseError('Error loading user by username {}: {}'.format(name, e))
 
 
 class GroupMap(DatabaseEntryMap):
-    """User map
+    """
+    Group map
 
+    Mapping of groups for password database
     """
 
     def __get_all_entries__(self):
-        """Return all entries
-
         """
-        return sorted(grp.getgrall(), key=attrgetter('gr_gid'))
+        Return all entries
+        """
+        groups = []
+        for entry in sorted(grp.getgrall(), key=attrgetter('gr_gid')):
+            if entry not in groups:
+                groups.append(entry)
+        return groups
 
     def __create_object__(self, data):
-        """Create group object
-
         """
+        Create group object
+        """
+
         return Group(self.db, data)
 
     def __load_by_id__(self, gid):
-        """Load group by GID
-
         """
+        Load group by GID
+        """
+
         try:
             self.__load_entry__(self.__create_object__(grp.getgrgid(gid)))
-        except:  # noqa
-            raise DatabaseError('No such uid: {0}'.format(gid))
+        except Exception as e:
+            raise DatabaseError('Error loading group by GID {}: {}'.format(gid, e))
 
     def __load_by_name__(self, name):
-        """Load by group name
-
         """
+        Load by group name
+        """
+
         try:
             self.__load_entry__(self.__create_object__(grp.getgrnam(name)))
-        except:  # noqa
-            raise DatabaseError('No such user: {0}'.format(name))
+        except Exception as e:
+            raise DatabaseError('Error loading group by name {}: {}'.format(name, e))
 
 
-class UnixPasswordDB(object):
+class UnixPasswordDB:
     """
-    Wrap pwd and grp to objects
+    Wrap pwd and grp to user and group mappings
     """
 
     def __init__(self, cache_seconds=DEFAULT_CACHE_SECONDS):
@@ -254,61 +291,64 @@ class UnixPasswordDB(object):
         self.groups = GroupMap(self, cache_seconds)
 
     def load_groups(self):
-        """Load group details
-
-        Loads all group entries from pwd. On a large system this may be
-        very slow.
         """
+        Load group details
+
+        Loads all group entries from pwd. On a large system this may be very slow.
+        """
+
         self.groups.load()
 
     def load_users(self):
-        """Load user details
-
-        Loads all user entries from pwd. On a large system this may be
-        very slow.
         """
+        Load user details
+
+        Loads all user entries from pwd. On a large system this may be very slow.
+        """
+
         self.users.load()
 
     def load(self):
-        """Load both groups and users
-
         """
+        Load both groups and users
+        """
+
         self.load_groups()
         self.load_users()
 
     def lookup_gid(self, gid):
-        """Get group
-
+        """
         Get a single group by gid
         """
+
         return self.groups.lookup_id(gid)
 
     def lookup_group(self, name):
-        """Get group
-
+        """
         Get a single group by name
         """
+
         return self.groups.lookup_name(name)
 
     def lookup_uid(self, uid):
-        """Get group
-
-        Get a single group by gid
         """
+        Get a single user by uid
+        """
+
         return self.users.lookup_id(uid)
 
     def lookup_user(self, name):
-        """Get user
-
-        Get a single user by name
         """
+        Get a single user by username
+        """
+
         return self.users.lookup_name(name)
 
     def get_user_groups(self, username):
-        """Return user groups
-
+        """
         Return groups where user is member
         """
+
         user = self.users.lookup_name(username)
         groups = [user.group]
         for gid in self.groups.__id_map__:

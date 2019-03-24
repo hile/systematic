@@ -46,7 +46,7 @@ class BSDMountPoint(MountPoint):
             parser = ShellCommandParser()
             try:
                 stdout, stderr = parser.execute(('df', '-k', self.mountpoint))
-            except ShellCommandParserError as e:
+            except ShellCommandParserError:
                 raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
             header, usage = stdout.split('\n', 1)
@@ -104,7 +104,7 @@ def load_mountpoints(self):
         mountpoints.append(entry)
 
     try:
-        stdout, stderr = parser.execute('df -k')
+        stdout, stderr = parser.execute('df', '-k')
     except ShellCommandParserError as e:
         raise FileSystemError('Error running mount: {0}'.format(e))
 

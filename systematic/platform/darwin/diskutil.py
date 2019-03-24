@@ -58,7 +58,7 @@ class DiskInfo(dict):
         stdout, stderr = p.communicate()
         try:
             self.update(plistlib.load(IOWrapper(stdout)))
-        except ExpatError as e:
+        except ExpatError:
             raise DiskUtilError('Error parsing plist: {0}'.format(stdout))
 
         if 'TotalSize' in self and 'FreeSpace' in self:

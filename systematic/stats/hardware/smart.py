@@ -21,8 +21,10 @@ SYSTEM_CONFIG_PATHS = (
 )
 
 HEADERS = {
-    'version': re.compile('^smartctl\s+(?P<version>[^\s]+)\s+(?P<date>[0-9-]+)\s+(?P<release>[^\s]+)\s+(?P<build>.*)$'),
-    'copyright': re.compile('^Copyright\s+\(C\)\s+(?P<copyright>.*)$'),
+    'version': re.compile(
+        r'^smartctl\s+(?P<version>[^\s]+)\s+(?P<date>[0-9-]+)\s+(?P<release>[^\s]+)\s+(?P<build>.*)$'
+    ),
+    'copyright': re.compile(r'^Copyright\s+\(C\)\s+(?P<copyright>.*)$'),
 }
 
 INFO_FIELD_MAP = {
@@ -126,18 +128,18 @@ SMART_UNSUPPORTED_PATTERNS = (
 
 PLATFORM_IGNORED_DEVICE_MATCHES = {
     'freebsd9': [
-        re.compile('^/dev/ses[0-9]+$'),
+        re.compile('r^/dev/ses[0-9]+$'),
     ],
     'freebsd10': [
-        re.compile('^/dev/ses[0-9]+$'),
+        re.compile('r^/dev/ses[0-9]+$'),
     ],
     'freebsd11': [
-        re.compile('^/dev/ses[0-9]+$'),
+        re.compile('r^/dev/ses[0-9]+$'),
     ],
 }
 
-RE_SECTOR_SIZE = re.compile('(?P<size>\d+) bytes logical/physical')
-RE_SECTOR_SIZES = re.compile('(?P<logical>\d+) bytes logical, (?P<physical>\d+) bytes physical')
+RE_SECTOR_SIZE = re.compile(r'(?P<size>\d+) bytes logical/physical')
+RE_SECTOR_SIZES = re.compile(r'(?P<logical>\d+) bytes logical, (?P<physical>\d+) bytes physical')
 
 
 class SmartError(Exception):
@@ -179,12 +181,12 @@ class SmartDrive(object):
     One drive in SMART data
     """
 
-    def __init__(self, client, device, flags=[]):
+    def __init__(self, client, device, flags=None):
         self.client = client
         self.device = device
         self.driver = self.client.config.get_driver(self.device)
         self.name = str(os.path.basename(device))
-        self.flags = flags
+        self.flags = flags if flags is not None else []
 
     def __repr__(self):
         return self.device
@@ -251,7 +253,7 @@ class SmartDrive(object):
         Currently health check just checks if health status is 'PASSED'
         """
 
-        re_result = re.compile('^SMART overall-health self-assessment test result: (?P<status>.*)$')
+        re_result = re.compile(r'^SMART overall-health self-assessment test result: (?P<status>.*)$')
         try:
             if self.driver:
                 cmd = ('smartctl', '-d', self.driver, '--health', self.device)
@@ -274,17 +276,17 @@ class SmartDrive(object):
 
         attributes = {}
 
-        re_match = re.compile('^{0}$'.format('\s+'.join([
-            '(?P<id>0x[0-9a-f]+)',
-            '(?P<attribute_name>[^\s]+)',
-            '(?P<flag>0x[0-9a-f]+)',
-            '(?P<value>0x[0-9a-f]+)',
-            '(?P<worst>0x[0-9a-f]+)',
-            '(?P<threshold>0x[0-9a-f]+)',
-            '(?P<type>[^\s]+)',
-            '(?P<updated>[^\s]+)',
-            '(?P<failed>[^\s]+)',
-            '(?P<raw_value>[0-9a-f]+)',
+        re_match = re.compile(r'^{0}$'.format(r'\s+'.join([
+            r'(?P<id>0x[0-9a-f]+)',
+            r'(?P<attribute_name>[^\s]+)',
+            r'(?P<flag>0x[0-9a-f]+)',
+            r'(?P<value>0x[0-9a-f]+)',
+            r'(?P<worst>0x[0-9a-f]+)',
+            r'(?P<threshold>0x[0-9a-f]+)',
+            r'(?P<type>[^\s]+)',
+            r'(?P<updated>[^\s]+)',
+            r'(?P<failed>[^\s]+)',
+            r'(?P<raw_value>[0-9a-f]+)',
         ])))
 
         try:
@@ -358,7 +360,7 @@ class SmartDrive(object):
                 return dict((k, int(v)) for k, v in m.groupdict().items())
             return value
 
-        re_result = re.compile('^(?P<field>[^:]+):\s+(?P<value>.*)$')
+        re_result = re.compile(r'^(?P<field>[^:]+):\s+(?P<value>.*)$')
         details = {}
 
         try:
@@ -596,7 +598,7 @@ class SmartCtlClient(StatsParser):
                 raise SmartError('Error parsing line from output: {0}'.format(line))
 
         # Add explicitly configured drives
-        for device, driver in self.config.drivers.items():
+        for device in self.config.drivers:
             device = str(device)
             self.drives.append(SmartDrive(self, device, flags=[]))
 

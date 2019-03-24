@@ -293,10 +293,10 @@ class Month(object):
         m = self
         value = int(value)
         if value >= 0:
-            for i in range(0, int(value)):
+            for _i in range(0, int(value)):
                 m = Month(m.first+m.days, None, firstweekday=self.firstweekday)
         else:
-            for i in range(value, 0):
+            for _i in range(value, 0):
                 m = Month(m.first-1, None, firstweekday=self.firstweekday)
 
         return m

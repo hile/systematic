@@ -66,7 +66,7 @@ class Process(SortableContainer):
                     value = ' '.join(fields[keys.index(key):])
                 else:
                     value = fields[keys.index(key)]
-            except IndexError as e:
+            except IndexError:
                 value = None
 
             if key not in ('ruser', 'user', 'time', 'tdev', 'state', 'command'):

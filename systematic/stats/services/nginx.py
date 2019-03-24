@@ -40,9 +40,9 @@ DEFAULT_STATS_PORT = 10061
 # Do not fetch stats more often than this
 DEFAULT_MINIMUM_INTERVAL = 0.2
 
-RE_ACTIVE_CONNECTIONS = re.compile('^Active connections: (?P<count>\d+)\s*$')
-RE_TOTAL_COUNTERS = re.compile('\s+(?P<accepted>\d+)\s(?P<handled>\d+)\s+(?P<total>\d+)\s*$')
-RE_STAT_COUNTERS = re.compile('^Reading: (?P<reading>\d+)\s*Writing: (?P<writing>\d+)\sWaiting: (?P<waiting>\d+)\s*$')
+RE_ACTIVE_CONNECTIONS = re.compile(r'^Active connections: (?P<count>\d+)\s*$')
+RE_TOTAL_COUNTERS = re.compile(r'\s+(?P<accepted>\d+)\s(?P<handled>\d+)\s+(?P<total>\d+)\s*$')
+RE_STAT_COUNTERS = re.compile(r'^Reading: (?P<reading>\d+)\s*Writing: (?P<writing>\d+)\sWaiting: (?P<waiting>\d+)\s*$')
 
 
 class NginxStatsError(Exception):

@@ -134,7 +134,7 @@ class ServiceList(dict):
                 return []
 
         elif protocol is not None:
-            for port, protocols in self.items():
+            for protocols in self.values():
                 try:
                     entries.append(protocols[protocol])
                 except KeyError:

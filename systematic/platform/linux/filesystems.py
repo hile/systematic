@@ -89,8 +89,8 @@ class LinuxMountPoint(MountPoint):
         if line is None:
             parser = ShellCommandParser()
             try:
-                stdout, stderr = parser.execute(('df', '-Pk', self.mountpoint))
-            except ShellCommandParserError as e:
+                stdout, stderr = parser.execute('df', '-Pk', self.mountpoint)
+            except ShellCommandParserError:
                 raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
 
             header, usage = stdout.split('\n', 1)
@@ -149,7 +149,7 @@ def load_mountpoints(self):
         mountpoints.append(entry)
 
     try:
-        stdout, stderr = parser.execute('df -Pk')
+        stdout, stderr = parser.execute('df' '-Pk')
     except ShellCommandParserError as e:
         raise FileSystemError('Error running mount: {0}'.format(e))
 

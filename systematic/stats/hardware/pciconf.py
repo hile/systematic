@@ -15,18 +15,18 @@ import re
 
 from systematic.stats import StatsParser, StatsParserError
 
-RE_PCI_DEVICE = re.compile('^{0}$'.format(
-    '\s+'.join([
-        '(?P<driver>[^\@]+)@(?P<slot>[^\s]+):',
-        'class=(?P<device_class>[x0-9a-f]+)',
-        'card=(?P<card>[x0-9a-f]+)',
-        'chip=(?P<chip>[x0-9a-f]+)',
-        'rev=(?P<revision>[x0-9a-f]+)',
-        'hdr=(?P<header>[x0-9a-f]+)',
+RE_PCI_DEVICE = re.compile(r'^{0}$'.format(
+    r'\s+'.join([
+        r'(?P<driver>[^\@]+)@(?P<slot>[^\s]+):',
+        r'class=(?P<device_class>[x0-9a-f]+)',
+        r'card=(?P<card>[x0-9a-f]+)',
+        r'chip=(?P<chip>[x0-9a-f]+)',
+        r'rev=(?P<revision>[x0-9a-f]+)',
+        r'hdr=(?P<header>[x0-9a-f]+)',
     ]))
 )
 # Report slots not attached to driver as None
-RE_NO_DRIVER = re.compile('^none\d+$')
+RE_NO_DRIVER = re.compile(r'^none\d+$')
 
 
 class PCIDevice(object):

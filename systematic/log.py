@@ -20,7 +20,7 @@ from datetime import datetime
 from systematic.tail import TailReader
 
 DEFAULT_LOGFORMAT = '%(module)s %(levelname)s %(message)s'
-DEFAULT_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+DEFAULT_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 DEFAULT_LOGFILEFORMAT = '%(asctime)s %(module)s.%(funcName)s %(message)s'
 DEFAULT_LOGSIZE_LIMIT = 2**20
 DEFAULT_LOG_BACKUPS = 10
@@ -51,12 +51,12 @@ else:
 
 # Default matchers for syslog entry 'host, program, pid' parts
 SOURCE_FORMATS = [
-    re.compile('^<(?P<version>[^>]+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
-    re.compile('^<(?P<version>[^>]+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
-    re.compile('^<(?P<facility>\d+)\.(?P<level>\d+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
-    re.compile('^<(?P<facility>\d+)\.(?P<level>\d+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
-    re.compile('^(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
-    re.compile('^(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
+    re.compile(r'^<(?P<version>[^>]+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
+    re.compile(r'^<(?P<version>[^>]+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
+    re.compile(r'^<(?P<facility>\d+)\.(?P<level>\d+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
+    re.compile(r'^<(?P<facility>\d+)\.(?P<level>\d+)>\s+(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
+    re.compile(r'^(?P<host>[^\s]+)\s+(?P<program>[^\[]+)\[(?P<pid>\d+)\]$'),
+    re.compile(r'^(?P<host>[^\s]+)\s+(?P<program>[^\[]+)$'),
 ]
 
 
@@ -495,11 +495,14 @@ class LogFile(list):
 
         raise LogFileError('Error opening logfile {0}'.format(path))
 
-    def next(self):
+    def __next__(self):
         """Next iterator
 
         Standard iterator next() call
         """
+        return self.next_iterator_match(iterator='default')
+
+    def next(self):
         return self.next_iterator_match(iterator='default')
 
     def next_iterator_match(self, iterator, callback=None):
@@ -606,7 +609,7 @@ class LogFile(list):
         self.__loaded = False
         while True:
             try:
-                return self.next()
+                return next(self)
             except StopIteration:
                 break
 
@@ -718,7 +721,7 @@ class LogFileCollection(object):
             self.__iter_entry = self.logfiles[0]
 
         try:
-            logentry = self.__iter_entry.next()
+            logentry = next(self.__iter_entry)
 
         except StopIteration:
             if self.__iter_index < len(self.logfiles) - 1:
@@ -726,7 +729,7 @@ class LogFileCollection(object):
                 self.__iter_entry = self.logfiles[self.__iter_index]
 
                 try:
-                    logentry = self.__iter_entry.next()
+                    logentry = next(self.__iter_entry)
                 except StopIteration:
                     self.__iter_index = None
                     self.__iter_entry = None

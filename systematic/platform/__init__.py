@@ -11,7 +11,6 @@ from collections import OrderedDict
 from datetime import datetime
 from decimal import Decimal
 from systematic.shell import ShellCommandParser
-from systematic.stats.hardware.dmi import DMI
 
 if sys.platform[:5] == 'linux':
     SYSCTL_SEPARATOR = '='
@@ -20,20 +19,20 @@ else:
 
 RE_UPTIME_PATTERNS = (
     re.compile(
-        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) user,' +
-        '\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+        r'^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) user,' +
+        r'\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
     ),
     re.compile(
-        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) users,' +
-        '\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+        r'^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*),\s+(?P<users>\d+) users,' +
+        r'\s+load average: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
     ),
     re.compile(
-        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
-        ' load averages: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
+        r'^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
+        r' load averages: (?P<load_avg_1>[\d.]+), (?P<load_avg_5>[\d.]+), (?P<load_avg_15>[\d.]+)$'
     ),
     re.compile(
-        '^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
-        'load averages: (?P<load_avg_1>[\d.]+) (?P<load_avg_5>[\d.]+) (?P<load_avg_15>[\d.]+)$'
+        r'^\s*(?P<time>[^\s]+)\s+up (?P<uptime>.*), (?P<users>\d+) users,' +
+        r'load averages: (?P<load_avg_1>[\d.]+) (?P<load_avg_5>[\d.]+) (?P<load_avg_15>[\d.]+)$'
     ),
 )
 
@@ -61,7 +60,7 @@ class SysCtl(object):
         self.value = value
 
     def __repr__(self):
-        return '{0}'.format(self.value)
+        return '{}'.format(self.value)
 
 
 class SysCtlParser(dict, ShellCommandParser):
@@ -78,7 +77,7 @@ class SysCtlParser(dict, ShellCommandParser):
         """Get current value
 
         """
-        stdout, stderr = self.execute(('sysctl', key))
+        stdout, stderr = self.execute('sysctl', key)
 
         sysctl = None
         for line in stdout.splitlines():
@@ -105,12 +104,12 @@ class SystemInformationParser(ShellCommandParser):
 
     @property
     def kernel(self):
-        stdout, stderr = self.execute('uname -r')
+        stdout, stderr = self.execute('uname', '-r')
         return stdout.splitlines()[0]
 
     @property
     def hostname(self):
-        stdout, stderr = self.execute('uname -n')
+        stdout, stderr = self.execute('uname', '-n')
         return stdout.strip()
 
     @property
@@ -131,16 +130,18 @@ class SystemInformationParser(ShellCommandParser):
 
         Return OS system type as reported by uname -s
         """
-        stdout, stderr = self.execute('uname -s')
+        stdout, stderr = self.execute('uname', '-s')
         return stdout.splitlines()[0]
 
-    def parse_dmi(self):
-        """Parse dmi data
-
-        Get essential data from dmidecode
+    @property
+    def release(self):
         """
-        dmi = DMI()
-        dmi.update()
+        Return OS system release
+
+        Return OS system type as reported by uname -r
+        """
+        stdout, stderr = self.execute('uname', '-r')
+        return stdout.splitlines()[0]
 
     def update(self):
         """Parse common details

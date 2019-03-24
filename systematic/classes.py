@@ -60,7 +60,7 @@ class FileSystemFlags(dict):
     """
     Dictionary wrapper to represent mount point mount flags
     """
-    def __init__(self, flags=[]):
+    def __init__(self, flags=None):
         self.log = Logger('filesystems').default_stream
 
         if isinstance(flags, list):
@@ -100,13 +100,13 @@ class MountPoint(SortableContainer):
     """
     compare_fields = ('mountpoint', 'device')
 
-    def __init__(self, mountpoints, device, mountpoint, filesystem, flags={}):
+    def __init__(self, mountpoints, device, mountpoint, filesystem, flags=None):
         self.log = Logger('filesystems').default_stream
         self.mountpoints = mountpoints
         self.device = device
         self.mountpoint = mountpoint
         self.filesystem = filesystem
-        self.flags = FileSystemFlags(flags=flags)
+        self.flags = FileSystemFlags(flags=flags if flags is not None else {})
         self.usage = {}
 
     def __repr__(self):

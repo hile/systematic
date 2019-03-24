@@ -191,7 +191,7 @@ class Script(object):
             setproctitle('{0} {1}'.format(self.name, ' '.join(sys.argv[1:])))
 
         if sys.version_info.major < 3:
-            reload(sys)
+            reload(sys)  # noqa
             sys.setdefaultencoding('utf-8')
 
         if name is None:
@@ -419,12 +419,9 @@ class ScriptCommand(argparse.ArgumentParser):
         self.script = None
         self.name = name if name is not None \
             else getattr(self, 'name', None)
-        self.short_description = short_description if short_description is not None \
-            else getattr(self, 'short_description', '', None)
-        self.description = short_description if description is not None \
-            else getattr(self, 'description', '', None)
-        self.epilog = epilog if epilog is not None \
-            else getattr(self, 'epilog', '', None)
+        self.short_description = short_description if short_description else getattr(self, 'short_description', '')
+        self.description = short_description if description else getattr(self, 'description', '')
+        self.epilog = epilog if epilog else getattr(self, 'epilog', '')
 
     @property
     def log(self):
@@ -447,6 +444,9 @@ class ScriptCommand(argparse.ArgumentParser):
 
     def message(self, message):
         return self.script.message(message)
+
+    def parse_args(self, args):
+        return args
 
     def run(self, args):
         """Run subcommands
@@ -477,7 +477,7 @@ class ShellCommandParser(object):
     def __init__(self):
         self.__command_cache__ = CommandPathCache()
 
-    def execute(self, args):
+    def execute(self, *args):
         """Run shell command
 
         Run a shell command with subprocess

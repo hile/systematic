@@ -12,7 +12,7 @@ import argparse
 from subprocess import Popen, PIPE
 
 LOGGING_FORMAT = '%(asctime)s %(name)s %(message)s'
-LOGGING_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+LOGGING_TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 logger = logging.getLogger(__file__)
 
@@ -42,10 +42,11 @@ class InitScript(object):
     InitScript(__file__, daemon, pidfile).run()
 
     """
-    def __init__(self, script, daemon, pidfile, daemon_args=[], valid_commands=('start', 'stop', 'restart', 'status')):
+    def __init__(self, script, daemon, pidfile, daemon_args=None,
+                 valid_commands=('start', 'stop', 'restart', 'status')):
         self.name = os.path.basename(os.path.realpath(script))
         self.daemon = daemon
-        self.daemon_args = daemon_args
+        self.daemon_args = daemon_args if daemon_args is not None else []
         self.pidfile = pidfile
 
         self.parser = argparse.ArgumentParser(self.name)

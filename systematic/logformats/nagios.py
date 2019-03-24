@@ -8,8 +8,8 @@ from datetime import datetime
 from systematic.log import LogEntry, LogFile, LogFileError
 
 RE_ICINGA_LOG = [
-    re.compile('^\[(?P<epoch>\d+)\] (?P<category>[^:]+): (?P<message>.*)$'),
-    re.compile('^\[(?P<epoch>\d+)\] (?P<message>.*)$'),
+    re.compile(r'^\[(?P<epoch>\d+)\] (?P<category>[^:]+): (?P<message>.*)$'),
+    re.compile(r'^\[(?P<epoch>\d+)\] (?P<message>.*)$'),
 ]
 
 

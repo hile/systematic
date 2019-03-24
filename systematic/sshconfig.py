@@ -24,7 +24,7 @@ SSH_FILE_PERMS = '0600'
 
 # Lines for public keys
 RE_PUBLIC_KEY_PATTERNS = (
-    re.compile('^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$'),
+    re.compile(r'^(?P<bits>\d+)\s+(?P<fingerprint>[^\s]+)\s+(?P<path>.*)\s+\((?P<algorithm>[^\s]+)\)$'),
 )
 
 
@@ -62,7 +62,7 @@ class SSHKeyFile(dict):
         self.autoload = False
         self.update({'bits': None, 'fingerprint': None, 'path': None, 'algorithm': None})
 
-        public_key = '{0}.pub'.format(self.path)
+        public_key = '{}.pub'.format(self.path)
         if not os.path.isfile(public_key):
             self.available = False
             return
@@ -73,11 +73,11 @@ class SSHKeyFile(dict):
         line = stdout.split('\n')[0].rstrip()
 
         if p.returncode != 0:
-            raise SSHKeyError('ERROR parsing public key: {0}'.format(public_key))
+            raise SSHKeyError('ERROR parsing public key: {}'.format(public_key))
 
         data = parse_public_key_line_pattern(line)
         if not data:
-            raise SSHKeyError('Unsupported public key output: {0}'.format(line))
+            raise SSHKeyError('Unsupported public key output: {}'.format(line))
 
         for k, v in data.items():
             if k == 'path':
@@ -85,7 +85,7 @@ class SSHKeyFile(dict):
             self[k] = v
 
     def __repr__(self):
-        return 'SSH key: {0}'.format(self.path)
+        return 'SSH key: {}'.format(self.path)
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -216,7 +216,7 @@ class UserSSHKeys(dict):
         ~/.ssh directory to process.
         """
         if not os.path.isfile(path):
-            raise SSHKeyError('No such file: {0}'.format(path))
+            raise SSHKeyError('No such file: {}'.format(path))
 
         try:
             for l in [l.rstrip() for l in open(path, 'r').readlines()]:
@@ -228,9 +228,9 @@ class UserSSHKeys(dict):
                 self[sshkey.path].autoload = True
 
         except IOError as e:
-            raise SSHKeyError('Error loading {0}: {1}'.format(path, e))
+            raise SSHKeyError('Error loading {}: {}'.format(path, e))
         except OSError as e:
-            raise SSHKeyError('Error loading {0}: {1}'.format(path, e))
+            raise SSHKeyError('Error loading {}: {}'.format(path, e))
 
     @property
     def loaded_keys(self):
@@ -255,7 +255,7 @@ class UserSSHKeys(dict):
         for line in [line.rstrip() for line in stdout.split('\n')[:-1]]:
             data = parse_public_key_line_pattern(line)
             if not data:
-                raise SSHKeyError('Error parsing agent key list line {0}'.format(line))
+                raise SSHKeyError('Error parsing agent key list line {}'.format(line))
             keys[data['fingerprint']] = data
 
         return keys
@@ -296,17 +296,17 @@ class UserSSHKeys(dict):
         fperm = int(file_permissions, 8)
 
         if not os.path.isdir(ssh_dir):
-            self.log.debug('No such directory: {0}'.format(ssh_dir))
+            self.log.debug('No such directory: {}'.format(ssh_dir))
             return
 
-        for (root, dirs, files) in os.walk(ssh_dir):
+        for (root, _dirs, files) in os.walk(ssh_dir):
             if stat.S_IMODE(os.stat(root).st_mode) != dperm:
-                self.log.debug('Fixing permissions for directory {0}'.format(root))
+                self.log.debug('Fixing permissions for directory {}'.format(root))
                 os.chmod(root, dperm)
 
             for f in [os.path.join(root, f) for f in files]:
                 if stat.S_IMODE(os.stat(f).st_mode) != fperm:
-                    self.log.debug('Fixing permissions for file {0}'.format(f))
+                    self.log.debug('Fixing permissions for file {}'.format(f))
                     os.chmod(f, fperm)
 
     def load_keys(self, keys):
@@ -358,7 +358,7 @@ class OpenSSHPublicKey(dict):
             parts = parts[1:]
 
             if not parts:
-                raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
+                raise SSHKeyError('error parsing openssh public key from {}'.format(line))
 
             if parts[0] in ('ssh-dsa', 'ssh-rsa') and len(parts) == 3:
                 self['keyformat'] = 2
@@ -374,7 +374,7 @@ class OpenSSHPublicKey(dict):
                 self['comment'] = parts[3]
 
         if not self.keys():
-            raise SSHKeyError('error parsing openssh public key from {0}'.format(line))
+            raise SSHKeyError('error parsing openssh public key from {}'.format(line))
 
     def __eq__(self, other):
         for attr in ('keyformat', 'keytype' 'bits', 'exponent', 'modulus', 'key_base64'):
@@ -399,18 +399,26 @@ class OpenSSHPublicKey(dict):
         try:
             fd, name = tempfile.mkstemp(prefix='sshkey-')
             with open(name, 'w') as fd:
-                fd.write('{0}'.format(self.line))
+                fd.write('{}'.format(self.line))
             if fingerprint_hash:
                 p = Popen(('ssh-keygen', '-E', fingerprint_hash, '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
             else:
                 p = Popen(('ssh-keygen', '-lf', name), stdin=PIPE, stdout=PIPE, stderr=PIPE)
-            stdout, stderr = p.communicate()
+            stdout, stderr = [str(v, 'utf-8') for v in p.communicate()]
             if p.returncode != 0:
-                raise SSHKeyError('Error running ssh-keygen: returns {0}'.format(p.returncode))
+                raise SSHKeyError('Error running ssh-keygen: returns {}'.format(p.returncode))
             os.unlink(name)
             return stdout.rstrip().split()[1].split(':', 1)[1]
         except Exception as e:
-            raise SSHKeyError('Error getting fingerprint for {0}: {1}'.format(self.line, e))
+            raise SSHKeyError('Error getting fingerprint for {}: {}'.format(self.line, e))
+
+    def as_dict(self):
+        """
+        Return SSH key details as dictionary
+        """
+        data = self.copy()
+        data['fingerprint'] = self.fingerprint()
+        return data
 
 
 class KnownHostsHost(object):
@@ -439,7 +447,7 @@ class KnownHostsHost(object):
                     if part < 0:
                         raise ValueError
                 return True
-            except Exception as e:
+            except Exception:
                 return False
 
         def is_ipv4_address(value):
@@ -478,7 +486,7 @@ class KnownHostsHost(object):
             return 0, value, 'hostname'
 
     def __repr__(self):
-        return '{0} {1}'.format(self.type, self.host)
+        return '{} {}'.format(self.type, self.host)
 
     def __str__(self):
         return self.host
@@ -546,14 +554,14 @@ class KnownHostsEntry(object):
         self.keytype, self.fingerprint = line.split(None, 1)
 
     def __str__(self):
-        return '{0} {1} {2}'.format(
+        return '{} {} {}'.format(
             self.hosts,
             self.keytype,
             self.fingerprint
         )
 
     def __repr__(self):
-        return '{0} {1}'.format(self.keytype, self.fingerprint)
+        return '{} {}'.format(self.keytype, self.fingerprint)
 
     def __eq__(self, other):
         for attr in ('keytype', 'fingerprint'):
@@ -583,7 +591,7 @@ class KnownHostsEntry(object):
 
     @property
     def hosts(self):
-        return ','.join('{0}'.format(host) for host in sorted(self.__hosts__))
+        return ','.join('{}'.format(host) for host in sorted(self.__hosts__))
 
     def add_hosts(self, hosts):
         """Add hosts to key
@@ -611,7 +619,7 @@ class KnownHosts(list):
         del self[0:len(self)]
 
         if not os.path.isfile(self.path):
-            self.log.debug('No such file: {0}'.format(self.path))
+            self.log.debug('No such file: {}'.format(self.path))
             return
 
         for line in [l.rstrip() for l in open(self.path, 'r').readlines()]:
@@ -642,9 +650,9 @@ class KnownHosts(list):
         try:
             with open(path, 'w') as fd:
                 for entry in self:
-                    fd.write('{0}\n'.format(entry))
+                    fd.write('{}\n'.format(entry))
         except Exception as e:
-            raise SSHKeyError('Error writing {0}: {1}'.format(path, e))
+            raise SSHKeyError('Error writing {}: {}'.format(path, e))
 
     def find_host_key(self, value):
         """Find key for hostname
@@ -685,7 +693,7 @@ class AuthorizedKeys(list):
         del self[0:len(self)]
 
         if not os.path.isfile(self.path):
-            self.log.debug('No such file: {0}'.format(self.path))
+            self.log.debug('No such file: {}'.format(self.path))
             return
 
         for line in [l.rstrip() for l in open(self.path, 'r').readlines()]:
@@ -707,7 +715,7 @@ class SSHConfigHostPattern(dict):
         self.patterns = patterns.split(' ')
 
     def __repr__(self):
-        return 'Host {0}'.format(' '.join(self.patterns))
+        return 'Host {}'.format(' '.join(self.patterns))
 
     def parse(self, line):
         try:
@@ -721,7 +729,7 @@ class SSHConfigHostPattern(dict):
             self[key] = value
 
         except ValueError:
-            raise ValueError('Invalid line: {0}'.format(line))
+            raise ValueError('Invalid line: {}'.format(line))
 
     def __getattr__(self, attr):
         if attr in self.keys():
@@ -802,7 +810,7 @@ class SSHConfig(dict):
     def reload(self):
         self.clear()
         if not os.path.isfile(self.path):
-            self.log.debug('No such file: {0}'.format(self.path))
+            self.log.debug('No such file: {}'.format(self.path))
             return
 
         with open(self.path, 'r') as fd:

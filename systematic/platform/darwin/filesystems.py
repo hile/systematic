@@ -55,7 +55,7 @@ class DarwinMountPoint(MountPoint):
         if line is None:
             parser = ShellCommandParser()
             try:
-                stdout, stderr = parser.execute(('df', '-k', self.mountpoint))
+                stdout, stderr = parser.execute('df', '-k', self.mountpoint)
             except ShellCommandParserError as e:
                 raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
 
@@ -201,7 +201,7 @@ def load_mountpoints(self):
         mountpoints.append(entry)
 
     try:
-        stdout, stderr = parser.execute('df -k')
+        stdout, stderr = parser.execute('df', '-k')
     except ShellCommandParserError as e:
         raise FileSystemError('Error running mount: {0}'.format(e))
 

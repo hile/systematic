@@ -133,7 +133,7 @@ class SystemInformation(SystemInformationParser):
                         self.os_details[key] = value
                     except:  # noqa
                         pass
-        except Exception as e:
+        except Exception:
             pass
 
     def parse_meminfo(self):
