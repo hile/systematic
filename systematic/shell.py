@@ -368,6 +368,19 @@ class Script(object):
         args = self.__process_args__(args)
         return args, other_args
 
+    def run(self):
+        """
+        Run script, parsing arguments and running subcommands
+
+        This expects subcommands have been registered and exists if not
+
+        This simply runs self.parse_args() not expecting to do anything with
+        returned values since the subcommand is run.
+        """
+        if self.subcommand_parser is None:
+            self.exit(1, 'Command defines no subcommands')
+        self.parse_args()
+
     def execute(self, args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, dryrun=False):
         """
         Default wrapper to execute given interactive shell command
