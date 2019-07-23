@@ -38,9 +38,7 @@ class DarwinMountPoint(MountPoint):
         except ValueError:
             self.hfspath = None
 
-        self.diskinfo = {}
-        if os.access(self.device, os.R_OK):
-            self.update_diskinfo()
+        self.update_diskinfo()
 
     @property
     def is_virtual(self):
@@ -147,9 +145,9 @@ class DarwinMountPoint(MountPoint):
 
     def detach(self):
         """
-        Detach mountpoint with hdiutil
+        Detach mountpoint with diskutil unmount
         """
-        cmd = ['hdiutil', 'detach', self.path]
+        cmd = ['diskutil', 'unmount', self.path]
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
         if p.returncode != 0:

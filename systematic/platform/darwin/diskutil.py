@@ -50,9 +50,6 @@ class DiskInfo(dict):
     """
 
     def __init__(self, device):
-        if not os.access(device, os.R_OK):
-            raise DiskUtilError('Device not readable: {0}'.format(device))
-
         cmd = ['diskutil', 'info', '-plist', device]
         p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
