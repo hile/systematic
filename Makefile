@@ -21,8 +21,9 @@ install: build
 	python setup.py install
 endif
 
-register:
-	python setup.py register sdist upload
+upload: clean
+	python setup.py sdist bdist_wheel
+	twine upload dist/*
 
 test:
 	python setup.py test
