@@ -379,7 +379,11 @@ class Script(object):
         """
         if self.subcommand_parser is None:
             self.exit(1, 'Command defines no subcommands')
-        self.parse_args()
+
+        args = self.parse_args()
+        if args.command is None:
+            self.exit(1, 'No command selected')
+
 
     def execute(self, args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, dryrun=False):
         """
