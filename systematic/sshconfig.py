@@ -324,7 +324,7 @@ class UserSSHKeys(dict):
                 paths.append(key)
 
         if paths:
-            self.log.debug('Loading {0:d} keys to SSH agent'.format(len(paths)))
+            self.log.debug('Loading {:d} keys to SSH agent'.format(len(paths)))
             cmd = ['ssh-add'] + paths
             p = Popen(cmd, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr)
             p.wait()

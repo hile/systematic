@@ -56,7 +56,7 @@ class CPUInfo(dict):
         self.index = index
 
     def __repr__(self):
-        return 'CPU {0}'.format(self.index)
+        return 'CPU {}'.format(self.index)
 
     def __setitem__(self, key, value):
         if key in CPUINFO_BOOLEAN_FIELDS:

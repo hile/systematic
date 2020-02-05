@@ -2,10 +2,6 @@
 Wrapper for OS/X diskutil command for python
 """
 
-from __future__ import unicode_literals
-
-
-import os
 import plistlib
 
 from builtins import str
@@ -56,7 +52,7 @@ class DiskInfo(dict):
         try:
             self.update(plistlib.load(IOWrapper(stdout)))
         except ExpatError:
-            raise DiskUtilError('Error parsing plist: {0}'.format(stdout))
+            raise DiskUtilError('Error parsing plist: {}'.format(stdout))
 
         if 'TotalSize' in self and 'FreeSpace' in self:
             self['UsedSpace'] = self.TotalSize - self.FreeSpace

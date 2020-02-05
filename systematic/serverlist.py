@@ -6,10 +6,10 @@ Designed for usage over ssh, could work with other protocols I guess at
 least for interactive sessions (start VNC etc).
 """
 
+import configparser
 import sys
 import os
 from subprocess import Popen, PIPE
-from configobj import ConfigObj
 
 from systematic.log import Logger
 
@@ -34,9 +34,9 @@ class Server(object):
 
     def __repr__(self):
         if self.description is not None:
-            return '{0} ({1})'.format(self.name, self.description)
+            return '{} ({})'.format(self.name, self.description)
         else:
-            return '{0}'.format(self.name)
+            return '{}'.format(self.name)
 
     def __eq__(self, other):
         if isinstance(other, str):
@@ -111,10 +111,10 @@ class Server(object):
         Wrapper to call correct update commands for this host
         """
         if not self.osgroup.update_commands:
-            self.log.debug('No update commands for OS {0}'.format(self.osgroup.name))
+            self.log.debug('No update commands for OS {}'.format(self.osgroup.name))
             return
 
-        self.log.debug("Running: {0} '{1}'".format(
+        self.log.debug("Running: {} '{}'".format(
             ' '.join(self.connect_command),
             self.osgroup.command_separator.join(self.osgroup.update_commands)
         ))
@@ -170,7 +170,7 @@ class OperatingSystemGroup(object):
         self.modified = False
 
     def __repr__(self):
-        return '{0}: {1} ({2:d} servers)'.format(self.name, self.description, len(self.servers))
+        return '{}: {} ({:d} servers)'.format(self.name, self.description, len(self.servers))
 
     @property
     def command_separator(self):
@@ -214,7 +214,7 @@ class OperatingSystemGroup(object):
 
     def add_server(self, name):
         if name in [s.name for s in self.servers]:
-            self.log.debug('Error adding: server already in group: {0}'.format(name))
+            self.log.debug('Error adding: server already in group: {}'.format(name))
             return
 
         self.servers.append(Server(self, name))
@@ -226,7 +226,7 @@ class OperatingSystemGroup(object):
             self.servers.remove(server)
             self.modified = True
         except IndexError:
-            self.log.debug('Error removing: server not in group: {0}'.format(name))
+            self.log.debug('Error removing: server not in group: {}'.format(name))
             return
 
 
@@ -252,16 +252,18 @@ class ServerConfigFile(object):
         self.operating_systems = []
         self.servers = []
 
+        config = {}
+        parser = configparser.ConfigParser()
         try:
-            config = ConfigObj(self.path)
+            config = parser.read(self.path)
         except ValueError as e:
-            raise ValueError('Error parsing {0}: {1}'.format(self.path, e))
+            raise ValueError('Error parsing {}: {}'.format(self.path, e))
 
         osgroup = None
         for key, section in config.items():
             if 'commands' in section:
                 if key in self.servers:
-                    raise ValueError('Duplicate OS group name: {0}'.format(key))
+                    raise ValueError('Duplicate OS group name: {}'.format(key))
                 osgroup = OperatingSystemGroup(self, key, **section)
                 self.operating_systems.append(osgroup)
                 self.servers.extend(osgroup.servers)
@@ -273,8 +275,11 @@ class ServerConfigFile(object):
         return
 
     def save(self):
-        config = ConfigObj()
+        """
+        Save server list
+        """
 
+        config = configparser.ConfigParser()
         for osgroup in self.operating_systems:
             section = {
                 'commands': osgroup.update_commands,
@@ -299,7 +304,7 @@ class ServerConfigFile(object):
                         'description': server.description
                     }
 
-        self.log.debug('Saving configuration to {0}'.format(self.path))
+        self.log.debug('Saving configuration to {}'.format(self.path))
         config.write(outfile=open(self.path, 'w'))
 
     def match_os(self, name):
@@ -307,4 +312,4 @@ class ServerConfigFile(object):
             if operating_system.name == name:
                 return operating_system
 
-        raise ValueError('Unknown OS: {0}'.format(name))
+        raise ValueError('Unknown OS: {}'.format(name))

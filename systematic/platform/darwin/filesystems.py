@@ -2,8 +2,6 @@
 Abstraction of filesystem mount points for OS X
 """
 
-from __future__ import unicode_literals
-
 import os
 import re
 
@@ -55,7 +53,7 @@ class DarwinMountPoint(MountPoint):
             try:
                 stdout, stderr = parser.execute('df', '-k', self.mountpoint)
             except ShellCommandParserError as e:
-                raise FileSystemError('Error checking filesystem usage: {0}'.format(e))
+                raise FileSystemError('Error checking filesystem usage: {}'.format(e))
 
             header, usage = stdout.split('\n', 1)
 
@@ -64,7 +62,7 @@ class DarwinMountPoint(MountPoint):
 
         m = RE_DF.match(usage)
         if not m:
-            raise FileSystemError('Error matching df output line: {0}'.format(usage))
+            raise FileSystemError('Error matching df output line: {}'.format(usage))
 
         self.usage = {
             'mountpoint': self.mountpoint,
@@ -170,7 +168,7 @@ def load_mountpoints(self):
     try:
         stdout, stderr = parser.execute('mount')
     except ShellCommandParserError as e:
-        raise FileSystemError('Error running mount: {0}'.format(e))
+        raise FileSystemError('Error running mount: {}'.format(e))
 
     for l in [l for l in stdout.split('\n') if l.strip() != '']:
         if l[:4] == 'map ':
@@ -201,7 +199,7 @@ def load_mountpoints(self):
     try:
         stdout, stderr = parser.execute('df', '-k')
     except ShellCommandParserError as e:
-        raise FileSystemError('Error running mount: {0}'.format(e))
+        raise FileSystemError('Error running mount: {}'.format(e))
 
     for mountpoint in mountpoints:
         for line in stdout.splitlines():

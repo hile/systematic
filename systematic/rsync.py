@@ -50,7 +50,7 @@ class RsyncCommand(object):
         cmd = CommandPathCache().which('rsync')
         if cmd is None:
             raise RsyncError('No such command: rsync')
-        self.command = [cmd] + flags + [self.output_format, '{0}'.format(src), '{0}'.format(dst)]
+        self.command = [cmd] + flags + [self.output_format, str(src), str(dst)]
 
     def __str__(self):
         return ' '.join(self.command)
@@ -63,7 +63,7 @@ class RsyncCommand(object):
             verbose = True
         try:
             p = Popen(self.command, stdin=PIPE, stdout=PIPE, stderr=PIPE)
-            self.log.debug('Running: {0}'.format(self))
+            self.log.debug('Running: {}'.format(self))
 
             rval = None
             while rval is None:
@@ -72,13 +72,13 @@ class RsyncCommand(object):
                         line = p.stdout.readline()
                         if line == '':
                             break
-                        sys.stdout.write('{0}\n'.format(line.rstrip()))
+                        sys.stdout.write('{}\n'.format(line.rstrip()))
                 time.sleep(0.2)
                 rval = p.poll()
 
-            self.log.debug('Return code: {0}'.format(rval))
+            self.log.debug('Return code: {}'.format(rval))
             if rval != 0:
-                raise RsyncError('Error running command {0}: {1}'.format(self, p.stderr.read()))
+                raise RsyncError('Error running command {}: {}'.format(self, p.stderr.read()))
 
         except KeyboardInterrupt:
             self.log.debug('Rsync interrupted')

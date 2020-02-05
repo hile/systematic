@@ -21,7 +21,7 @@ Example usage against this default config on localhost:
 
 from systematic.stats.services.nginx import NginxStats
 n=NginxStats('localhost')
-print('{0:d} {1:d} {2:d}'.format(n.reading, n.writing, n.total_requests))
+print('{:d} {:d} {:d}'.format(n.reading, n.writing, n.total_requests))
 print(n.to_json())
 
 """
@@ -65,7 +65,7 @@ class NginxStats(StatsParser):
         self.path = path
         self.schema = schema
         if not path.startswith('/'):
-            path = '/{0}'.format(path)
+            path = '/{}'.format(path)
         self.port = port
         self.minimum_interval = minimum_interval
 
@@ -74,7 +74,7 @@ class NginxStats(StatsParser):
 
     @property
     def url(self):
-        return '{0}://{1}:{2}{3}'.format(self.schema, self.host, self.port, self.path)
+        return '{}://{}:{}{}'.format(self.schema, self.host, self.port, self.path)
 
     @property
     def data(self):
@@ -93,13 +93,13 @@ class NginxStats(StatsParser):
         try:
             res = requests.get(self.url)
             if res.status_code != 200:
-                raise StatsParserError('Request returns status code {0}'.format(res.status_code))
+                raise StatsParserError('Request returns status code {}'.format(res.status_code))
             self.__response__ = res.content
             self.update_timestamp()
         except Exception as e:
             self.__updated__ = None
             self.__response__ = None
-            raise StatsParserError('Error getting status {0}: {1}'.format(self.url, e))
+            raise StatsParserError('Error getting status {}: {}'.format(self.url, e))
 
         return self.__response__
 
@@ -170,10 +170,10 @@ class NginxStats(StatsParser):
                 try:
                     return int(m.groupdict()[name])
                 except KeyError:
-                    raise StatsParserError('Unknown stat counter {0}'.format(name))
+                    raise StatsParserError('Unknown stat counter {}'.format(name))
                 except ValueError:
-                    raise StatsParserError('Invalid data for stat counter {0}'.format(name))
-        raise StatsParserError('Error checking stat counter {0}'.format(name))
+                    raise StatsParserError('Invalid data for stat counter {}'.format(name))
+        raise StatsParserError('Error checking stat counter {}'.format(name))
 
     def total_counter(self, name):
         """Return total summary stat counter
@@ -186,10 +186,10 @@ class NginxStats(StatsParser):
                 try:
                     return int(m.groupdict()[name])
                 except KeyError:
-                    raise StatsParserError('Unknown total counter {0}'.format(name))
+                    raise StatsParserError('Unknown total counter {}'.format(name))
                 except ValueError:
-                    raise StatsParserError('Invalid data for total counter {0}'.format(name))
-        raise StatsParserError('Error checking total counter {0}'.format(name))
+                    raise StatsParserError('Invalid data for total counter {}'.format(name))
+        raise StatsParserError('Error checking total counter {}'.format(name))
 
     def update(self):
         """Update data

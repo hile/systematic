@@ -36,7 +36,7 @@ class MountPoints(list):
             self.loader = load_mountpoints
 
         else:
-            raise FilesystemError('MountPoints loader for OS not available: {0}'.format(sys.platform))
+            raise FilesystemError('MountPoints loader for OS not available: {}'.format(sys.platform))
 
         self.update()
 

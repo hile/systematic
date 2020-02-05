@@ -203,7 +203,7 @@ class ZPool(ShellCommandParser):
         self.altroot = altroot
 
     def __repr__(self):
-        return '{0} {1:8} {2}/{3} GB'.format(
+        return '{} {:8} {}/{} GB'.format(
             self.name,
             self.health,
             self.used_gb,
@@ -215,21 +215,21 @@ class ZPool(ShellCommandParser):
         """Used size in GB
 
         """
-        return u'{0:d}'.format(int(self.used / 1024 / 1024 / 1024))
+        return u'{:d}'.format(int(self.used / 1024 / 1024 / 1024))
 
     @property
     def available_gb(self):
         """Available size in GB
 
         """
-        return u'{0:d}'.format(int(self.available / 1024 / 1024 / 1024))
+        return u'{:d}'.format(int(self.available / 1024 / 1024 / 1024))
 
     @property
     def size_gb(self):
         """Total size in GB
 
         """
-        return u'{0:d}'.format(int(self.size / 1024 / 1024 / 1024))
+        return u'{:d}'.format(int(self.size / 1024 / 1024 / 1024))
 
     @property
     def features(self):
@@ -250,20 +250,20 @@ class ZPool(ShellCommandParser):
 
         """
         if name not in ZPOOL_PROPERTIES:
-            raise FilesystemError('Unknown property: {0}'.format(name))
+            raise FilesystemError('Unknown property: {}'.format(name))
 
         try:
             stdout, stderr = self.execute(('zpool', 'get', '-H', name, self.name))
         except ShellCommandParserError as e:
-            raise FilesystemError('zpool {0}: error getting property {1}: {2}'.format(self.name, name, e))
+            raise FilesystemError('zpool {}: error getting property {}: {}'.format(self.name, name, e))
 
         try:
             fields = stdout.splitlines()[0].split('\t')
         except Exception as e:
-            raise FilesystemError('Error parsing {0}: {1}'.format(stdout, e))
+            raise FilesystemError('Error parsing {}: {}'.format(stdout, e))
 
         if fields[0] != self.name or fields[1] != name:
-            raise FilesystemError('unexpected output. {0}'.format(stdout))
+            raise FilesystemError('unexpected output. {}'.format(stdout))
 
         value = fields[2]
         if value == '-':
@@ -275,21 +275,21 @@ class ZPool(ShellCommandParser):
 
         """
         if feature not in ZPOOL_FEATURES:
-            raise FilesystemError('Unknown feature: {0}'.format(feature))
+            raise FilesystemError('Unknown feature: {}'.format(feature))
 
-        name = 'feature@{0}'.format(feature)
+        name = 'feature@{}'.format(feature)
         try:
             stdout, stderr = self.execute(('zpool', 'get', '-H', name, self.name))
         except ShellCommandParserError as e:
-            raise FilesystemError('zpool {0}: error getting feature {1}: {2}'.format(self.name, feature, e))
+            raise FilesystemError('zpool {}: error getting feature {}: {}'.format(self.name, feature, e))
 
         try:
             fields = stdout.splitlines()[0].split('\t')
         except Exception as e:
-            raise FilesystemError('Error parsing {0}: {1}'.format(stdout, e))
+            raise FilesystemError('Error parsing {}: {}'.format(stdout, e))
 
         if fields[0] != self.name or fields[1] != name:
-            raise FilesystemError('unexpected output. {0}'.format(stdout))
+            raise FilesystemError('unexpected output. {}'.format(stdout))
 
         return fields[2]
 
@@ -334,7 +334,7 @@ class ZPoolClient(ShellCommandParser):
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
-            raise FilesystemError('Error listing zfs pools: {0}'.format(e))
+            raise FilesystemError('Error listing zfs pools: {}'.format(e))
 
         for line in stdout.splitlines():
             self.zpools.append(ZPool(**dict(

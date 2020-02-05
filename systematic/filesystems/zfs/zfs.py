@@ -139,7 +139,7 @@ class ZFS(ShellCommandParser):
             self.mountpoint = mountpoint is not None and mountpoint or None
 
     def __repr__(self):
-        return '{0} {1} {2} GB'.format(
+        return '{} {} {} GB'.format(
             self.fstype,
             self.name,
             self.used_gb,
@@ -158,11 +158,11 @@ class ZFS(ShellCommandParser):
         """Used size in GB
 
         """
-        return u'{0:d}'.format(int(self.used / 1024 / 1024 / 1024))
+        return u'{:d}'.format(int(self.used / 1024 / 1024 / 1024))
 
     @property
     def available_gb(self):
-        return u'{0:d}'.format(int(self.available / 1024 / 1024 / 1024))
+        return u'{:d}'.format(int(self.available / 1024 / 1024 / 1024))
 
     @property
     def created(self):
@@ -197,20 +197,20 @@ class ZFS(ShellCommandParser):
 
         """
         if name not in ZFS_PROPERTIES:
-            raise FilesystemError('Unknown property: {0}'.format(name))
+            raise FilesystemError('Unknown property: {}'.format(name))
 
         try:
             stdout, stderr = self.execute(('zfs', 'get', '-Hp', name, self.name))
         except ShellCommandParserError as e:
-            raise FilesystemError('zfs {0}: error getting property {1}: {2}'.format(self.name, name, e))
+            raise FilesystemError('zfs {}: error getting property {}: {}'.format(self.name, name, e))
 
         try:
             fields = stdout.splitlines()[0].split('\t')
         except Exception as e:
-            raise FilesystemError('Error parsing {0}: {1}'.format(stdout, e))
+            raise FilesystemError('Error parsing {}: {}'.format(stdout, e))
 
         if fields[0] != self.name or fields[1] != name:
-            raise FilesystemError('unexpected output. {0}'.format(stdout))
+            raise FilesystemError('unexpected output. {}'.format(stdout))
 
         value = fields[2]
         if name in ZFS_INTEGER_PROPERTIES:
@@ -300,7 +300,7 @@ class ZfsClient(ShellCommandParser):
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
-            raise FilesystemError('Error listing zfs volumes: {0}'.format(e))
+            raise FilesystemError('Error listing zfs volumes: {}'.format(e))
 
         for line in stdout.splitlines():
             self.volumes.append(ZFSVolume(
@@ -317,7 +317,7 @@ class ZfsClient(ShellCommandParser):
         try:
             stdout, stderr = self.execute(cmd)
         except ShellCommandParserError as e:
-            raise FilesystemError('Error listing zfs snapshots: {0}'.format(e))
+            raise FilesystemError('Error listing zfs snapshots: {}'.format(e))
 
         for line in stdout.splitlines():
             self.snapshots.append(ZFSSnapshot(

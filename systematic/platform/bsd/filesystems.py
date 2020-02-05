@@ -2,8 +2,6 @@
 Implementation of FreeBSD filesystem mount point parsing
 """
 
-from __future__ import unicode_literals
-
 import re
 
 from builtins import int, str
@@ -47,7 +45,7 @@ class BSDMountPoint(MountPoint):
             try:
                 stdout, stderr = parser.execute(('df', '-k', self.mountpoint))
             except ShellCommandParserError:
-                raise FileSystemError('Error getting usage for {0}'.format(self.mountpoint))
+                raise FileSystemError('Error getting usage for {}'.format(self.mountpoint))
 
             header, usage = stdout.split('\n', 1)
             try:
@@ -78,7 +76,7 @@ def load_mountpoints(self):
     try:
         stdout, stderr = parser.execute('mount')
     except ShellCommandParserError as e:
-        raise FileSystemError('Error running mount: {0}'.format(e))
+        raise FileSystemError('Error running mount: {}'.format(e))
 
     for l in [l for l in stdout.split('\n') if l.strip() != '']:
         if l[:4] == 'map ':
@@ -106,7 +104,7 @@ def load_mountpoints(self):
     try:
         stdout, stderr = parser.execute('df', '-k')
     except ShellCommandParserError as e:
-        raise FileSystemError('Error running mount: {0}'.format(e))
+        raise FileSystemError('Error running mount: {}'.format(e))
 
     for mountpoint in mountpoints:
         for line in stdout.splitlines():

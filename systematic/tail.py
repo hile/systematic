@@ -131,16 +131,16 @@ class TailReader(object):
                             pass
 
                 except IOError as e:
-                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
+                    raise TailReaderError('Error opening {}: {}'.format(self.path, e))
                 except OSError as e:
-                    raise TailReaderError('Error opening {0}: {1}'.format(self.path, e))
+                    raise TailReaderError('Error opening {}: {}'.format(self.path, e))
 
                 try:
                     self.pos = self.fd.tell()
 
                 except IOError as e:
-                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, e))
+                    raise TailReaderError('Error reading {}: {}'.format(self.path, e))
                 except OSError as e:
-                    raise TailReaderError('Error reading {0}: {1}'.format(self.path, e))
+                    raise TailReaderError('Error reading {}: {}'.format(self.path, e))
 
             time.sleep(INTERVAL)

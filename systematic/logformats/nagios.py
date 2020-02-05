@@ -29,13 +29,13 @@ class IcingaLogEntry(LogEntry):
                 break
 
         if self.time is None:
-            raise LogFileError('Error parsing entry {0}'.format(line))
+            raise LogFileError('Error parsing entry {}'.format(line))
 
     def __repr__(self):
         if self.category:
-            return '{0} {1} {2}'.format(self.time, self.category, self.message)
+            return '{} {} {}'.format(self.time, self.category, self.message)
         else:
-            return '{0} {1}'.format(self.time, self.message)
+            return '{} {}'.format(self.time, self.message)
 
 
 class IcingaLog(LogFile):

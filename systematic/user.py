@@ -38,7 +38,7 @@ class User(SortableContainer):
         self.directory = pwent.pw_dir
 
     def __repr__(self):
-        return '{0} {1}'.format(self.__class__, self.username)
+        return '{} {}'.format(self.__class__, self.username)
 
     @property
     def group(self):

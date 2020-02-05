@@ -22,7 +22,7 @@ class StatsParser(ShellCommandParser):
         self.__updated__ = None
 
     def __repr__(self):
-        return '{0} stats'.format(self.parser_name)
+        return '{} stats'.format(self.parser_name)
 
     def execute(self, *args, **kwargs):
         """Wrap execute calls

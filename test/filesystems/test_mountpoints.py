@@ -1,7 +1,6 @@
 """
 Test filesystem mountpoints
 """
-from __future__ import unicode_literals
 
 from builtins import int, str
 

@@ -15,7 +15,7 @@ import re
 
 from systematic.stats import StatsParser, StatsParserError
 
-RE_PCI_DEVICE = re.compile(r'^{0}$'.format(
+RE_PCI_DEVICE = re.compile(r'^{}$'.format(
     r'\s+'.join([
         r'(?P<driver>[^\@]+)@(?P<slot>[^\s]+):',
         r'class=(?P<device_class>[x0-9a-f]+)',
@@ -54,7 +54,7 @@ class PCIDevice(object):
         self.driver = driver
 
     def __repr__(self):
-        return '{0} driver {1}'.format(self.slot, self.driver)
+        return '{} driver {}'.format(self.slot, self.driver)
 
     def to_json(self):
         return {
@@ -101,7 +101,7 @@ class PCIConfStats(StatsParser):
                     value = value.strip("'")
                     device.info[key] = value
                 except ValueError:
-                    raise StatsParserError('Error parsing line {0}'.format(line))
+                    raise StatsParserError('Error parsing line {}'.format(line))
 
         return self.update_timestamp()
 

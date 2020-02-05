@@ -19,7 +19,7 @@ class SystemInformation:
             from systematic.platform.bsd.system import SystemInformation as loader
 
         else:
-            raise NotImplementedError('Syste knformationloader for OS not available: {0}'.format(sys.platform))
+            raise NotImplementedError('System information loader for OS not available: {}'.format(sys.platform))
 
         self.loader = loader()
 

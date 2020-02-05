@@ -78,7 +78,7 @@ class Logger(object):
         name = name is not None and name or self.__class__.__name__
         thread_id = threading.current_thread().ident
         if thread_id is not None:
-            name = '{0:d}-{1}'.format(thread_id, name)
+            name = '{:d}-{}'.format(thread_id, name)
 
         if name not in Logger.__instances:
             Logger.__instances[name] = Logger.LoggerInstance(name, logformat, timeformat)
@@ -98,7 +98,7 @@ class Logger(object):
         def __getattr__(self, attr):
             if attr in self.keys():
                 return self[attr]
-            raise AttributeError('No such LoggerInstance log handler: {0}'.format(attr))
+            raise AttributeError('No such LoggerInstance log handler: {}'.format(attr))
 
         def __get_or_create_logger__(self, name):
             if name not in self.keys():
@@ -138,7 +138,7 @@ class Logger(object):
                 return True
 
             if not isinstance(handler, logging.Handler):
-                raise LoggerError('Not an instance of logging.Handler: {0}'.format(handler))
+                raise LoggerError('Not an instance of logging.Handler: {}'.format(handler))
 
             if not isinstance(handler_list, list):
                 raise LoggerError('BUG handler_list must be a list instance')
@@ -194,7 +194,7 @@ class Logger(object):
             try:
                 host, path = urllib.splithost(url[url.index(':')+1:])
             except IndexError as e:
-                raise LoggerError('Error parsing URL {0}: {1}'.format(url, e))
+                raise LoggerError('Error parsing URL {}: {}'.format(url, e))
 
             handler = logging.handlers.HTTPHandler(host, url, method)
             if not self.__match_handlers__(logger.handlers, handler):
@@ -211,7 +211,7 @@ class Logger(object):
                                   backupCount=DEFAULT_LOG_BACKUPS):
 
             if filename is None:
-                filename = '{0}.log'.format(name)
+                filename = '{}.log'.format(name)
             if logformat is None:
                 logformat = DEFAULT_LOGFILEFORMAT
             if timeformat is None:
@@ -221,7 +221,7 @@ class Logger(object):
                 try:
                     os.makedirs(directory)
                 except OSError:
-                    raise LoggerError('Error creating directory: {0}'.format(directory))
+                    raise LoggerError('Error creating directory: {}'.format(directory))
             logfile = os.path.join(directory, filename)
 
             logger = self.__get_or_create_logger__(name)
@@ -252,7 +252,7 @@ class Logger(object):
                     if value not in SYSLOG_LEVEL_MAP.values():
                         raise ValueError
                 except ValueError:
-                    raise ValueError('Invalid logging level value: {0}'.format(value))
+                    raise ValueError('Invalid logging level value: {}'.format(value))
 
             for logger in self.values():
                 if hasattr(logger, 'setLevel'):
@@ -360,12 +360,12 @@ class LogEntry(object):
         try:
             mon, day, time, line = line.split(None, 3)
         except ValueError:
-            raise LogFileError('Error splitting log line: {0}'.format(self.line))
+            raise LogFileError('Error splitting log line: {}'.format(self.line))
 
         try:
-            self.time = datetime.strptime('{0} {1} {2} {3}'.format(year, mon, day, time), '%Y %b %d %H:%M:%S')
+            self.time = datetime.strptime('{} {} {} {}'.format(year, mon, day, time), '%Y %b %d %H:%M:%S')
         except ValueError:
-            raise LogFileError('Error parsing entry time from line: {0}'.format(self.line))
+            raise LogFileError('Error parsing entry time from line: {}'.format(self.line))
 
         try:
             self.source, self.message = [x.strip() for x in line.split(':', 1)]
@@ -382,15 +382,15 @@ class LogEntry(object):
             self.message = line
 
     def __repr__(self):
-        return '{0} {1}{2}{3}'.format(
+        return '{} {}{}{}'.format(
             self.time.strftime('%Y-%m-%d %H:%M:%S'),
-            self.program is not None and '{0} '.format(self.program) or '',
-            self.pid is not None and '({0}) '.format(self.pid) or '',
+            self.program is not None and '{} '.format(self.program) or '',
+            self.pid is not None and '({}) '.format(self.pid) or '',
             self.message
         )
 
     def append(self, message):
-        self.message = '{0}\n{1}'.format(self.message, message.rstrip())
+        self.message = '{}\n{}'.format(self.message, message.rstrip())
 
     def update_message_fields(self, data):
         self.message_fields.update(data)
@@ -422,19 +422,19 @@ class LogFile(list):
         self.fd = None
 
     def __repr__(self):
-        return '{0} {1} entries'.format(self.path, len(self))
+        return '{} {} entries'.format(self.path, len(self))
 
     def __iter__(self):
         return self
 
     def register_iterator(self, name):
         if name in self.iterators:
-            raise LogFileError('Iterator name already registered: {0}'.format(name))
+            raise LogFileError('Iterator name already registered: {}'.format(name))
         self.iterators[name] = None
 
     def get_iterator(self, name):
         if name not in self.iterators:
-            raise LogFileError('Iterator name not registered: {0}'.format(name))
+            raise LogFileError('Iterator name not registered: {}'.format(name))
 
         if self.iterators[name] is None:
             self.iterators[name] = 0
@@ -443,13 +443,13 @@ class LogFile(list):
 
     def reset_iterator(self, name):
         if name not in self.iterators:
-            raise LogFileError('Iterator name not registered: {0}'.format(name))
+            raise LogFileError('Iterator name not registered: {}'.format(name))
 
         self.iterators[name] = None
 
     def update_iterator(self, name, value=None):
         if name not in self.iterators:
-            raise LogFileError('Iterator name not registered: {0}'.format(name))
+            raise LogFileError('Iterator name not registered: {}'.format(name))
 
         if value is not None:
             self.iterators[name] = value
@@ -467,7 +467,7 @@ class LogFile(list):
 
         """
         if not os.path.isfile(path):
-            raise LogFileError('No such file: {0}'.format(path))
+            raise LogFileError('No such file: {}'.format(path))
 
         try:
             fd = gzip.GzipFile(path)
@@ -493,7 +493,7 @@ class LogFile(list):
         except IOError:
             pass
 
-        raise LogFileError('Error opening logfile {0}'.format(path))
+        raise LogFileError('Error opening logfile {}'.format(path))
 
     def __next__(self):
         """Next iterator
@@ -511,7 +511,7 @@ class LogFile(list):
         Iterates lines from log with self.readline()
         """
         if iterator not in self.iterators:
-            raise LogFileError('Unknown iterator: {0}'.format(iterator))
+            raise LogFileError('Unknown iterator: {}'.format(iterator))
 
         if not self.__loaded:
             if self.fd is not None:
@@ -523,7 +523,7 @@ class LogFile(list):
                         self.fd = self.__open_logfile__(self.path)
                         self.mtime = datetime.fromtimestamp(os.stat(self.path).st_mtime)
                     except OSError as e:
-                        raise LogFileError('Error opening {0}: {1}'.format(self.path, e))
+                        raise LogFileError('Error opening {}: {}'.format(self.path, e))
 
             while True:
                 if self.get_iterator(iterator) < len(self)-1:
@@ -598,7 +598,7 @@ class LogFile(list):
                 return entry
 
         except OSError as e:
-            raise LogFileError('Error reading file {0}: {1}'.format(self.path, e))
+            raise LogFileError('Error reading file {}: {}'.format(self.path, e))
 
     def reload(self):
         """Reload file
@@ -694,9 +694,9 @@ class LogFileCollection(object):
                 stats[ts].append(path)
 
             except OSError as e:
-                raise LogFileError('Error running stat on {0}: {1}'.format(path, e))
+                raise LogFileError('Error running stat on {}: {}'.format(path, e))
             except IOError as e:
-                raise LogFileError('Error running stat on {0}: {1}'.format(path, e))
+                raise LogFileError('Error running stat on {}: {}'.format(path, e))
 
         for ts in stats.keys():
             stats[ts].sort()
@@ -707,7 +707,7 @@ class LogFileCollection(object):
             )
 
     def __repr__(self):
-        return 'collection of {0:d} logfiles'.format(len(self.logfiles))
+        return 'collection of {:d} logfiles'.format(len(self.logfiles))
 
     def __iter__(self):
         return self

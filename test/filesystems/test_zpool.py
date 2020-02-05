@@ -1,7 +1,6 @@
 """
 Test zpool status parsers
 """
-from __future__ import unicode_literals
 
 import pytest
 import sys

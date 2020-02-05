@@ -8,7 +8,6 @@ dmi = DMI()
 print(dmi.to_json())
 
 """
-from __future__ import unicode_literals
 
 import json
 import re
@@ -86,7 +85,7 @@ class DMIProperty(dict):
         self.options = []
 
     def __repr__(self):
-        return '{0}={1}'.format(self.name, self.value)
+        return '{}={}'.format(self.name, self.value)
 
     def add_option(self, value):
         self.options.append(value)
@@ -114,7 +113,7 @@ class DMIHandle(object):
         self.properties = []
 
     def __repr__(self):
-        return '"{0}" offset {1}, type {2}, {3} bytes'.format(
+        return '"{}" offset {}, type {}, {} bytes'.format(
             self.name,
             self.offset,
             self.handle_type,
@@ -141,7 +140,7 @@ class DMIHandle(object):
 
         """
         return {
-            'offset': '0x{0:04X}'.format(self.offset),
+            'offset': '0x{:04X}'.format(self.offset),
             'type': self.handle_type,
             'name': self.name,
             'bytes': self.handle_bytes,
@@ -158,7 +157,7 @@ class DMITable(object):
         self.handles = []
 
     def __repr__(self):
-        return 'DMI table {0}'.format(self.address)
+        return 'DMI table {}'.format(self.address)
 
     def add_handle(self, handle):
         """Add handle to table
@@ -236,7 +235,7 @@ class DMI(StatsParser):
                     prop.add_option(line.lstrip('\t'))
 
                 else:
-                    raise DMIError('Error parsing line {0}'.format(line))
+                    raise DMIError('Error parsing line {}'.format(line))
 
                 continue
 
@@ -287,7 +286,7 @@ class DMI(StatsParser):
         try:
             stdout, stderr = self.execute('dmidecode')
         except StatsParserError as e:
-            raise StatsParserError('Error running dmidecode: {0}'.format(e))
+            raise StatsParserError('Error running dmidecode: {}'.format(e))
 
         self.__parse_lines__(stdout.splitlines())
         return self.update_timestamp()

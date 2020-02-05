@@ -1,7 +1,6 @@
 """
 Test zfs volume/snapshot status parsers
 """
-from __future__ import unicode_literals
 
 import pytest
 import sys

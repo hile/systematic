@@ -1,7 +1,6 @@
 """
 Test dmidecode parser
 """
-from __future__ import unicode_literals
 
 import pytest
 import sys

@@ -12,12 +12,10 @@ setup(
     url='https://github.com/hile/systematic/',
     version=__version__,
     license='PSF',
+    python_requires='>3.6.0',
     packages=find_packages(),
     scripts=glob.glob('bin/*'),
-    install_requires=(
-        'configobj',
-        'future',
-    ),
+    install_requires=(),
     tests_require=(
         'pytest',
         'pytest-runner',

@@ -71,7 +71,7 @@ class BSDVMStats(SystemStatsParser):
         for group, details in VMSTAT_FIELD_MAP.items():
             if field in details:
                 return group, details[field]
-        raise KeyError('Unknown VM stats field key: {0}'.format(field))
+        raise KeyError('Unknown VM stats field key: {}'.format(field))
 
     def update(self):
         """Update vmstat vm counters

@@ -89,7 +89,7 @@ class FileSystemFlags(dict):
         Set a filesystem flag
         """
         if flag in self:
-            raise ValueError('Flag already set: {0}'.format(flag))
+            raise ValueError('Flag already set: {}'.format(flag))
 
         self.__setitem__(flag, value)
 
@@ -110,7 +110,7 @@ class MountPoint(SortableContainer):
         self.usage = {}
 
     def __repr__(self):
-        return '{0} mounted on {1}'.format(self.device, self.path)
+        return '{} mounted on {}'.format(self.device, self.path)
 
     @property
     def is_virtual(self):

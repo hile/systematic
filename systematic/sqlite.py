@@ -34,7 +34,7 @@ class SQLiteDatabase(object):
             try:
                 os.makedirs(db_dir)
             except IOError as e:
-                raise SQLiteError('Error creating directory {0}: {1}'.format(db_dir, e))
+                raise SQLiteError('Error creating directory {}: {}'.format(db_dir, e))
 
         self.conn = sqlite3.Connection(self.db_path)
 
@@ -48,7 +48,7 @@ class SQLiteDatabase(object):
                 try:
                     c.execute(q)
                 except sqlite3.OperationalError as e:
-                    raise SQLiteError('Error executing SQL:\n{0}\n{1}'.format(q, e))
+                    raise SQLiteError('Error executing SQL:\n{}\n{}'.format(q, e))
 
     def __del__(self):
         """

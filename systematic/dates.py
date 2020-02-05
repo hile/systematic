@@ -4,7 +4,6 @@ Class to parse and represent local calendar.
 Suited for walking weeks and months and to get working days for
 certain calendar date week easily.
 """
-from __future__ import unicode_literals
 
 import time
 import calendar
@@ -74,7 +73,7 @@ class Day(object):
                 try:
                     self.value = date(*time.localtime(int(value))[:3])
                 except ValueError:
-                    raise DatesError('Error parsing date: {0}'.format(value))
+                    raise DatesError('Error parsing date: {}'.format(value))
 
     def __getattr__(self, attr):
         if attr == 'weekday':
@@ -115,13 +114,13 @@ class Day(object):
         try:
             return Day(self.value - timedelta(days=value))
         except ValueError:
-            raise DatesError('Invalid day delta: {0}'.format(value))
+            raise DatesError('Invalid day delta: {}'.format(value))
 
     def __add__(self, value):
         try:
             return Day(self.value + timedelta(days=value))
         except ValueError:
-            raise DatesError('Invalid day delta: {0}'.format(value))
+            raise DatesError('Invalid day delta: {}'.format(value))
 
     def strftime(self, value):
         return self.value.strftime(value)
@@ -148,7 +147,7 @@ class Week(object):
                 if self.firstweekday < 0 or self.firstweekday > 6:
                     raise ValueError
             except ValueError:
-                raise ValueError('Invalid first week day index: {0}'.format(firstweekday))
+                raise ValueError('Invalid first week day index: {}'.format(firstweekday))
         wday = (day.value.isoweekday()+(7-self.firstweekday)) % 7
 
         self.first = day - wday
@@ -158,7 +157,7 @@ class Week(object):
         self.workdays = []
         if workdays is not None:
             if not isinstance(workdays, collections.Iterable):
-                raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
+                raise ValueError('Invalid workdays index list parameter: {}'.format(workdays))
             for i in workdays:
                 try:
                     i = int(i)
@@ -166,7 +165,7 @@ class Week(object):
                         raise ValueError
                     self.workdays.append(self.first + i)
                 except ValueError:
-                    raise ValueError('Invalid workdays index list parameter: {0}'.format(workdays))
+                    raise ValueError('Invalid workdays index list parameter: {}'.format(workdays))
 
         else:
             try:
@@ -174,7 +173,7 @@ class Week(object):
                 if workdays_per_week < 0 or workdays_per_week > 7:
                     raise ValueError
             except ValueError:
-                raise ValueError('Invalid value for workdays_per_week: {0}'.format(workdays_per_week))
+                raise ValueError('Invalid value for workdays_per_week: {}'.format(workdays_per_week))
             self.workdays = []
             for i in range(0, workdays_per_week):
                 if i <= 6:
@@ -186,7 +185,7 @@ class Week(object):
         return self.__str__()
 
     def __str__(self):
-        return 'Week {0} {1} - {2}'.format(self.first.strftime('%U'), self.first, self.last)
+        return 'Week {} {} - {}'.format(self.first.strftime('%U'), self.first, self.last)
 
     def __hash__(self):
         return (self.first)
@@ -206,7 +205,7 @@ class Week(object):
         except ValueError:
             pass
 
-        raise IndexError('Invalid week day index: {0}'.format(attr))
+        raise IndexError('Invalid week day index: {}'.format(attr))
 
     def __sub__(self, value):
         return Week(self.first-7*int(value), None, firstweekday=self.firstweekday)
@@ -281,7 +280,7 @@ class Month(object):
         except ValueError:
             pass
 
-        raise IndexError('Invalid month day index: {0} (month has {1:d} days)'.format(attr, self.days))
+        raise IndexError('Invalid month day index: {} (month has {:d} days)'.format(attr, self.days))
 
     def __len__(self):
         return self.days

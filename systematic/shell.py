@@ -2,8 +2,6 @@
 Utility functions for python in unix shell.
 """
 
-from __future__ import unicode_literals
-
 import sys
 import os
 import time
@@ -73,7 +71,7 @@ class CommandPathCache(list):
         self.update()
 
     def __repr__(self):
-        return '{0}'.format(type(self))
+        return '{}'.format(type(self))
 
     def update(self):
         """
@@ -158,7 +156,7 @@ class ScriptThreadManager(list):
             except Empty:
                 return
             else:
-                sys.stdout.write('{0}\n'.format(line))
+                sys.stdout.write('{}\n'.format(line))
 
     def run(self):
         while len(self) > 0:
@@ -188,7 +186,7 @@ class Script(object):
         signal.signal(signal.SIGINT, self.SIGINT)
 
         if has_setproctitle:
-            setproctitle('{0} {1}'.format(self.name, ' '.join(sys.argv[1:])))
+            setproctitle('{} {}'.format(self.name, ' '.join(sys.argv[1:])))
 
         if sys.version_info.major < 3:
             reload(sys)  # noqa
@@ -239,7 +237,7 @@ class Script(object):
             active = [t for t in threading.enumerate() if t.name != 'MainThread']
             if not len(active):
                 break
-            self.log.debug('Waiting for {0:d} threads'.format(len(active)))
+            self.log.debug('Waiting for {:d} threads'.format(len(active)))
             time.sleep(poll_interval)
 
     def exit(self, value=0, message=None):
@@ -278,10 +276,10 @@ class Script(object):
     def message(self, message):
         if self.silent:
             return
-        sys.stdout.write('{0}\n'.format(message))
+        sys.stdout.write('{}\n'.format(message))
 
     def error(self, message):
-        sys.stderr.write('{0}\n'.format(message))
+        sys.stderr.write('{}\n'.format(message))
 
     def add_subcommand(self, command):
         """Add a subcommand parser instance
@@ -384,7 +382,6 @@ class Script(object):
         if args.command is None:
             self.exit(1, 'No command selected')
 
-
     def execute(self, args, stdin=sys.stdin, stdout=sys.stdout, stderr=sys.stderr, dryrun=False):
         """
         Default wrapper to execute given interactive shell command
@@ -397,7 +394,7 @@ class Script(object):
             raise ValueError('Execute arguments must be a list')
 
         if dryrun:
-            self.log.debug('would execute: {0}'.format(' '.join(args)))
+            self.log.debug('would execute: {}'.format(' '.join(args)))
             return 0
 
         p = Popen(args, stdin=stdin, stdout=stdout, stderr=stderr)
@@ -474,7 +471,7 @@ class ScriptCommand(argparse.ArgumentParser):
         Implement your subcommand logic here.
 
         """
-        sys.stderr.write('Subcommand {0} has no run method implemented\n'.format(self.name))
+        sys.stderr.write('Subcommand {} has no run method implemented\n'.format(self.name))
 
 
 class ShellCommandParserError(Exception):
@@ -507,12 +504,12 @@ class ShellCommandParser(object):
             args = args.split()
 
         if self.__command_cache__.which(args[0]) is None:
-            raise ShellCommandParserError('Command not found: {0}'.format(args[0]))
+            raise ShellCommandParserError('Command not found: {}'.format(args[0]))
 
         p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
         stdout, stderr = p.communicate()
         if p.returncode != 0:
-            raise ShellCommandParserError('Error running {0}: {1}'.format(' '.join(args), stderr))
+            raise ShellCommandParserError('Error running {}: {}'.format(' '.join(args), stderr))
 
         stdout = str(stdout, 'utf-8')
         stderr = str(stderr, 'utf-8')

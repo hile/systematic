@@ -28,7 +28,7 @@ class SystemInformation(SystemInformationParser):
     @property
     def uptime(self):
         m = RE_BOOTTIME.match(self.sysctl['kern.boottime'].value)
-        return time.time() - float('{0}.{1}'.format(m.groupdict()['seconds'], m.groupdict()['microseconds']))
+        return time.time() - float('{}.{}'.format(m.groupdict()['seconds'], m.groupdict()['microseconds']))
 
     @property
     def total_memory(self):

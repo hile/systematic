@@ -3,7 +3,6 @@ Process lists.
 
 Uses custom flags for ps command to get similar output for all supported platforms.
 """
-from __future__ import unicode_literals
 
 import re
 import os
@@ -78,7 +77,7 @@ class Process(SortableContainer):
             setattr(self, key, value)
 
     def __repr__(self):
-        return '{0} {1} {2}'.format(self.username, self.pid, self.command)
+        return '{} {} {}'.format(self.username, self.pid, self.command)
 
     def __parse_date__(self, value):
         for fmt in TIME_FORMATS:
@@ -141,7 +140,7 @@ class Process(SortableContainer):
         if not hasattr(self, 'pid'):
             return None
 
-        exe = '/proc/{0}/exe'.format(self.pid)
+        exe = '/proc/{}/exe'.format(self.pid)
         if not os.path.islink(exe):
             return None
 
@@ -166,9 +165,9 @@ class Processes(list):
             p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
             stdout, stderr = [str(x, 'utf-8') for x in p.communicate()]
             if p.returncode != 0:
-                raise ProcessError('Error running ps: {0}'.format(stderr))
+                raise ProcessError('Error running ps: {}'.format(stderr))
         except OSError as e:
-            raise ProcessError('Error running ps: {0}'.format(e))
+            raise ProcessError('Error running ps: {}'.format(e))
 
         for line in stdout.splitlines()[1:]:
             self.append(Process(fields, line))
@@ -196,7 +195,7 @@ class Processes(list):
         try:
             filters = [(key, pattern) for x in args for key, pattern in x.split('=', 1)]
         except ValueError as e:
-            raise ProcessError('Invalid filter list: {0}: {1}'.format(args, e))
+            raise ProcessError('Invalid filter list: {}: {}'.format(args, e))
         filters.extend(kwargs.items())
 
         filtered = []
@@ -204,8 +203,8 @@ class Processes(list):
             matches = True
             for key, pattern in filters:
                 if not hasattr(entry, key):
-                    raise ProcessError('Invalid filter key: {0}'.format(key))
-                if not re.compile('{0}'.format(pattern)).match('{0}'.format(getattr(entry, key))):
+                    raise ProcessError('Invalid filter key: {}'.format(key))
+                if not re.compile('{}'.format(pattern)).match('{}'.format(getattr(entry, key))):
                     matches = False
                     break
 

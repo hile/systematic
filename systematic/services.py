@@ -24,7 +24,7 @@ class ServiceListEntry(list):
         self.extend(names)
 
     def __repr__(self):
-        return '{0}/{1} {2}'.format(self.port, self.protocol, ','.join(self))
+        return '{}/{} {}'.format(self.port, self.protocol, ','.join(self))
 
 
 class ServiceList(dict):
@@ -37,14 +37,14 @@ class ServiceList(dict):
     """
     def __init__(self, path='/etc/services'):
         if not os.path.isfile(path):
-            raise ServiceError('No such file: {0}'.format(path))
+            raise ServiceError('No such file: {}'.format(path))
 
         try:
             lines = open(path, 'r').readlines()
         except IOError as e:
-            raise ServiceError('Error reading {0}: {1}'.format(path, e))
+            raise ServiceError('Error reading {}: {}'.format(path, e))
         except OSError as e:
-            raise ServiceError('Error reading {0}: {1}'.format(path, e))
+            raise ServiceError('Error reading {}: {}'.format(path, e))
 
         for line in [line for line in lines if not line.startswith('#')]:
             try:
@@ -123,7 +123,7 @@ class ServiceList(dict):
             try:
                 protocols = self[port]
             except ValueError:
-                raise ValueError('Invalid port: {0}'.format(port))
+                raise ValueError('Invalid port: {}'.format(port))
             except KeyError:
                 return []
             if protocol is None:
